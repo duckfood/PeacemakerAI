@@ -1,0 +1,10 @@
+{
+	"AI": {
+		"js": "PeacemakerAI.js",
+		"name": "PeacemakerAI",
+		"tip": "peace through fortitude",
+		"wins": 0,
+		"losses": 0,
+		"draws": 0
+	}
+}

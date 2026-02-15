@@ -1,0 +1,108 @@
+TODO for PeacemakerAI
+
+try using commander to coordinate repairs
+redo getLargestOilClusterID action
+set factory rally point
+
+order units to stop before reaching rally point
+
+-retreating vtols should attack random derrick after a few secs
+try setting retreating vtols to scout instead of rtb
+handle group of roaming aa better with alphastrike
+
+vtol call in support when attacking aa
+derrick call in vtol support on spotted targets
+
+-prune eventattacked -- support is not called in
+-delay research until 3 vtol pads built
+-print debugging to in-game console
+swap pilots to strongest units -- undo scraping
+-vtols should respond to attacks on derricks and units
+-delay building second vtol factory
+-repairs getting stuck at base after rtb defend
+
+-new units should stop moving on build -- not move to rally point
+-truck run zone should be smaller
+-remove strongest player messages
+-remove time from console logs
+what to do with excess energy? defenses? repair? bank it? build factories?
+
+alphastrike massed mobile aa
+check to make sure all trucks are in groups
+patrol idle base trucks
+
+-leastaaplayer not working
+-destroyed base oil not being rebuilt
+===========================================
+
+-don't return oilbuilder to upgrade factories
+-delay upgrade of factories if vtol is available but not filled
+-attack bandit walls instead of scout
+-make pads sparse
+clean up remaining units after buildings
+move off burning ground
+-build tech level 3 air defense
+ vtols not defending
+-idle vtol not attacking lassat
+-vtol alpha strike not working
+-build more power early if needed
+-delay building defenses until 2 power
+
+-AA bunker building not working
+-damaged vtols not repairing
+-command still being built before relay
+random lab still favors lab
+-build AA site not working
+
+-no grabbing helpbuild basebuilders 
+-require less pads at higher levels
+
+if ultimate scavs at tech 0 fast build one aa unit
+
+use derrickAttacks
+
+-remove recycling droids from groups
+
+-make trucks steal any oil
+-trucks are not turning back when threatened and moving to build
+
+-attackEnemy use closest target
+-if dorder guard and daction none for attackers
+better routine for defenders
+-vtols should track down trucks
+
+if many opponents build fortress near base
+build and defend wall trucks
+
+if truck is repairing do not retreat
+-grab idle repair droids
+add if droid can reach location to targeting
+-add repair to supportgroup 1/5
+
+=-=================================
+
+-trucks do not capture oil unless its visible
+-research gets upgraded too late
+-trucks that did not build on oil should move to oil
+============================
+
+-demolish trees near base
+demolish trees everywhere when not attacking
+try to prevent basebuilders building in a difficult place to reach near base
+if base builder gets too far from base turn back and try to build somewhere else
+idle basebuilders should patrol
+
+
+====
+
+-build less defenses in base
+-prefer indirect fire for base defenses
+
+getClosestMapEdges()
+build base toward map edge
+
+-basebuilders should be more if there are many derricks
+
+-attack most thretening player
+-getStrongestPlayer()
+
