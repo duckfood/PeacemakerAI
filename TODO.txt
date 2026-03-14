@@ -1,16 +1,50 @@
 TODO for PeacemakerAI
 
+-limit building extra aa in base
+-reduce vtol building throttle
+
+-better randomize lassat placement
+
+--lassat still not firing
+
+-dont build labs on max tech
+
+=build lassat a little later
+
+-vtol pads update buildloc
+-check if aa support vtols are ready
+
 try using commander to coordinate repairs
 redo getLargestOilClusterID action
 set factory rally point
 
+retreat when electronic health is low
+
+-dont build too many base defenses when funds are flush
+-pilot upgrade not working soon enough
+
+retreat from ultimate scavs
+
+-build vtol pads before extra factories
+
+-add units present at start to groups
+
+detect and handle pileups
+
+limit oil trucks
+-dont send trucks to collect artifacts only players do that
+
 order units to stop before reaching rally point
 
+when starting with all tech rely on vtols less
+maybe vtols should run from one high tech aa unit
+alpha strike on mobile aa
+-re-enable double tanks
+
 -retreating vtols should attack random derrick after a few secs
-try setting retreating vtols to scout instead of rtb
 handle group of roaming aa better with alphastrike
 
-vtol call in support when attacking aa
+-vtol call in support when attacking aa
 derrick call in vtol support on spotted targets
 
 -prune eventattacked -- support is not called in
@@ -25,7 +59,7 @@ swap pilots to strongest units -- undo scraping
 -truck run zone should be smaller
 -remove strongest player messages
 -remove time from console logs
-what to do with excess energy? defenses? repair? bank it? build factories?
+-what to do with excess energy? defenses? repair? bank it? build factories?
 
 alphastrike massed mobile aa
 check to make sure all trucks are in groups
@@ -87,7 +121,7 @@ add if droid can reach location to targeting
 ============================
 
 -demolish trees near base
-demolish trees everywhere when not attacking
+maybe demolish trees everywhere when not attacking
 try to prevent basebuilders building in a difficult place to reach near base
 if base builder gets too far from base turn back and try to build somewhere else
 idle basebuilders should patrol

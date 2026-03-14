@@ -808,11 +808,21 @@ function idleRepair(droid)
 
 function fireLassat(satellite)
 {
-	if (satellite.stattype !== LASSAT)
-	{ 
-		log("fireLassat passed non lassat:"+JSON.stringify(satellite)); 
-		return;
+	const my_lassat = enumStruct(me, LASSAT_STAT); //).filter((obj) => (obj.status === BUILT));
+
+	//if (!my_lassat.id) { return false; }
+
+	if (!satellite && my_lassat[0]) {
+		satellite = my_lassat[0];
 	}
+	if (!satellite || !satellite.id) {
+		return false;
+	}
+	// if (satellite.stattype !== LASSAT)
+	// {
+	// 	log("fireLassat passed non lassat:"+JSON.stringify(satellite));
+	// 	return;
+	// }
 	
 	var enemy_lassat = []; var enemy_vtol_fact = []; var enemy_fact = [];  var enemy_gen = []; var enemy_hq = [];
 	var fired = false;
@@ -863,8 +873,9 @@ function fireLassat(satellite)
 	}
 	if (fired === false)
 	{
-		queue("fireLassat", 30000, satellite);
+		//queue("fireLassat", 30000, satellite);
 		logObj(satellite, "fireLassat did not fire retry");
+		return false;
 	}
 }
 

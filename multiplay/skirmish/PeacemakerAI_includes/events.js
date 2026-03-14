@@ -393,7 +393,7 @@ function eventDestroyed(object)
 
 function eventStructureBuilt(structure, droid)
 {	
-	if (structure && !structure.modules && (structure.stattype === FACTORY || structure.stattype === RESEARCH_LAB || structure.stattype === POWER_GEN || structure.stattype === VTOL_FACTORY))
+	if (structure && !structure.modules && (structure.stattype === FACTORY || structure.stattype === RESEARCH_LAB || structure.stattype === POWER_GEN || structure.stattype === VTOL_FACTORY || structure.stattype === REARM_PAD))
 	{
 		// randomize last build location
 		lastBuildLoc = { x: structure.x-(random(4)), y: structure.y-(random(4)) };

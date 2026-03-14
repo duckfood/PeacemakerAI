@@ -28,13 +28,15 @@ const MIN_BUILD_POWER = 80;
 const MIN_RESEARCH_POWER = -50;
 const MIN_PRODUCTION_POWER = 60;
 const MIN_BUSTERS = 4;
-const MIN_ATTACK_GSIZE = 8;
+const MIN_ATTACK_GSIZE = 5;
 const MIN_SENSOR_DROIDS = 1;
 const HELP_CONSTRUCT_AREA = 20;
 const MIN_GROUND_UNITS = 5;
 const MIN_VTOL_UNITS = 4;
 const GROUP_SCAN_RADIUS = 8;
-const AVG_BASE_RADIUS = 20; 
+const AVG_BASE_RADIUS = 20;
+
+const startDroids = enumDroid(me);
 
 const ENEMY_DERRICK_SCAN_RANGE = 20;
 
@@ -127,6 +129,22 @@ function eventStartLevel()
 	setTimer("droidAwareSensor", 700 + ((1 + random(4)) * random(30)));
 	
 	setTimer("checkVtolAlphaStrike", VTOL_DEFEND_TIME*3 + ((1 + random(4)) * random(30)));	
+
+	setTimer("fireLassat", 10000 + ((1 + random(4)) * random(30)));
+
+	// add units present at start to groups
+
+	for (dr of startDroids)
+	{
+		eventDroidBuilt(dr, "");
+	}
+
+	// check if any research is available at start
+	if (getMultiTechLevel() > 3)
+	{
+		researchDone = true;
+	}
+
 }
 
 include("/multiplay/skirmish/PeacemakerAI_includes/miscFunctions.js");
@@ -138,3 +156,5 @@ include("/multiplay/skirmish/PeacemakerAI_includes/research.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/timers.js");
 
 log("VTOL_DEFEND_TIME: "+VTOL_DEFEND_TIME);
+
+

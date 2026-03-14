@@ -35,7 +35,7 @@ function droidAwareSensor()
 		if (dr.droidType !== DROID_SENSOR) { continue; }
 		
 		const objects = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*3, ALL_PLAYERS, true);
-		const artifacts = objects.filter((obj) => (obj.type === FEATURE && (obj.stattype === OIL_DRUM || obj.stattype === ARTIFACT)) );
+//		const artifacts = objects.filter((obj) => (obj.type === FEATURE && (obj.stattype === OIL_DRUM || obj.stattype === ARTIFACT)) );
 		
 		const enemy_objects = objects.filter((obj) => (obj.type !== FEATURE && !allianceExistsBetween(me, obj.player)) );
 		const AA = enemy_objects.filter((obj) => (obj.canHitAir === true && obj.canHitGround === false));
@@ -74,22 +74,22 @@ function droidAwareSensor()
 			}
 		}
 		// if sensor sees oil drum or artifact pick it up
-		if (dr.order !== DORDER_RTB && dr.order !== DORDER_RTR && dr.order !== DORDER_RECOVER)
-		{
-			if (artifacts && artifacts.length > 0)
-			{
-				var randpickup = artifacts[random(artifacts.length -1)];
-				const enemies_pickup = enumRange(randpickup.x, randpickup.y, GROUP_SCAN_RADIUS, ENEMIES, true).filter((obj) => (obj.droidType === DROID_WEAPON || obj.droidType === DROID_CYBORG || obj.stattype === DEFENSE));
-				if (enemies_pickup.length === 0 && droidCanReach(dr, randpickup.x, randpickup.y))
-				{
-					orderDroidObj(dr, DORDER_RECOVER, randpickup);
-					logObj(dr, "droidAware sensor ordered to recover artifact")
-					orderTargets.set(dr.id, randpickup.id);
-					orderLocations.delete(dr.id);
-					continue;
-				}
-			}
-		}
+		// if (dr.order !== DORDER_RTB && dr.order !== DORDER_RTR && dr.order !== DORDER_RECOVER)
+		// {
+		// 	if (artifacts && artifacts.length > 0)
+		// 	{
+		// 		var randpickup = artifacts[random(artifacts.length -1)];
+		// 		const enemies_pickup = enumRange(randpickup.x, randpickup.y, GROUP_SCAN_RADIUS, ENEMIES, true).filter((obj) => (obj.droidType === DROID_WEAPON || obj.droidType === DROID_CYBORG || obj.stattype === DEFENSE));
+		// 		if (enemies_pickup.length === 0 && droidCanReach(dr, randpickup.x, randpickup.y))
+		// 		{
+		// 			orderDroidObj(dr, DORDER_RECOVER, randpickup);
+		// 			logObj(dr, "droidAware sensor ordered to recover artifact")
+		// 			orderTargets.set(dr.id, randpickup.id);
+		// 			orderLocations.delete(dr.id);
+		// 			continue;
+		// 		}
+		// 	}
+		// }
 		// sensor close to target location
 		if (dr.order === DORDER_MOVE && orderLocations.has(dr.id)) 
 		{
@@ -171,7 +171,17 @@ function droidAwareVtol()
 				if (threats_aa && threats_aa.length < 3)
 				{
 					orderDroidObj(dr, DORDER_ATTACK, threats[0]);
-					logObj(dr, "droidAware scouting vtol ordered to attack AA");
+					logObj(dr, "droidAware scouting vtol ordered to attack AA - call in support");
+
+					// call in air support
+					for (dr2 of droidAware)
+					{
+						// order vtols to scout to AA if healthy and fully loaded
+						if (dr2.health === 100 && dr2.weapons[0].armed === 100 && dr2.id != dr.id)
+						{
+							orderDroidLoc(dr2, DORDER_SCOUT, threats[0].x, threats[0].y);
+						}
+					}
 					continue;
 				}
 			}
@@ -426,23 +436,23 @@ function droidAwareTruck()
 			}
 		}
 		// if truck sees oil drum or artifact pick it up after a factory is built
-		if (countStruct(FACTORY_STAT) > 0 && dr.group === oilBuilders && (dr.order === DORDER_SCOUT || dr.action === 18)) // move to build?
-		{
-			var artifacts = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*2, ALL_PLAYERS, true).filter((obj) => (obj.type === FEATURE && (obj.stattype === OIL_DRUM || obj.stattype === ARTIFACT)) );
-			if (artifacts.length !== 0)
-			{
-				var randpickup = artifacts[random(artifacts.length -1)];
-				var enemies = enumRange(randpickup.x, randpickup.y, GROUP_SCAN_RADIUS, ENEMIES, true).filter((obj) => (obj.droidType === DROID_WEAPON || obj.droidType === DROID_CYBORG || obj.stattype === DEFENSE));
-				if (enemies.length === 0 && droidCanReach(dr, randpickup.x, randpickup.y))
-				{
-					orderDroidObj(dr, DORDER_RECOVER, randpickup);
-					logObj(dr, "droidAware truck ordered to recover artifact")
-					orderTargets.set(dr.id, randpickup.id);
-					orderLocations.delete(dr.id);
-					continue;
-				}
-			}
-		}
+		// if (countStruct(FACTORY_STAT) > 0 && dr.group === oilBuilders && (dr.order === DORDER_SCOUT || dr.action === 18)) // move to build?
+		// {
+		// 	var artifacts = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*2, ALL_PLAYERS, true).filter((obj) => (obj.type === FEATURE && (obj.stattype === OIL_DRUM || obj.stattype === ARTIFACT)) );
+		// 	if (artifacts.length !== 0)
+		// 	{
+		// 		var randpickup = artifacts[random(artifacts.length -1)];
+		// 		var enemies = enumRange(randpickup.x, randpickup.y, GROUP_SCAN_RADIUS, ENEMIES, true).filter((obj) => (obj.droidType === DROID_WEAPON || obj.droidType === DROID_CYBORG || obj.stattype === DEFENSE));
+		// 		if (enemies.length === 0 && droidCanReach(dr, randpickup.x, randpickup.y))
+		// 		{
+		// 			orderDroidObj(dr, DORDER_RECOVER, randpickup);
+		// 			logObj(dr, "droidAware truck ordered to recover artifact")
+		// 			orderTargets.set(dr.id, randpickup.id);
+		// 			orderLocations.delete(dr.id);
+		// 			continue;
+		// 		}
+		// 	}
+		// }
 		// check truck scout locations for ememies, cancel scout order if more than one combat unit present
 		if (orderLocations.has(dr.id) && dr.order === DORDER_SCOUT)
 		{
@@ -772,6 +782,18 @@ function baseAware()
 
 function balanceGroups()
 {
+	// swap pilots to better units if close by
+//	const droidWeapon = enumDroid(me, DROID_WEAPON); // filter indirect fire
+//	for (dr of droidWeapon)
+//	{
+		// find nearby combat units
+//		const droidInRange = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS/2, ALLIES, true).filter((obj) => (obj.player === me && obj.isVTOL === false));
+		// work out which one is strongest
+
+		// dont replace higher exp pilots
+		// swap pilots
+//	}
+
 	// remove AAthreats that no longer exist
 	// eventDestroyed should remove them too
 	for (threat of AAthreats)
@@ -831,8 +853,8 @@ function balanceGroups()
 	}
 
 	// decide when to recycle obsolete droids
-	// if python and vtol are available and groups are large enough recycle vipers with experience
-	if (componentAvailable("Body11ABT") && componentAvailable("V-Tol"))
+	// if python and hvc are available and groups are large enough recycle vipers with experience
+	if (componentAvailable("Body11ABT") && componentAvailable("Cannon4AUTOMk1"))
 	{
 		var droids = enumDroid(DROID_WEAPON);
 		if (droids && droids.length > MIN_ATTACK_GSIZE*4)

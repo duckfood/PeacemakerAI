@@ -683,14 +683,6 @@ function buildFundamentals2()
 	if (isStructureAvailable(VTOL_FACTORY_STAT) && countStruct(VTOL_FACTORY_STAT) === 0 && grabTrucksAndBuild(VTOL_FACTORY_STAT, 1))
 	{
 		return;
-	}	
-	
-	if (isStructureAvailable(LASSAT_STAT) && countStruct(LASSAT_STAT) === 0)
-	{	
-		// how to find location away from other base structures but not too far away?
-		var buildloc = {x: lastBuildLoc.x+random(12), y: lastBuildLoc.y+random(12)}
-		grabTrucksAndBuild(LASSAT_STAT, 0, buildloc.x, buildloc.y);
-		return;
 	}
 
 	//Build VTOL pads if there are vtol factories
@@ -700,6 +692,16 @@ function buildFundamentals2()
 	{
 		return;
 	}
+
+	if (isStructureAvailable(LASSAT_STAT) && countStruct(LASSAT_STAT) === 0)
+	{
+		// how to find location away from other base structures but not too far away?
+		var buildloc = {x: lastBuildLoc.x+(random(20)-10), y: lastBuildLoc.y+(random(20)-10)}
+		grabTrucksAndBuild(LASSAT_STAT, 0, buildloc.x, buildloc.y);
+		return;
+	}
+
+
 
 	if (factoryBuildOrder())
 	{
@@ -748,15 +750,15 @@ function buildFundamentals2()
 		return;
 	}
 	//Build defenses in base.
-	if (getRealPower() > MIN_BUILD_POWER*8 && random(100) < 5 && buildAntiAir(true))
-	{
-		return;
-	}
+	//if (getRealPower() > MIN_BUILD_POWER*8 && random(100) < 5 && buildAntiAir(true))
+	//{
+	//	return;
+	//}
 
-	if (getRealPower() > MIN_BUILD_POWER*16 && buildDefenses())
-	{
-		return;
-	}
+//	if (getRealPower() > MIN_BUILD_POWER*16 && buildDefenses())
+//	{
+//		return;
+//	}
 
 	//log("All fundamental buildings built -- proceed to military stuff");
 }
@@ -916,20 +918,20 @@ function idleConstructor(droid)
 	const dr = droid;
 
 	// check for artifacts
-	var artifacts = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*2, ALL_PLAYERS, true).filter((obj) => (obj.type === FEATURE && (obj.stattype === OIL_DRUM || obj.stattype === ARTIFACT)) );
-	if (artifacts && artifacts.length > 0)
-	{
-		var randpickup = artifacts[random(artifacts.length-1)];
-		var enemies = enumRange(randpickup.x, randpickup.y, GROUP_SCAN_RADIUS, ENEMIES, true).filter((obj) => (obj.droidType === DROID_WEAPON || obj.droidType === DROID_CYBORG || obj.stattype === DEFENSE));
-		if (enemies.length === 0 && droidCanReach(dr, randpickup.x, randpickup.y))
-		{
-			orderDroidObj(dr, DORDER_RECOVER, randpickup);
-			logObj(dr, "idle truck ordered to recover artifact")
-			orderTargets.set(dr.id, randpickup.id);
-			orderLocations.delete(dr.id);
-			return;
-		}					
-	}
+	//var artifacts = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*2, ALL_PLAYERS, true).filter((obj) => (obj.type === FEATURE && (obj.stattype === OIL_DRUM || obj.stattype === ARTIFACT)) );
+	// if (artifacts && artifacts.length > 0)
+	// {
+	// 	var randpickup = artifacts[random(artifacts.length-1)];
+	// 	var enemies = enumRange(randpickup.x, randpickup.y, GROUP_SCAN_RADIUS, ENEMIES, true).filter((obj) => (obj.droidType === DROID_WEAPON || obj.droidType === DROID_CYBORG || obj.stattype === DEFENSE));
+	// 	if (enemies.length === 0 && droidCanReach(dr, randpickup.x, randpickup.y))
+	// 	{
+	// 		orderDroidObj(dr, DORDER_RECOVER, randpickup);
+	// 		logObj(dr, "idle truck ordered to recover artifact")
+	// 		orderTargets.set(dr.id, randpickup.id);
+	// 		orderLocations.delete(dr.id);
+	// 		return;
+	// 	}
+	// }
 	// build on nearby oil
 	var nearbyoil = enumRange(droid.x, droid.y, GROUP_SCAN_RADIUS*3, me, false).filter((obj) => (obj.type === FEATURE && obj.stattype === OIL_RESOURCE));
 	if (nearbyoil && nearbyoil.length > 0 ) // && tileIsBurning(nearbyoil[0].x, nearbyoil[0].y) === false

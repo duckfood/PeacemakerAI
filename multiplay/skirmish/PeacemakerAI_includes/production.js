@@ -101,6 +101,13 @@ const MIX_TANK_WEAPONS = [
 	"RailGun3Mk1",
 	"HeavyLaser",
 ];
+const SECONDARY_TANK_WEAPONS = [
+	"Laser2PULSEMk1",
+	"RailGun3Mk1",
+	"Missile-A-T",
+	"RailGun3Mk1",
+	"HeavyLaser",
+];
 const MIX_TANK_ARTILLERY = [
 	"Howitzer-Incendiary",
 	"MortarEMP",
@@ -168,26 +175,26 @@ function buildAttacker(struct)
 	weaponChoice = (random(100) < 10 && enemyHasVtol) ? TANK_AA : weaponChoice;
 
 	// build command turret droid if available and group is empty
-	if (random(100) < 33 && componentAvailable(COMMAND_TURRET) && componentAvailable("Body11ABT") && enumGroup(commanderGroup).length < 1 && countStruct(RELAY_POST_STAT) > 0)
-	{
-		var cprop;
-		if (isSeaMap) { cprop = "hover01"; }
-		else { cprop = TANK_PROP_LIST; }
-
-		var vcommand = 0;
-		const facs = enumStruct(me, FACTORY);
-		for (fac of facs)
-		{
-			var vdr = getDroidProduction(fac);
-			if (vdr && vdr.droidType === DROID_COMMAND) { ++vcommand; }
-		}
-
-		log("command:"+enumDroid(me, DROID_COMMAND)+" vcommand:"+vcommand);
-		if (enumDroid(me, DROID_COMMAND) + vcommand < 1)
-		{
-			return buildCommander(struct, cprop);
-		}
-	}
+	// if (random(100) < 33 && componentAvailable(COMMAND_TURRET) && componentAvailable("Body11ABT") && enumGroup(commanderGroup).length < 1 && countStruct(RELAY_POST_STAT) > 0)
+	// {
+	// 	var cprop;
+	// 	if (isSeaMap) { cprop = "hover01"; }
+	// 	else { cprop = TANK_PROP_LIST; }
+ //
+	// 	var vcommand = 0;
+	// 	const facs = enumStruct(me, FACTORY);
+	// 	for (fac of facs)
+	// 	{
+	// 		var vdr = getDroidProduction(fac);
+	// 		if (vdr && vdr.droidType === DROID_COMMAND) { ++vcommand; }
+	// 	}
+ //
+	// 	log("command:"+enumDroid(me, DROID_COMMAND)+" vcommand:"+vcommand);
+	// 	if (enumDroid(me, DROID_COMMAND) + vcommand < 1)
+	// 	{
+	// 		return buildCommander(struct, cprop);
+	// 	}
+	// }
 
 	var prop = TANK_PROP_LIST;
 
@@ -228,17 +235,15 @@ function buildAttacker(struct)
 	{
 		if (random(100) < WEAPON_CHANCE)
 		{
-			var primary = JSON.parse(JSON.stringify(MIX_TANK_WEAPONS)); // without this deep copy primary and secondary would be the same after shuffle
-			primary = shuffleArray(primary);
-			var secondary = JSON.parse(JSON.stringify(MIX_TANK_WEAPONS));
-			secondary = shuffleArray(secondary);
-			return buildDroid(struct, "Dragon Tank", TANK_BODY_LIST, prop, null, null, primary, secondary);
+			var primary = shuffleArray(MIX_TANK_WEAPONS);
+			var secondary = shuffleArray(SECONDARY_TANK_WEAPONS);
+			return buildDroid(struct, "Dragon Tank", "Body14SUP", prop, null, null, primary, secondary);
 		}
 		else
 		{
 			var primary = shuffleArray(MIX_TANK_ARTILLERY);
 			var secondary = shuffleArray(MIX_TANK_AA);
-			return buildDroid(struct, "Dragon Arti AA Tank", TANK_BODY_LIST, prop, null, null, primary, secondary);			
+			return buildDroid(struct, "Dragon Arti AA Tank", "Body14SUP", prop, null, null, primary, secondary);
 		}
 	}
 
@@ -296,7 +301,7 @@ function buildVTOL(struct)
 	if (getMultiTechLevel() > 3) 
 	{
 		var weapon = shuffleArray(MIX_VTOL_WEAPONS);
-		return buildDroid(struct, "MIX VTOL", VTOL_BODY_LIST, "V-Tol", "", "", weapon, weapon);
+		return buildDroid(struct, "Dragon MIX VTOL", "Body14SUP", "V-Tol", "", "", weapon, weapon);
 	}
 	return buildDroid(struct, "VTOL", VTOL_BODY_LIST, "V-Tol", "", "", VTOL_WEAPONS);
 }
@@ -344,14 +349,14 @@ function produceAndResearch()
 				{
 					if (random(100) > 50 && baseUnderAttack < 2 && countDroid(DROID_CONSTRUCT) + virtualTrucks < getDroidLimit(me, DROID_CONSTRUCT) -2)
 					{
-						if ((countDroid(DROID_CONSTRUCT) + virtualTrucks < MIN_BASE_TRUCKS + MIN_OIL_TRUCKS) || (countStruct(POW_GEN_STAT) > 2) ) // //enumFeature(me, OIL_RES_STAT).length > 4
+						if ((countDroid(DROID_CONSTRUCT) + virtualTrucks < MIN_BASE_TRUCKS + MIN_OIL_TRUCKS) || (countStruct(POW_GEN_STAT) > 3) ) // //enumFeature(me, OIL_RES_STAT).length > 4
 						{ buildDroid(fc, "Truck", SYSTEM_BODY_LIST, SYSTEM_PROP_LIST, null, null, "Spade1Mk1");; }
 					}
 					else
 					{
 						if (countStruct(POW_GEN_STAT))
 						{
-							if (getRealPower() > 1500 || !componentAvailable("V-Tol") || groupSize(vtolGroup) > MIN_ATTACK_GSIZE*2.5) { buildAttacker(fc); }
+							if (getRealPower() > 1000 || !componentAvailable("V-Tol") || groupSize(vtolGroup) > MIN_ATTACK_GSIZE*2.5) { buildAttacker(fc); }
 							else if (componentAvailable("V-Tol") && groupSize(vtolGroup) < MIN_ATTACK_GSIZE) {} // build nothing
 							else if (random(100) < 50) { buildAttacker(fc); } 
 						}
@@ -368,12 +373,12 @@ function produceAndResearch()
 					{
 					if (random(100) > 50 && baseUnderAttack < 2 && countDroid(DROID_CONSTRUCT) + virtualTrucks < getDroidLimit(me, DROID_CONSTRUCT) -2)
 					{
-						if ((countDroid(DROID_CONSTRUCT) + virtualTrucks < MIN_BASE_TRUCKS + MIN_OIL_TRUCKS) || (countStruct(POW_GEN_STAT) > 2 ) )
+						if ((countDroid(DROID_CONSTRUCT) + virtualTrucks < MIN_BASE_TRUCKS + MIN_OIL_TRUCKS) || (countStruct(POW_GEN_STAT) > 3 ) )
 						{ buildDroid(fc, "CyborgSpade", "CyborgLightBody", "CyborgLegs", "", "", "CyborgSpade"); }
 					}
 					else
 						{
-							if (getRealPower() > 1500 || (!componentAvailable("Cannon4AUTOMk1") && random(100) < 50)) { buildCyborg(fc); }
+							if (getRealPower() > 1000 || (!componentAvailable("Cannon4AUTOMk1") && random(100) < 50)) { buildCyborg(fc); }
 							else if (componentAvailable("V-Tol") && groupSize(vtolGroup) < MIN_ATTACK_GSIZE) {} // build nothing
 							else if (random(100) < 50) { buildCyborg(fc); }
 						}
