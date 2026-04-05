@@ -18,39 +18,36 @@ const TANK_PROP_LIST = [
 	"wheeled01", //  wheels
 ];
 const TANK_WEAPON_LIST = [
+	"RailGun3Mk1",
+	"ParticleGun",
 	"Laser2PULSEMk1", // pulselaser, but not flashlight
-	"Cannon4AUTOMk1", // HVC
-	"Cannon2A-TMk1", // medium cannon, but don't research
-	"Cannon1Mk1", // light cannon
-	"MG2Mk1", // twin mg, but don't research
+	"MG5TWINROTARY",
+	"MG4ROTARYMk1",
+	"MG3Mk1", // heavy mg
+	"MG2Mk1", // twin mg
 	"MG1Mk1", // mg, initial weapon
 ];
 const TANK_FLAMERS = [
 	"Howitzer-Incendiary",
 	"Mortar-Incendiary",
-	"PlasmiteFlamer",
-	"Flame2",
-	"Flame1Mk1",
 ]
 const TANK_REPAIR_LIST = [
 	"HeavyRepair",
 	"LightRepair1",
 ];
-
 const TANK_AA = [
 	"AAGunLaser",
-	"AAGun2Mk1",
-];
-const CYBORG_FLAMERS = [
-	"Cyb-Wpn-Thermite",
-	"CyborgFlamer01",
+	"QuadRotAAGun", // whirlwind
+	"QuadMg1AAGun" // hurricane
 ];
 const CYBORG_LASERS = [
 	"Cyb-Hvywpn-PulseLsr",
 ];
-// System definitions
+const CYBORG_MG = [
+	"CyborgRotMG",
+	"CyborgChaingun",
+];
 const SYSTEM_BODY_LIST = [
-	// "Body3MBT",  // retaliation too expensive
 	"Body8MBT", // scorpion
 	"Body5REC",  // Cobra
 	"Body4ABT", // bug
@@ -65,55 +62,47 @@ const SENSOR_TURRETS = [
 	"Sensor-WideSpec",
 	"SensorTurret1Mk1",
 ];
-const COMMAND_TURRET = "CommandBrain01";
-
-// vtol definitions
 const VTOL_WEAPONS = [
 	"Bomb5-VTOL-Plasmite",
-	"Laser2PULSE-VTOL",
-	"Laser3BEAM-VTOL",
+	"ParticleGun-VTOL",
+	"Laser2PULSE-VTOL", // pulse
+	"Laser3BEAM-VTOL", // flashlight
 	"Cannon4AUTO-VTOL",
+	"MG4ROTARY-VTOL",
 ];
 const VTOL_BODY_LIST = [
-	//"Body14SUP", // dragon too slow
+	//"Body14SUP", //dragon handled elsewhere
 	"Body7ABT", // retribution
 	"Body3MBT", // retaliation
 	"Body6SUPP", // panther	
-	//"Body2SUP", // leopard low value
 	"Body8MBT", // scorpion
 	"Body5REC", // cobra
 	"Body4ABT", // bug
 ];
 
-// mixed attacker definitions for MultiTechLevel > 3
+// mixed attacker definitions for high tech
 const MIX_VTOL_WEAPONS = [
 	"Bomb5-VTOL-Plasmite",
-	"Laser2PULSE-VTOL",
-	"Bomb5-VTOL-Plasmite",
 	"RailGun2-VTOL",
+	"Bomb5-VTOL-Plasmite",
 	"Missile-VTOL-AT",
 	"Bomb5-VTOL-Plasmite",
+	"ParticleGun-VTOL",
 ];
 const MIX_TANK_WEAPONS = [
-	"Laser2PULSEMk1",
 	"RailGun3Mk1",
-	"Missile-A-T",
-	"RailGun3Mk1",
-	"HeavyLaser",
+	"SpyTurret01",
+	"ParticleGun",
 ];
 const SECONDARY_TANK_WEAPONS = [
 	"Laser2PULSEMk1",
 	"RailGun3Mk1",
 	"Missile-A-T",
-	"RailGun3Mk1",
-	"HeavyLaser",
 ];
 const MIX_TANK_ARTILLERY = [
 	"Howitzer-Incendiary",
-	"MortarEMP",
-	"Howitzer150Mk1",
+	"PlasmaHeavy",
 	"Missile-HvyArt",
-	"Howitzer-Incendiary",
 ];
 const MIX_TANK_AA = [
 	"AAGunLaser",
@@ -125,36 +114,33 @@ const MIX_CYBORG = [
 	"Cyb-Hvywpn-RailGunner",
 ];
 
-// build tanks
+// build tank attackers and cyborgs
 function buildAttacker(struct) 
 {
+	if (DEBUG_EXTREME) {log("buildAttacker");}
+
+	// build cyborgs
+	if (struct.stattype === CYBORG_FACTORY)
+	{
+		if (relyOnCyborgs) { return buildCyborg(struct);}
+		if (!relyOnCyborgs && random(100) < 30) { return buildCyborg(struct); }
+		return false;
+	}
+	// build tanks
 	const HOVER_CHANCE = 15;
 	const WEAPON_CHANCE = 68;
-	
-	// build MIN_SENSOR_DROIDS 
-	if (componentAvailable("SensorTurret1Mk1") && groupSize(sensorGroup) < MIN_SENSOR_DROIDS && random(100) < 10) 
-	{ 
-		var vsensor = 0;
-		const facs = enumStruct(me, FACTORY_STAT);
-		for (fac of facs)
-		{
-			var vdr = getDroidProduction(fac);
-			if (vdr && vdr.droidType === DROID_SENSOR) { ++vsensor; }
-		}
-		
-		log("sensor:"+groupSize(sensorGroup)+" vsensor:"+vsensor);
-		if (groupSize(sensorGroup) + vsensor < MIN_SENSOR_DROIDS) { return buildSensor(struct); }
-	}
-		
+	var weaponChoice;
+
 	// if factory module and medium body are available, but factory is not upgraded do not build anything else
-	if (struct.modules < 2 && isStructureAvailable("A0FacMod1") && (componentAvailable("Body5REC") || componentAvailable("Body8MBT")) ) 
-	{ return false; }	
+	if (struct.modules < 2 && isStructureAvailable("A0FacMod1") && (componentAvailable("Body5REC") || componentAvailable("Body8MBT")) )
+	{ return false; }
 
 	//Choose either flame or anti-tank.
-	var weaponChoice = (random(100) < WEAPON_CHANCE) ? TANK_WEAPON_LIST : TANK_FLAMERS;
+	if (random(100) > WEAPON_CHANCE && componentAvailable("Mortar-Incendiary")) { weaponChoice = TANK_FLAMERS; }
+	else { weaponChoice = TANK_WEAPON_LIST; }
 
-	// build at least one AA unit if enemyHasVtol
-	if (enemyHasVtol) 
+	// build at least one AA unit if enemyHasVtol if needed
+	if (enemyHasVtol && random(100) < 20 && groupSize(attackGroup) > MIN_GROUND_UNITS*1)
 	{
 		var vAA = 0;
 		const AAfacs = enumStruct(me, FACTORY_STAT);
@@ -174,28 +160,6 @@ function buildAttacker(struct)
 	// maybe build more AA tanks if enemyHasVtol
 	weaponChoice = (random(100) < 10 && enemyHasVtol) ? TANK_AA : weaponChoice;
 
-	// build command turret droid if available and group is empty
-	// if (random(100) < 33 && componentAvailable(COMMAND_TURRET) && componentAvailable("Body11ABT") && enumGroup(commanderGroup).length < 1 && countStruct(RELAY_POST_STAT) > 0)
-	// {
-	// 	var cprop;
-	// 	if (isSeaMap) { cprop = "hover01"; }
-	// 	else { cprop = TANK_PROP_LIST; }
- //
-	// 	var vcommand = 0;
-	// 	const facs = enumStruct(me, FACTORY);
-	// 	for (fac of facs)
-	// 	{
-	// 		var vdr = getDroidProduction(fac);
-	// 		if (vdr && vdr.droidType === DROID_COMMAND) { ++vcommand; }
-	// 	}
- //
-	// 	log("command:"+enumDroid(me, DROID_COMMAND)+" vcommand:"+vcommand);
-	// 	if (enumDroid(me, DROID_COMMAND) + vcommand < 1)
-	// 	{
-	// 		return buildCommander(struct, cprop);
-	// 	}
-	// }
-
 	var prop = TANK_PROP_LIST;
 
 	if ((isSeaMap || (random(100) < HOVER_CHANCE)) && componentAvailable("hover01"))
@@ -204,7 +168,7 @@ function buildAttacker(struct)
 	}
 
 	// build repair tanks based on combat droid count and autorepair
-	if (componentAvailable("HeavyRepair") || componentAvailable("LightRepair1") && random(100) < 50)
+	if (componentAvailable("HeavyRepair") || componentAvailable("LightRepair1") && random(100) < 80)
 	{
 		var div = 4;
 		if (componentAvailable("AutoRepair")) { div = 8; }
@@ -230,6 +194,24 @@ function buildAttacker(struct)
 		}
 	}
 	
+	// build MIN_SENSOR_DROIDS but only if needed
+	if (groupSize(attackGroup) > MIN_GROUND_UNITS*2 && componentAvailable("SensorTurret1Mk1") && groupSize(sensorGroup) < MIN_SENSOR_DROIDS && random(100) < 30)
+	{
+		var vsensor = 0;
+		const facs = enumStruct(me, FACTORY_STAT);
+		for (fac of facs)
+		{
+			var vdr = getDroidProduction(fac);
+			if (vdr && vdr.droidType === DROID_SENSOR) { ++vsensor; }
+		}
+
+		log("sensor:"+groupSize(sensorGroup)+" vsensor:"+vsensor);
+		if (groupSize(sensorGroup) + vsensor < MIN_SENSOR_DROIDS)
+		{
+			return buildSensor(struct, prop);
+		}
+	}
+
 	// build dragon multi turret tanks
 	if (componentAvailable("Body14SUP")) 
 	{
@@ -237,6 +219,8 @@ function buildAttacker(struct)
 		{
 			var primary = shuffleArray(MIX_TANK_WEAPONS);
 			var secondary = shuffleArray(SECONDARY_TANK_WEAPONS);
+			// if spy turret build a double
+			if (primary[0] === "SpyTurret01") { secondary = primary; }
 			return buildDroid(struct, "Dragon Tank", "Body14SUP", prop, null, null, primary, secondary);
 		}
 		else
@@ -250,25 +234,30 @@ function buildAttacker(struct)
 	// build standard tank
 	return buildDroid(struct, "Ranged Tank", TANK_BODY_LIST, prop, null, null, weaponChoice);
 }
-function buildSensor(struct)
+
+function buildSensor(struct, prop)
 {
-	if (struct == null) { return; }
-	return buildDroid(struct, "Sensor", SYSTEM_BODY_LIST, SYSTEM_PROP_LIST, null, null, SENSOR_TURRETS);
+	if (DEBUG_EXTREME) {log("buildSensor");}
+	if (struct == null || prop == null) { return; }
+	return buildDroid(struct, "Sensor", TANK_BODY_LIST, prop, null, null, SENSOR_TURRETS);
 }
+
 function buildCommander(struct, prop)
 {
+	if (DEBUG_EXTREME) {log("buildCommander");}
 	if (struct == null || prop == null) { return; }
 	return buildDroid(struct, "Commander Tank", TANK_BODY_LIST, prop, null, null, COMMAND_TURRET);
 }
 
 function buildRepair(struct, prop)
 {
+	if (DEBUG_EXTREME) {log("buildRepair");}
 	if (struct == null || prop == null) { return; }
 	if (componentAvailable("Body13SUP")) // wyvern
 	{
 		return buildDroid(struct, "Heavy Repair Wyvern", "Body13SUP", prop, "", "", "HeavyRepair");
 	}
-	if (componentAvailable("HeavyRepair") && struct.modules > 0) 
+	if (componentAvailable("HeavyRepair") && struct.modules > 0)
 	{
 		return buildDroid(struct, "Heavy Repair Tank", TANK_BODY_LIST, prop, "", "", "HeavyRepair");
 	}	
@@ -277,37 +266,53 @@ function buildRepair(struct, prop)
 
 function buildCyborg(struct)
 {
+	if (DEBUG_EXTREME) {log("buildCyborg");}
 	if (struct == null) { return; }
-	
-	if (getMultiTechLevel() > 2) 
+	// build 1 repair cyborg if there are no repairs
+	// if (componentAvailable("CyborgRepair") && enumDroid(me, DROID_REPAIR).length === 0)
+	// {
+	// 	return buildDroid(struct, "Cyborg Repair", "CyborgLightBody", "CyborgLegs", "", "", "CyborgRepair");
+	// }
+
+	if (componentAvailable("CyborgHeavyBody"))
 	{
-		var cyborg = shuffleArray(MIX_CYBORG);
-		return buildDroid(struct, "Mix Cyborg", "CyborgHeavyBody", "CyborgLegs", "", "", cyborg);
-	}	
-	
-	if (componentAvailable("Cyb-Hvywpn-PulseLsr") && random(100) < 80)
-	{
-		return buildDroid(struct, "Cyborg Pulse Laser", "CyborgHeavyBody", "CyborgLegs", "", "", "Cyb-Hvywpn-PulseLsr");
+		var mixcyborg = shuffleArray(MIX_CYBORG);
+		return buildDroid(struct, "Mix Cyborg", "CyborgHeavyBody", "CyborgLegs", "", "", mixcyborg);
 	} 
 	else
 	{
-		return buildDroid(struct, "Cyborg Flamer", "CyborgLightBody", "CyborgLegs", "", "", CYBORG_FLAMERS);
+		return buildDroid(struct, "Cyborg MG", "CyborgLightBody", "CyborgLegs", "", "", CYBORG_MG);
 	}
 }
 
 function buildVTOL(struct)
 {
+	if (DEBUG_EXTREME) {log("buildVTOL");}
 	if (struct == null) { return; }
-	if (getMultiTechLevel() > 3) 
+	if (componentAvailable("Body14SUP"))
 	{
 		var weapon = shuffleArray(MIX_VTOL_WEAPONS);
 		return buildDroid(struct, "Dragon MIX VTOL", "Body14SUP", "V-Tol", "", "", weapon, weapon);
 	}
+	if (componentAvailable("Missile-VTOL-AT")) // 	"Missile-VTOL-AT",	"Bomb5-VTOL-Plasmite",
+	{
+		var weapon = shuffleArray(MIX_VTOL_WEAPONS);
+		return buildDroid(struct, "MIX VTOL", VTOL_BODY_LIST, "V-Tol", "", "", weapon);
+	}
 	return buildDroid(struct, "VTOL", VTOL_BODY_LIST, "V-Tol", "", "", VTOL_WEAPONS);
+}
+
+function buildTruck(fac)
+{
+	if (!fac || !fac.stattype) { return false; }
+	if (fac.stattype === FACTORY) { return buildDroid(fac, "Truck", SYSTEM_BODY_LIST, SYSTEM_PROP_LIST, null, null, "Spade1Mk1"); }
+	if (fac.stattype === CYBORG_FACTORY) { return buildDroid(fac, "CyborgSpade", "CyborgLightBody", "CyborgLegs", "", "", "CyborgSpade"); }
+	return false;
 }
 
 function produceAndResearch()
 {
+	if (DEBUG_EXTREME) {log("produceAndResearch");}
 	if (getRealPower() < MIN_PRODUCTION_POWER)
 	{
 		return;
@@ -345,49 +350,35 @@ function produceAndResearch()
 			var fc = facs[x];
 			if (structureIdle(fc))
 			{
-				if (FAC_LIST[i] === FACTORY_STAT)
+				if (FAC_LIST[i] === FACTORY_STAT || FAC_LIST[i] === CYBORG_FACTORY_STAT)
 				{
-					if (random(100) > 50 && baseUnderAttack < 2 && countDroid(DROID_CONSTRUCT) + virtualTrucks < getDroidLimit(me, DROID_CONSTRUCT) -2)
+					// check to see if trucks could be built
+					if (countDroid(DROID_CONSTRUCT) + virtualTrucks < getDroidLimit(me, DROID_CONSTRUCT) -2)
 					{
-						if ((countDroid(DROID_CONSTRUCT) + virtualTrucks < MIN_BASE_TRUCKS + MIN_OIL_TRUCKS) || (countStruct(POW_GEN_STAT) > 3) ) // //enumFeature(me, OIL_RES_STAT).length > 4
-						{ buildDroid(fc, "Truck", SYSTEM_BODY_LIST, SYSTEM_PROP_LIST, null, null, "Spade1Mk1");; }
-					}
-					else
-					{
-						if (countStruct(POW_GEN_STAT))
-						{
-							if (getRealPower() > 1000 || !componentAvailable("V-Tol") || groupSize(vtolGroup) > MIN_ATTACK_GSIZE*2.5) { buildAttacker(fc); }
-							else if (componentAvailable("V-Tol") && groupSize(vtolGroup) < MIN_ATTACK_GSIZE) {} // build nothing
-							else if (random(100) < 50) { buildAttacker(fc); } 
-						}
-					}
-				}
-				else
-				{
-					if (!countStruct(POW_GEN_STAT))
-					{
-						continue;
+						// build early trucks
+						if (gameTime < 1800000 && groupSize(oilBuilders) < MIN_OIL_TRUCKS*2) { buildTruck(fc); continue; }
+						// build trucks as needed half the time, but not if under heavy attack
+						if (baseUnderAttack < 3 && random(100) > 50 && countDroid(DROID_CONSTRUCT) + virtualTrucks < MIN_BASE_TRUCKS + MIN_OIL_TRUCKS)
+							{ buildTruck(fc); continue; }
+						// build extra trucks if lots of bare oil wells, but only if plenty of attackers
+						var freeoils = enumFeature(ALL_PLAYERS, OIL_RES_STAT);
+						if (freeoils && freeoils.length > 8 && random(100) > 50 && groupSize(attackGroup)+groupSize(vtolGroup) > MIN_ATTACK_GSIZE*3)
+							{ buildTruck(fc); continue; }
 					}
 
-					if (FAC_LIST[i] === CYBORG_FACTORY_STAT)
+					// build attackers
+					if (countStruct(POW_GEN_STAT) != 0 || getRealPower() > 1500)
 					{
-					if (random(100) > 50 && baseUnderAttack < 2 && countDroid(DROID_CONSTRUCT) + virtualTrucks < getDroidLimit(me, DROID_CONSTRUCT) -2)
-					{
-						if ((countDroid(DROID_CONSTRUCT) + virtualTrucks < MIN_BASE_TRUCKS + MIN_OIL_TRUCKS) || (countStruct(POW_GEN_STAT) > 3 ) )
-						{ buildDroid(fc, "CyborgSpade", "CyborgLightBody", "CyborgLegs", "", "", "CyborgSpade"); }
+						if (getRealPower() > 1500 || !componentAvailable("V-Tol") || groupSize(vtolGroup) > MIN_VTOL_UNITS*3) { buildAttacker(fc); continue; }
+						else if (relyOnVtols && componentAvailable("V-Tol") && groupSize(vtolGroup) < MIN_VTOL_UNITS*3) { continue; } // build nothing
+						else if (random(100) < 50) { buildAttacker(fc); continue; }
 					}
-					else
-						{
-							if (getRealPower() > 1000 || (!componentAvailable("Cannon4AUTOMk1") && random(100) < 50)) { buildCyborg(fc); }
-							else if (componentAvailable("V-Tol") && groupSize(vtolGroup) < MIN_ATTACK_GSIZE) {} // build nothing
-							else if (random(100) < 50) { buildCyborg(fc); }
-						}
-					}
-					else
-					{
-						if (enumGroup(vtolGroup) > MIN_ATTACK_GSIZE*6 && random(100) < 50) { buildVTOL(fc); }
-						else { buildVTOL(fc); }
-					}
+				}
+
+				if (FAC_LIST[i] === VTOL_FACTORY_STAT && (countStruct(POW_GEN_STAT) != 0 || getRealPower() > 1500))
+				{
+					if (relyOnVtols) { buildVTOL(fc); continue; }
+					else if (groupSize(attackGroup) > MIN_ATTACK_GSIZE && random(100) < 50) { buildVTOL(fc); continue; }
 				}
 			}
 		}
@@ -395,3 +386,8 @@ function produceAndResearch()
 
 	lookForResearch();
 }
+
+
+
+
+

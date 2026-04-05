@@ -1,68 +1,45 @@
 function eventDroidBuilt(droid, struct)
 {
-	const dr = droid;
-	orderDroid(droid, DORDER_STOP);
-	if (droid.droidType === DROID_WEAPON && droid.body === "Body1REC" && droid.weapons[0].id === "Cannon4AUTOMk1")
+	if (DEBUG_EXTREME) {log("eventDroidBuilt");}
+	const dr = droid;  //log(JSON.stringify(droid));
+
+	if (droid.isVTOL)
 	{
-		orderDroid(droid, DORDER_RECYCLE);
-		logObj(droid, "recycle viper hvc");
-		return;
-	}
-	
-	if (isVTOL(droid))
-	{
+		totalVtolsBuilt ++;
 		groupAdd(vtolGroup, droid);
+
 		var target = getVTOLtarget(droid,true);
 		if (target) 
 		{
 			orderDroidLoc(droid, DORDER_SCOUT, target.x, target.y);
 			logObj(droid, "new vtol droid ordered to scout to target:"+target.x+"x"+target.y);
-		} 
+		}
 	}
-	else if (droid.droidType === DROID_WEAPON || droid.droidType === DROID_CYBORG)
+	else if (droid.droidType === DROID_WEAPON)
 	{
 		logObj(droid, "attack droid built: "+droid.weapons[0].name);
 		groupAdd(attackGroup, droid);
 		log("added to attack group: " + droid.id);
 	}
+	else if (droid.droidType === DROID_CYBORG)
+	{
+		totalCyborgBuilt ++;
+		logObj(droid, "attack cyborg built: "+droid.weapons[0].name);
+		groupAdd(attackGroup, droid);
+		log("added to attack group: " + droid.id);
+	}
 	else if (droid.droidType === DROID_CONSTRUCT)
 	{
-		if (enumGroup(baseBuilders).length < MIN_BASE_TRUCKS)
-		{
-			groupAdd(baseBuilders, droid);
-		}
-		else if (enumGroup(oilBuilders).length < MIN_OIL_TRUCKS)
-		{
-			groupAdd(oilBuilders, droid);
-		}
-		else if (enumGroup(baseBuilders).length < MAX_BASE_TRUCKS)
-		{
-			groupAdd(baseBuilders, droid);
-		}
-		else
-		{
-			groupAdd(oilBuilders, droid);
-		}
-		//else
-		// {
-		// 	var oilclusterID = getLargestOilClusterID();
-		// 	if (oilclusterID && random(100) < 50)
-		// 	{
-		// 		var oil = enumFeature(ALL_PLAYERS, OIL_RES_STAT).filter((obj) => (obj.id === oilclusterID && obj.stattype === OIL_RESOURCE));
-		// 		if (oil[0])
-		// 		{
-		// 			orderDroidLoc(droid, DORDER_MOVE, oil[0].x, oil[0].y);
-		// 			orderLocations.set(droid.id, {x: oil[0].x, y: oil[0].y, enemies: false});
-		// 			logObj(droid, "new oil truck sent to oil cluster at:"+oil[0].x+"x"+oil[0].y);
-		// 			return;
-		// 		}
-		// 	}
-		// }
-		//checkLocalJobs();
+		if (enumGroup(baseBuilders).length < MIN_BASE_TRUCKS) { groupAdd(baseBuilders, droid); }
+		else if (enumGroup(oilBuilders).length < MIN_OIL_TRUCKS) { groupAdd(oilBuilders, droid); }
+		else if (enumGroup(baseBuilders).length === MIN_BASE_TRUCKS) { groupAdd(baseBuilders, droid); }
+		else if (enumGroup(oilBuilders).length < MIN_OIL_TRUCKS*2) { groupAdd(oilBuilders, droid); }
+		else if (enumGroup(baseBuilders).length < MAX_BASE_TRUCKS) { groupAdd(baseBuilders, droid); }
+		else { groupAdd(oilBuilders, droid); }
+
 	}
 	else if (droid.droidType === DROID_REPAIR)
 	{ 
-		//log(JSON.stringify(droid));
 		if ((groupSize(vtolRepairGroup) < 1 && countStruct(VTOL_PAD_STAT) > 4) || (groupSize(vtolRepairGroup) < 2 && countStruct(VTOL_PAD_STAT) > 12))
 		{
 			groupAdd(vtolRepairGroup, droid);
@@ -72,24 +49,7 @@ function eventDroidBuilt(droid, struct)
 		{
 			groupAdd(attackGroup, droid); 
 			log("added repair to attack group: "+droid.id);
-			
-			var droids = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*2, me, true).filter((obj) => (obj.droidType === DROID_WEAPON && obj.isVTOL === false));
-			if (!droids[0]) { droids = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*3, me, true).filter((obj) => (obj.droidType === DROID_CYBORG)); }
-			if (!droids[0]) // find a droid to guard
-			{
-				var attackgroup = enumGroup(attackGroup);
-				var defrand = attackgroup[random(attackgroup.length-1)];
-				orderDroidObj(dr, 25, defrand); // DORDER_GUARD
-				orderTargets.set(dr.id, defrand.id);
-				log("new repair droid "+dr.id+" guarding:"+defrand.id);
-			}
-			else
-			{
-				var defrand = droids[random(droids.length-1)];
-				orderDroidObj(dr, 25, defrand); // DORDER_GUARD
-				orderTargets.set(dr.id, defrand.id);
-				log("new repair droid "+dr.id+" guarding nearby:"+defrand.id);
-			}
+			idleRepair(droid);
 		}
 	}
 	else if (droid.droidType === DROID_SENSOR)
@@ -97,36 +57,11 @@ function eventDroidBuilt(droid, struct)
 		groupAdd(sensorGroup, droid);
 		logObj(droid, "added sensor to sensorgroup");
 	}
-	else if (droid.droidType === DROID_COMMAND)
-	{ 
-		log("built command droid: ");
-		log(JSON.stringify(droid));
-		
-		// if commanderGroup is empty add to group otherwise recycle
-		// needs to recycle weakist and swap pilot
-		if (enumGroup(commanderGroup).length < 1)
-		{
-			groupAdd(commanderGroup, droid);
-			logObj(droid, "added command to commandgroup");
-			// swap most exp pilot into commander -- recycle swap is unreliable
-			var exp_droid = findMostExpDroid();
-			var droid_exp = droid.experience;
-			if (droid_exp)
-			{	
-				setDroidExperience(droid, exp_droid.experience);
-				setDroidExperience(exp_droid, droid_exp);
-			}
-		}
-		else
-		{
-			orderDroid(droid, DORDER_RECYCLE);
-			logObj(droid, "recycled extra command droid");
-		}
-	}	
 }
 
 function eventAttacked(victim, attacker)
 {
+	if (DEBUG_EXTREME) {log("eventAttacked");}
 	// check for repairs
 	if (victim.type === DROID && victim.player === me) { droidNeedsRepair(victim.id); }
 
@@ -182,27 +117,6 @@ function eventAttacked(victim, attacker)
 				}
 			}
 		}
-		
-		// keep track of who attacks my derricks
-//		if (victim.type === STRUCTURE && victim.stattype === RESOURCE_EXTRACTOR)
-//		{
-//			derrickAttacks[attacker.player] += 1;
-//			logObj(victim, "derrickAttacks:"+JSON.stringify(derrickAttacks));
-//		}
-	
-//		var enemyNumber = getCurrentEnemy();
-//		if (!defined(enemyNumber))
-//		{
-//			return;
-//		}
-
-		//Set this player as the current enemy. Also, only do this if they are
-		//somewhat close to our base so our units don't shuffle around rapidly
-		//picking many different players to focus on in intense multi-battles.
-//		if (enemyNumber !== attacker.player && distBetweenTwoPoints(attacker.x, attacker.y, BASE.x, BASE.y) <= (AVG_BASE_RADIUS + 20))
-//		{
-//			setPlayerAsTarget(attacker.player);
-//		}
 
 		if (attacker.type === DROID && attacker.isVTOL)
 		{
@@ -269,11 +183,14 @@ function eventAttacked(victim, attacker)
 
 function eventStructureReady(structure)
 {
-	if (structure.stattype === LASSAT) { fireLassat(structure); }
+	if (DEBUG_EXTREME) {log("eventStructureReady");}
+	// done with a timer
+	//if (structure.stattype === LASSAT) { fireLassat(structure); }
 }
 
 function eventDroidIdle(droid)
 {
+	if (DEBUG_EXTREME) {log("eventDroidIdle");}
 	const dr = droid;
 	
 	if (droid.droidType === DROID_CONSTRUCT && droid.group === oilBuilders)
@@ -292,7 +209,8 @@ function eventDroidIdle(droid)
 			var defense = returnDefense(0);
 			if (defense && defense.length > 1) { buildloc = pickStructLocation(droid, defense, randDer.x, randDer.y, 1); }
 			const enemies = enumRange(randDer.x, randDer.y, 8, ENEMIES, false).filter((obj) => 
-				(!(obj.canHitAir === true && obj.canHitGround === false) && (obj.droidType === DROID_WEAPON || obj.droidType === DROID_CYBORG || (obj.stattype === DEFENSE && obj.status === BUILT))) );
+				(!(obj.canHitAir === true && obj.canHitGround === false) && (obj.droidType === DROID_WEAPON ||
+				 obj.droidType === DROID_CYBORG || (obj.stattype === DEFENSE && obj.status === BUILT))));
 			if (!enemies[0] && buildloc && buildloc.length > 0)
 			{
 				orderDroidBuild(droid, DORDER_BUILD, defense, buildloc.x, buildloc.y);
@@ -316,32 +234,22 @@ function eventDroidIdle(droid)
 	}
 	else if (droid.droidType === DROID_REPAIR && droid.group !== vtolRepairGroup)
 	{
-		var attackgroup = enumGroup(attackGroup, DROID_WEAPON);
-		var defrand = attackgroup[random(attackgroup.length-1)];
-		if (defrand) 
-		{
-			orderDroidObj(dr, 25, defrand); // DORDER_GUARD
-			orderTargets.set(dr.id, defrand.id);
-			log("droidAware repair droid "+dr.id+" guarding:"+defrand.id);
-		}
+		idleRepair(droid);
 	}
 	else if (droid.droidType === DROID_WEAPON || droid.droidType === DROID_CYBORG)
 	{
 		idleAttacker(droid);
 	}
-	else if (droid.droidType === DROID_REPAIR)
+	else if (droid.droidType === DROID_SENSOR)
 	{
-		idleRepair(droid);
-	}	
-	else if (droid.droidType === DROID_COMMAND)
-	{
-		droidAwareCommander();
+
 	}
 }
 
 //Target enemy player closest to whose objects are closest to the beacon.
 function eventBeacon(x, y, from, to, message)
 {
+	if (DEBUG_EXTREME) {log("eventBeacon");}
 	if (allianceExistsBetween(from, to) && to !== from)
 	{
 		//log(from + " sent a beacon. Location [" + x + ", " + y + "]");
@@ -362,8 +270,9 @@ function eventBeacon(x, y, from, to, message)
 	}
 }
 
-function eventObjectTransfer(obj, from)
+function eventObjectTransfer(obj, whofrom)
 {
+	if (DEBUG_EXTREME) {log("eventObjectTransfer");}
 	if (obj.player === me)
 	{
 		if (obj.type === DROID)
@@ -375,51 +284,93 @@ function eventObjectTransfer(obj, from)
 
 function eventDestroyed(object)
 {
+	if (DEBUG_EXTREME) {log("eventDestroyed");}
+	if (!object || !object.id) { return; }
 	logObj(object, "destroyed");
-	
-	if (object && object.player !== me && AAthreats.has(object.id))
+
+	if (object.player !== me && AAthreats.has(object.id))
 	{
 		AAthreats.delete(object.id);
 	}	
-	if (object && object.player === me && object.type === DROID && orderLocations.has(object.id))
+	if (object.player === me && object.type === DROID && orderLocations.has(object.id))
 	{
 		orderLocations.delete(object.id);
 	}
-	if (object && object.player === me && object.type === DROID && orderTargets.has(object.id))
+	if (object.player === me && object.type === DROID && orderTargets.has(object.id))
 	{
 		orderTargets.delete(object.id);
+	}
+	if (object.player === me && object.isVTOL)
+	{
+		totalVtolsLost ++;
+		if (totalVtolsBuilt < totalVtolsLost*2)
+		{ relyOnVtols = false; }
+	}
+	if (object.player === me && object.droidType === DROID_CYBORG)
+	{
+		totalCyborgLost ++;
+		if (totalVtolsBuilt < totalVtolsLost*2)
+		{ relyOnCybrogs = false; }
 	}
 }
 
 function eventStructureBuilt(structure, droid)
 {	
-	if (structure && !structure.modules && (structure.stattype === FACTORY || structure.stattype === RESEARCH_LAB || structure.stattype === POWER_GEN || structure.stattype === VTOL_FACTORY || structure.stattype === REARM_PAD))
+	if (DEBUG_EXTREME) {log("eventStructureBuilt");}
+	// dump details about building
+	//log(JSON.stringify(structure));
+
+	// update lastBuildLoc
+	if (structure && !structure.modules && (structure.stattype === FACTORY || structure.stattype === RESEARCH_LAB || structure.stattype === POWER_GEN || structure.stattype === VTOL_FACTORY))
 	{
 		// randomize last build location
-		lastBuildLoc = { x: structure.x-(random(4)), y: structure.y-(random(4)) };
+		//lastBuildLoc = { x: structure.x-(random(8)-4), y: structure.y-(random(8)-4) };
+		lastBuildLoc = structure;
 		logObj(droid, structure.name+" lastBuildLoc:"+JSON.stringify(lastBuildLoc));
 	}
-	
-	// upgrade power plant if possible as it costs nothing and is absolutly essestial
+	if (distBetweenTwoPoints(lastBuildLoc.x, lastBuildLoc.y, BASE.x, BASE.y) > 6)
+	{
+		lastBuildLoc = {x: BASE.x, y: BASE.y};
+	}
+
+	// upgrade power plant if possible as it costs nothing and is absolutly essential
 	if (structure && droid && structure.stattype === POWER_GEN && structure.modules < 1 && isStructureAvailable("A0PowMod1"))
 	{
 		orderDroidBuild(droid, DORDER_BUILD, "A0PowMod1", structure.x, structure.y);
 		orderLocations.set(droid.id, {x: structure.x, y: structure.y, enemies: false});
 		return;
 	}
-	// upgrade vtol factories 
-	if (structure && droid && structure.stattype === VTOL_FACTORY && structure.modules < 2 && isStructureAvailable("A0FacMod1"))
+	// upgrade vtol factories but only if there is a power generator
+	if (relyOnVtols && countStruct(POW_GEN_STAT) > 0 && structure && droid && structure.stattype === VTOL_FACTORY && structure.modules < 2 && isStructureAvailable("A0FacMod1"))
 	{
 		orderDroidBuild(droid, DORDER_BUILD, "A0FacMod1", structure.x, structure.y);
 		orderLocations.set(droid.id, {x: structure.x, y: structure.y, enemies: false});
 		return;
 	}
-	// upgrade factories but only if there is 2 power generator and hq
-	if (countStruct(POW_GEN_STAT) > 1 && countStruct(PLAYER_HQ_STAT) > 0 && structure && droid && structure.stattype === FACTORY && structure.modules < 2 && isStructureAvailable("A0FacMod1"))
+	// upgrade factories but only if there is 1 power generator
+	if (countStruct(POW_GEN_STAT) > 0 && structure && droid && structure.stattype === FACTORY && structure.modules < 2 && isStructureAvailable("A0FacMod1"))
 	{
 		orderDroidBuild(droid, DORDER_BUILD, "A0FacMod1", structure.x, structure.y);
 		orderLocations.set(droid.id, {x: structure.x, y: structure.y, enemies: false});
 		return;
+	}
+	// check if constructor sees oil to build on
+	if (dr.group === oilBuilders)
+	{
+		var oils = enumRange(droid.x, droid.y, GROUP_SCAN_RADIUS, ALL_PLAYERS, true).filter((obj) => (obj.type === FEATURE && obj.stattype === OIL_RESOURCE));
+		if (oils && oils.length > 0)
+		{
+			for (oil of oils)
+			{
+				if (!tileIsBurning(oil.x, oil.y) && droidCanReach(droid, oil.x, oil.y))
+				{
+					orderDroidBuild(droid, DORDER_BUILD, DERRICK_STAT, oil.x, oil.y);
+					logObj(droid, "droidAware truck found free oil feature on way to build something")
+					orderLocations.set(droid.id, {x: oil.x, y: oil.y, enemies: false});
+					return;
+				}
+			}
+		}
 	}
 	// don't build defenses in base here
 	var dist = distBetweenTwoPoints(BASE.x, BASE.y, structure.x, structure.y);
@@ -428,26 +379,12 @@ function eventStructureBuilt(structure, droid)
 		return;
 	}
 
-	scanAndDefendPosition(structure, droid);
-}
-	
-function eventGroupLoss(gameObject, groupID, groupSize)
-{
-	//logObj(gameObject, "droid lost group:"+groupID+" size now:"+groupSize);
-	if (groupID == commanderGroup)
-	{
-		// reassign supportgroup to attackgroup
-		var supportgroup = enumGroup(supportGroup);
-		for (dr of supportgroup)
-		{
-			groupAdd(attackGroup, dr);
-			orderDroid(dr, DORDER_STOP);
-		}
-	}
+	if (gameTime > 60000) { scanAndDefendPosition(structure, droid); }
 }
 
 function eventChat(from, to, message)
 {
+	if (DEBUG_EXTREME) {log("eventChat");}
 	if (to !== me || to === from)
 	{
 		return; // not for me

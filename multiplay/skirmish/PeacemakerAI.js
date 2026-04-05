@@ -1,5 +1,6 @@
-// set to true to log debug messags to file
+// set to true to log debug messages to file
 const DEBUG = true;
+const DEBUG_EXTREME = false;
 const DEBUG_CONSOLE = false;
 
 // -- definitions
@@ -22,12 +23,11 @@ const TANKTRAP_STAT = "A0TankTrap";
 
 // -- globals
 const MIN_BASE_TRUCKS = 2;
-const MAX_BASE_TRUCKS = 3;
+const MAX_BASE_TRUCKS = 4;
 const MIN_OIL_TRUCKS = 3;
 const MIN_BUILD_POWER = 80;
 const MIN_RESEARCH_POWER = -50;
 const MIN_PRODUCTION_POWER = 60;
-const MIN_BUSTERS = 4;
 const MIN_ATTACK_GSIZE = 5;
 const MIN_SENSOR_DROIDS = 1;
 const HELP_CONSTRUCT_AREA = 20;
@@ -35,8 +35,6 @@ const MIN_GROUND_UNITS = 5;
 const MIN_VTOL_UNITS = 4;
 const GROUP_SCAN_RADIUS = 8;
 const AVG_BASE_RADIUS = 20;
-
-const startDroids = enumDroid(me);
 
 const ENEMY_DERRICK_SCAN_RANGE = 20;
 
@@ -49,9 +47,6 @@ var vtolRepairGroup;
 var baseBuilders;
 var oilBuilders;
 var sensorGroup;
-var commanderGroup;
-var supportGroup;
-var recycleGroup;
 
 var researchDone;
 var truckRoleSwapped;
@@ -60,91 +55,81 @@ var currentEnemy;
 var currentEnemyTick;
 var enemyHasVtol;
 
+var relyOnVtols = true;
+var totalVtolsBuilt = 0;
+var totalVtolsLost = 0;
+var relyOnCyborgs = true;
+var totalCyborgBuilt = 0;
+var totalCyborgLost = 0;
+
 var baseUnderAttack = false;
 var baseUnderAttackLoc = [];
 
 var truckStarts = enumDroid(me, DROID_CONSTRUCT);
-var lastBuildLoc = truckStarts[0];
+var lastBuildLoc = {x: truckStarts[0].x, y: truckStarts[0].y}
 
 var orderTargets = new Map();
 var orderLocations = new Map();
 var AAthreats = new Map();
-
-var derrickAttacks = Array(maxPlayers).fill(0);
 
 // approx time it would take for a fast vtol to fly from one corner of the map half way to the opposing corner
 const VTOL_DEFEND_TIME = distBetweenTwoPoints(1, 1, mapWidth-2, mapHeight-2) / 22 * 1000; 
 
 function eventStartLevel()
 {
+	if (DEBUG_EXTREME) {log("eventStartLevel");}
+
 	//setup groups
 	attackGroup = newGroup();
 	defendGroup = newGroup();
 	sensorGroup = newGroup();
-	commanderGroup = newGroup();
-	supportGroup = newGroup();
-	recycleGroup = newGroup();
-	
 	vtolGroup = newGroup();
-	vtolRepairGroup = newGroup();
-
+	vtolRepairGroup = newGroup();;
 	baseBuilders = newGroup();
 	oilBuilders = newGroup();
-	//groupAdd(baseBuilders, dr);
 
-	truckRoleSwapped = false;
-	//enumDroid(me).forEach((droid) => {
-	//	if (droid.droidType !== DROID_CONSTRUCT)
-	//	{
-	//		eventDroidBuilt(droid, null);
-	//	}
-	//});
-
-	setupTruckGroups();
-	buildFundamentals();
 	isSeaMap = isHoverMap();
 	researchDone = false;
 	enemyHasVtol = false;
 
 	// Set the timer call randomly so as not to compute on the same tick if more than one AI is on map.
 	setTimer("produceAndResearch", 2000 + ((1 + random(4)) * random(70)));
-	setTimer("buildFundamentals", 1500 + ((1 + random(3)) * random(60))); // build stuff
-	setTimer("lookForOil", 7000 + ((1 + random(4)) * random(30)));
+	setTimer("buildFundamentals", 2000 + ((1 + random(3)) * random(60))); // build stuff
+	setTimer("lookForOil", 2000 + ((1 + random(4)) * random(30)));
 	setTimer("recycleDroidsForHover", 60000 + ((1 + random(4)) * random(100)));
-	//setTimer("attackEnemy", 6000 + ((1 + random(4)) * random(100)));
 	setTimer("scanForVTOLs", 10000 + ((1 + random(5)) * random(60)));
 	
 	setTimer("balanceGroups", 20000 + ((1 + random(4)) * random(30)));
 	setTimer("baseAware", 5000 + ((1 + random(4)) * random(30)));
 
-	setTimer("droidAware", 1000 + ((1 + random(4)) * random(30)));	
-	setTimer("droidAwareTruck", 1100 + ((1 + random(4)) * random(30)));
-	setTimer("droidAwareBlockedoil", 2500 + ((1 + random(4)) * random(30)));
+	setTimer("droidAwareAttacker", 1000 + ((1 + random(4)) * random(30)));
+	setTimer("droidAwareTruck", 2000 + ((1 + random(4)) * random(30)));
+	setTimer("droidAwareBlockedoil", 10000 + ((1 + random(4)) * random(30)));
 	setTimer("droidAwareRTB", 10000 + ((1 + random(4)) * random(30)));
-	setTimer("droidAwareRepair", 750 + ((1 + random(4)) * random(30)));	
-	setTimer("droidAwareScout", 5000 + ((1 + random(4)) * random(30)));	
-//	setTimer("droidAwareCommander", 10000 + ((1 + random(4)) * random(30)));
-	
+	setTimer("droidAwareRepair", 1000 + ((1 + random(4)) * random(30)));
+	setTimer("droidAwareScout", 2000 + ((1 + random(4)) * random(30)));
 	setTimer("droidAwareVtol", 1000 + ((1 + random(4)) * random(30)));
-	setTimer("droidAwareSensor", 700 + ((1 + random(4)) * random(30)));
+	setTimer("droidAwareSensor", 1000 + ((1 + random(4)) * random(30)));
 	
 	setTimer("checkVtolAlphaStrike", VTOL_DEFEND_TIME*3 + ((1 + random(4)) * random(30)));	
-
 	setTimer("fireLassat", 10000 + ((1 + random(4)) * random(30)));
+	setTimer("handlePileups", 30000 + ((1 + random(4)) * random(30)));
 
-	// add units present at start to groups
-
+	const startDroids = enumDroid(me);
 	for (dr of startDroids)
 	{
 		eventDroidBuilt(dr, "");
 	}
 
 	// check if any research is available at start
-	if (getMultiTechLevel() > 3)
-	{
-		researchDone = true;
-	}
+	var reslist = enumResearch();
+    if (reslist.length === 0) { researchDone = true; }
 
+	if (getMultiTechLevel() > 2)
+	{
+		relyOnVtols = false;
+	}
+	buildFundamentals();
 }
 
 include("/multiplay/skirmish/PeacemakerAI_includes/miscFunctions.js");

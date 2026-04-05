@@ -1,5 +1,67 @@
 TODO for PeacemakerAI
 
+alphastrike massed mobile aa
+mobile aa not getting cleared from aathreats
+-detect massive vtol losses and discontinue production
+
+archangle missile group
+
+-better repair droid routine
+rtr when fighting in base
+
+aa droids should escort not scout
+improve base maintenance
+
+-building and crete strength upgrades much later
+
+-sensor escort most exp unit
+
+-rtb if on burning tile
+
+-early focus on mg not cannon
+
+recall idle oilbuilders to base and patrol
+
+repair trucks getting ordered to guard repeat
+-extra oil truck building should be dependent on wells count
+
+-still not building enough trucks at start
+all idle trucks in base should patrol
+
+-trucks are getting pulled from building power generator modules
+trucks are getting pulled from building other modules
+lassat only fires when selected
+
+-improve mg some before cannon
+-only build defenses if affordable
+
+maybe not build oil defenses unless most wells are taken
+-produce more oil trucks early
+-detect mass cyborg losses and slow building them
+use tracks when high tech maybe
+
+-delay vtol plant construction if not relying on vtols
+-delay cyborg plant construction if relying vtols
+
+slim down droidawaretruck idletruck
+
+safeDest()?
+
+less cheaty
+update checkaathreats so that coordinates are tracked instead of object id
+use database of seen opponents to find new building targets
+checkorderlocations use seen database
+scout when no more opponents seen
+
+-particle gun
+
+find a way to spend mass excess cash
+-limit building excess oil trucks
+
+repair units are not repairing the most damaged unit
+
+-take healthy attackers off RTR
+
 -limit building extra aa in base
 -reduce vtol building throttle
 
@@ -8,37 +70,29 @@ TODO for PeacemakerAI
 --lassat still not firing
 
 -dont build labs on max tech
-
-=build lassat a little later
-
--vtol pads update buildloc
+-build lassat a little later
 -check if aa support vtols are ready
 
-try using commander to coordinate repairs
-redo getLargestOilClusterID action
 set factory rally point
-
 retreat when electronic health is low
 
--dont build too many base defenses when funds are flush
 -pilot upgrade not working soon enough
 
-retreat from ultimate scavs
+retreat from ultimate scavs maybe
 
 -build vtol pads before extra factories
 
 -add units present at start to groups
 
-detect and handle pileups
+-detect and handle pileups
 
 limit oil trucks
 -dont send trucks to collect artifacts only players do that
 
 order units to stop before reaching rally point
 
-when starting with all tech rely on vtols less
+-when starting with all tech rely on vtols less
 maybe vtols should run from one high tech aa unit
-alpha strike on mobile aa
 -re-enable double tanks
 
 -retreating vtols should attack random derrick after a few secs
@@ -50,18 +104,16 @@ derrick call in vtol support on spotted targets
 -prune eventattacked -- support is not called in
 -delay research until 3 vtol pads built
 -print debugging to in-game console
-swap pilots to strongest units -- undo scraping
 -vtols should respond to attacks on derricks and units
 -delay building second vtol factory
 -repairs getting stuck at base after rtb defend
 
--new units should stop moving on build -- not move to rally point
+new units should stop moving on build -- not move to rally point
 -truck run zone should be smaller
 -remove strongest player messages
 -remove time from console logs
 -what to do with excess energy? defenses? repair? bank it? build factories?
 
-alphastrike massed mobile aa
 check to make sure all trucks are in groups
 patrol idle base trucks
 
@@ -74,9 +126,9 @@ patrol idle base trucks
 -attack bandit walls instead of scout
 -make pads sparse
 clean up remaining units after buildings
-move off burning ground
+-move off burning ground
 -build tech level 3 air defense
- vtols not defending
+-vtols not defending
 -idle vtol not attacking lassat
 -vtol alpha strike not working
 -build more power early if needed
@@ -90,11 +142,6 @@ random lab still favors lab
 
 -no grabbing helpbuild basebuilders 
 -require less pads at higher levels
-
-if ultimate scavs at tech 0 fast build one aa unit
-
-use derrickAttacks
-
 -remove recycling droids from groups
 
 -make trucks steal any oil
@@ -102,15 +149,15 @@ use derrickAttacks
 
 -attackEnemy use closest target
 -if dorder guard and daction none for attackers
-better routine for defenders
 -vtols should track down trucks
 
 if many opponents build fortress near base
 build and defend wall trucks
 
-if truck is repairing do not retreat
+-if truck is repairing
+or building defense do not retreat
 -grab idle repair droids
-add if droid can reach location to targeting
+-add if droid can reach location to targeting
 -add repair to supportgroup 1/5
 
 =-=================================
@@ -121,11 +168,8 @@ add if droid can reach location to targeting
 ============================
 
 -demolish trees near base
-maybe demolish trees everywhere when not attacking
 try to prevent basebuilders building in a difficult place to reach near base
-if base builder gets too far from base turn back and try to build somewhere else
 idle basebuilders should patrol
-
 
 ====
 
@@ -137,6 +181,6 @@ build base toward map edge
 
 -basebuilders should be more if there are many derricks
 
--attack most thretening player
+-attack most threatening player
 -getStrongestPlayer()
 

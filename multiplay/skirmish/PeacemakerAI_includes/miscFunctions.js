@@ -7,6 +7,7 @@ function log(message)
 
 function logObj(obj, message)
 {
+	if (DEBUG_EXTREME) {log("logObj");}
 	if (obj == null) {return;}
 	if (DEBUG) { dump(gameTime + " [" + obj.name + " id=" + obj.id + "] > " + message); }
 	if (DEBUG_CONSOLE) { console(" [" + obj.name + " id=" + obj.id + "] > " + message); }
@@ -15,22 +16,26 @@ function logObj(obj, message)
 // Returns true if something is defined
 function defined(data)
 {
+	if (DEBUG_EXTREME) {log("defined");}
 	return typeof data !== "undefined";
 }
 
 //Return a number in the range of 0 to (max - 1).
 function random(max)
 {
+	if (DEBUG_EXTREME) {log("random");}
 	return (max <= 0) ? 0 : Math.floor(Math.random() * max);
 }
 
 function getRealPower()
 {
+	if (DEBUG_EXTREME) {log("getRealPower");}
 	return playerPower(me) - queuedPower(me);
 }
 
 function sortByDistToBase(obj1, obj2)
 {
+	if (DEBUG_EXTREME) {log("sortByDistToBase");}
 	var dist1 = distBetweenTwoPoints(BASE.x, BASE.y, obj1.x, obj1.y);
 	var dist2 = distBetweenTwoPoints(BASE.x, BASE.y, obj2.x, obj2.y);
 	return (dist1 - dist2);
@@ -38,6 +43,7 @@ function sortByDistToBase(obj1, obj2)
 
 function isUnsafeEnemyObject(obj)
 {
+	if (DEBUG_EXTREME) {log("isUnsafeEnemyObject");}
 	if (obj.player === me || allianceExistsBetween(me, obj.player))
 	{
 		return false;
@@ -53,11 +59,13 @@ function isUnsafeEnemyObject(obj)
 
 function isDerrick(obj)
 {
+	if (DEBUG_EXTREME) {log("isDerrick");}
 	return (obj.type === STRUCTURE && obj.stattype === RESOURCE_EXTRACTOR);
 }
 
 function setupTruckGroups()
 {
+	if (DEBUG_EXTREME) {log("setupTruckGroups");}
 	var cons = enumDroid(me, DROID_CONSTRUCT);
 	for (let i = 0, l = cons.length; i < l; ++i)
 	{
@@ -89,6 +97,7 @@ function setupTruckGroups()
 
 // returns shuffled array via Fisher-Yates Algorithm
 function shuffleArray(array) {
+   if (DEBUG_EXTREME) {log("shuffleArray");}
    for (var i = array.length - 1; i > 0; i--) {
        var j = Math.floor(Math.random() * (i + 1));    
        var temp = array[i];
@@ -100,6 +109,7 @@ function shuffleArray(array) {
 
 function ThrottleThis(throttleThis, time)
 {
+	if (DEBUG_EXTREME) {log("ThrottleThis");}
 	if (!defined(time))
 	{
 		time = 2000;
@@ -127,6 +137,7 @@ function ThrottleThis(throttleThis, time)
 
 function isUltimateScavs()
 {
+	if (DEBUG_EXTREME) {log("isUltimateScavs");}
 	if (scavengers && countStruct("A0BaBaFactory", scavengerPlayer))
 	{
 		return true;
