@@ -1,66 +1,4 @@
-// Research definitions
-const FUNDAMENTALS1 = [
-	"R-Wpn-MG1Mk1",
-	"R-Sys-Engineering01",
-	"R-Sys-MobileRepairTurret01",
-	"R-Struc-PowerModuleMk1",
-	"R-Defense-Tower01", // mg tower
-	"R-Wpn-MG-Damage02", // hardened bullets
-	"R-Vehicle-Prop-Halftracks",
-	"R-Vehicle-Body05", // cobra
-	"R-Vehicle-Metals02",
-	"R-Cyborg-Metals02",
-	"R-Struc-Research-Upgrade01",
-];
-const FUNDAMENTALS2 = [
-	"R-Wpn-MG3Mk1", // heavy mg
-	"R-Vehicle-Metals04",
-	"R-Cyborg-Metals04",
-	"R-Sys-Sensor-Upgrade01",
-	"R-Sys-MobileRepairTurretHvy",
-	"R-Struc-RepairFacility",
-];
-const FUNDAMENTALS3 = [
-	"R-Wpn-MG4",
-	"R-Vehicle-Prop-Hover",
-	"R-Struc-VTOLFactory",
-	"R-Vehicle-Prop-VTOL",
-	"R-Struc-VTOLPad",
-	"R-Struc-VTOLPad-Upgrade03",
-	"R-Wpn-Laser02",
-	"R-Cyborg-Hvywpn-PulseLsr",
-	"R-Sys-Autorepair-General",
-	"R-Vehicle-Body12", // mantis
-	"R-Struc-Factory-Upgrade04",
-	"R-Sys-Engineering03",
-	"R-Sys-Sensor-Upgrade03",
-	"R-Struc-RprFac-Upgrade02",
-];
-const LATE_GAME_TECH = [
-	"R-Wpn-LasSat",
-	"R-Wpn-Bomb05", // plasmite bomb
-	"R-Defense-MortarPit-Incendiary",
-	"R-Wpn-Mortar-Acc03",
-	"R-Wpn-Mortar-Damage06",
-	"R-Struc-Research-Upgrade09",
-	"R-Sys-Resistance-Circuits",
-	"R-Defense-Howitzer-Incendiary",
-	"R-Vehicle-Body14", // dragon body
-	"R-Sys-SpyTurret",
-	"R-Defense-HvyArtMissile",
-];
-const LASER_TECH = [
-	"R-Wpn-Laser01",
-	"R-Wpn-Laser02",
-	"R-Wpn-Energy-Accuracy01",
-	"R-Wpn-Energy-Damage03",
-	"R-Wpn-Energy-ROF03",
-	"R-Wpn-ParticleGun",
-];
-const VTOL_WEAPONRY = [
-	"R-Struc-VTOLPad-Upgrade06",
-];
-
+// Standard research
 const KINETIC_ALLOYS = [
 	"R-Vehicle-Metals09",
 	"R-Cyborg-Metals09",
@@ -72,169 +10,71 @@ const THERMAL_ALLOYS = [
 const STRUCTURE_DEFENSE_UPGRADES = [
 	"R-Defense-WallUpgrade11",
 	"R-Struc-Materials03",
-	"R-Struc-RprFac-Upgrade06",
 ];
-const MG_TECH = [
-	"R-Wpn-MG-Damage10", // du bullets mk3
-	"R-Wpn-MG5", // twin ag
-];
-const ANTI_AIR_TECH = [
-	"R-Defense-AA-Laser", // stormbringer defense
-	"R-Defense-AASite-QuadMg1" // hurricane defense
-];
-const POWER_AND_RESEARCH_TECH = [
+const POWER_AND_RESEARCH_UPGRADES = [
 	"R-Struc-Power-Upgrade03a", // final power upgrade
 	"R-Struc-Research-Upgrade07", // final research upgrade
 ];
+const VTOL_PADS_UPGRADES = [
+	"R-Struc-VTOLPad-Upgrade06",
+];
 
-//This function aims to more cleanly discover available research topics
-//with the given list provided.
-function evalResearch(labID, list)
-{
-	if (DEBUG_EXTREME) {log("evalResearch");}
-	if (!labID) { return true; }
-	var lab = getObject(STRUCTURE, me, labID);
-	if (lab == null || list == null)
-	{
-		return true;
-	}	
-	
-	for (let i = 0, l = list.length; i < l; ++i)
-	{
-		if (getResearch(list[i]) && !getResearch(list[i]).done && pursueResearch(lab, list[i]))
-		{
-			return true;
-		}
-	}
+//// distilled version
+function lookForResearch(tech, labParam) {
+    if (baseUnderAttack > 2 && getRealPower() < 800) return;
+    if (!countDroid(DROID_CONSTRUCT) || researchDone) return;
 
-	return false;
+    const labList = labParam ? [labParam]
+        : enumStruct(me, RES_LAB_STAT).filter(lab => lab.status === BUILT && structureIdle(lab));
+
+    for (const lab of labList) {
+		if (getRealPower() < MIN_RESEARCH_POWER) return;
+        let found = false;
+
+        if (enemyHasVtol && !found) {
+            found = evalResearch(lab.id, Schemes[Scheme].ANTI_AIR_TECH);
+        }
+
+        if (isSeaMap && !found) {
+            found = pursueResearch(lab, "R-Vehicle-Prop-Hover");
+        }
+
+        if (!found) {
+            found = evalResearch(lab.id, Schemes[Scheme].FUNDAMENTALS1);
+            if (!found) found = evalResearch(lab.id, Schemes[Scheme].FUNDAMENTALS2);
+			if (!found) found = evalResearch(lab.id, Schemes[Scheme].BASIC_TECH);
+            if (!found) found = evalResearch(lab.id, Schemes[Scheme].FUNDAMENTALS3);
+            if (!found) found = evalResearch(lab.id, Schemes[Scheme].ADVANCED_TECH);
+            if (!found) found = evalResearch(lab.id, Schemes[Scheme].FUNDAMENTALS4);
+        }
+
+        if (!found && getRealPower() > MIN_RESEARCH_POWER * 10) {
+            const reslist = enumResearch();
+            if (reslist.length > 0) {
+                const idx = Math.floor(Math.random() * reslist.length);
+                pursueResearch(lab, reslist[idx].name);
+            }
+        }
+    }
 }
 
-function lookForResearch(tech, labParam)
-{
-	if (DEBUG_EXTREME) {log("lookForResearch");}
-	// if base is under attack and low funds stop research
-	if (baseUnderAttack > 2 && getRealPower() < 600) { return; }
-	
-	if (!countDroid(DROID_CONSTRUCT) || researchDone)
-	{
-		return; //need construction droids.
-	}
+function evalResearch(labID, list) {
+    if (!labID || !list) {
+        return true;
+    }
 
-	var labList;
-	if (labParam) // check if called with parameter or not
-	{
-		labList = [];
-		labList.push(labParam);
-	}
-	else
-	{
-		labList = enumStruct(me, RES_LAB_STAT).filter((lab) => (
-			lab.status === BUILT && structureIdle(lab)
-		));
-	}
-	for (let i = 0, r = labList.length; i < r; ++i)
-	{
-		var lab = labList[i];
-		var found = evalResearch(lab.id, FUNDAMENTALS1);
+    const lab = getObject(STRUCTURE, me, labID);
+    if (!lab) {
+        return true;
+    }
 
-		// Focus on the hover research for a hover map.
-		if (!found && isSeaMap === true && lab)
-		{
-			found = pursueResearch(lab, "R-Vehicle-Prop-Hover");
-		}
-		if (!found && getRealPower() > MIN_RESEARCH_POWER)
-		{
-			found = evalResearch(lab.id, FUNDAMENTALS2);
-			if (!found && random(3) === 0)
-			{
-				found = evalResearch(lab.id, POWER_AND_RESEARCH_TECH);
-			}
-			if (!found && enemyHasVtol)
-			{
-				//Push for anti-air tech if we discover the enemy has VTOLs
-				found = evalResearch(lab.id, ANTI_AIR_TECH);
-				if (!found)
-				{
-					found = evalResearch(lab.id, LASER_TECH);
-				}
-				if (!found)
-				{
-					found = evalResearch(lab.id, VTOL_WEAPONRY);
-				}
-			}
-			// push for mg tech
-			if (random(2) === 0 && !found)
-			{
-				found = evalResearch(lab.id, MG_TECH);
-			}
-			//If they dont have vtols then push for lasers
-			if (!found && !enemyHasVtol && random(2) === 0)
-			{
-				found = evalResearch(lab.id, LASER_TECH);
-			}
-			if (!found)
-			{
-				found = evalResearch(lab.id, FUNDAMENTALS3);
-			}
-			if (!found && random(2) === 0)
-			{
-				if (!isSeaMap)
-				{
-					found = evalResearch(lab.id, KINETIC_ALLOYS);
-					if (!found && random(2) === 0)
-					{
-						found = evalResearch(lab.id, THERMAL_ALLOYS);
-					}
-				}
-				else
-				{
-					found = pursueResearch(lab, "R-Vehicle-Metals09");
-					if (!found && random(2) === 0)
-					{
-						found = pursueResearch(lab, "R-Vehicle-Armor-Heat09");
-					}
-				}
-			}
+    for (const item of list) {
+        if (isSeaMap && (item === "R-Vehicle-Prop-Halftracks" || item === "R-Vehicle-Prop-Tracks")) continue;
+        const research = getResearch(item);
+        if (research && !research.done && pursueResearch(lab, item)) {
+            return true;
+        }
+    }
 
-			if (!enemyHasVtol)
-			{
-				if (!found)
-				{
-					found = evalResearch(lab.id, LASER_TECH);
-				}
-				if (!found)
-				{
-					found = evalResearch(lab.id, VTOL_WEAPONRY);
-				}
-			}
-			else
-			{
-				if (!found)
-				{
-					found = evalResearch(lab.id, MG_TECH);
-				}
-			}
-			if (!found && random(6) === 0)
-			{
-				found = evalResearch(lab.id, STRUCTURE_DEFENSE_UPGRADES);
-			}
-			if (!found)
-			{
-				found = evalResearch(lab.id, LATE_GAME_TECH);
-			}
-			//Only research random stuff if there are surplus funds
-			if (getRealPower() > MIN_RESEARCH_POWER*10 && !found)
-			{
-				// Find a random research item
-				var reslist = enumResearch();
-				var len = reslist.length;
-				if (len > 0)
-				{
-					var idx = Math.floor(Math.random() * len);
-					pursueResearch(lab, reslist[idx].name);
-				}
-			}
-		}
-	}
+    return false;
 }

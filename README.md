@@ -1,15 +1,21 @@
-﻿PeacemakerAI v0.2
+﻿# PeacemakerAI v0.3
 
-PeacemakerAI is a skirmish AI bot for Warzone2100. You are free to do as you wish with the code, many snippets are from message-boards. If you make a derivative AI from it please credit duckfood on github.
+**PeacemakerAI** is a skirmish AI bot for **Warzone2100**. The code is released under the MIT license, so there are no warranties whatsoever. It may absorb your system, your life, then invoke a new world order!
 
-To install git or unzip into the mods folder for your version of Warzone2100, then run the make bat or sh.
+## Installation
+To install, `git clone` or `unzip` into the mods folder for your version of Warzone2100 (eg. `data/warzone2100/mods/4.7.0`), then run `make.bat` or `make.sh` to install the mod package. The .wz mod package is available in the releases section on github for manual installation.
 
-PeacemakerAI is based on the prototypical SemperFi from the base Warzone2100.
+## Features
+- **Lightweight Spatial Data Store**: Leverages data stores for observed objects and spatial queries.
+- **Human-like Operational Constraints**: Operates with the knowledge and constraints of a human player for fair play.
+- **Enhanced Droid Intelligence**: Utilizes queued timers to improve droid intelligence while maintaining smooth performance.
+- **Outperforms Nullbot, Cobra, and Bonecrusher**: Bests existing bots despite their knowledge of unseen objects.
 
-The goal is to write a non-cheating AI that uses databases to keep track of enemy forces instead of simply enumerating them. It still cheats some. It knows where derricks and buildings are unseen, but it does not respond to units that have not been spotted or are not nearby for the most part. A more complete seen database is planned so this cheaty behavior can be eliminated.
+### Attribution
+- **Inspired by the prototypical SemperFi from the base Warzone2100**. Although they share similar naming conventions, PeacemakerAI has undergone significant revisions and enhancements thanks to assistance from qwen3, granite4, and deepseek-coder large language models.
+  
+### Contribution
+If you wish to contribute, fork, or download the latest version visit https://github.com/duckfood/PeacemakerAI
 
-PeacemakerAI may still be vulnerable to an early truck rush, but once established it should put on a good show at any tech level and many opponents. PeacemakerAI was designed to defeat Nullbot, Cobra, Bonecrusher, and SemperFi unallied in the same skirmish. Only Cobra is a rival.
-
-Timers are used extensively to make units smart, so you will need a faster CPU for it run smoothly.
-
-If you wish to contribute, fork, or download visit https://github.com/duckfood/PeacemakerAI
+### Motivation
+PeacemakerAI grew out of a project to explore advanced JavaScript while leveraging large language models for coding assistance.

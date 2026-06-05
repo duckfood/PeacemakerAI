@@ -1,11 +1,8 @@
-// Tank definitions
+// standard production definitions
 const TANK_BODY_LIST = [
-	// dragon handled elsewhere
+	"Body14SUP", // dragon
 	"Body13SUP", // wyvern
-	"Body10MBT", // vengeance
-	"Body7ABT", // retribution
 	"Body9REC", // tiger
-	"Body6SUPP", // panther
 	"Body12SUP", // mantis
 	"Body11ABT", // python
 	"Body8MBT", // scorpion
@@ -13,39 +10,14 @@ const TANK_BODY_LIST = [
 	"Body4ABT", // bug
 	"Body1REC", // viper
 ];
-const TANK_PROP_LIST = [
-	"HalfTrack", // half-track
-	"wheeled01", //  wheels
-];
-const TANK_WEAPON_LIST = [
-	"RailGun3Mk1",
-	"ParticleGun",
-	"Laser2PULSEMk1", // pulselaser, but not flashlight
-	"MG5TWINROTARY",
-	"MG4ROTARYMk1",
-	"MG3Mk1", // heavy mg
-	"MG2Mk1", // twin mg
-	"MG1Mk1", // mg, initial weapon
-];
-const TANK_FLAMERS = [
-	"Howitzer-Incendiary",
-	"Mortar-Incendiary",
-]
-const TANK_REPAIR_LIST = [
-	"HeavyRepair",
-	"LightRepair1",
-];
-const TANK_AA = [
-	"AAGunLaser",
-	"QuadRotAAGun", // whirlwind
-	"QuadMg1AAGun" // hurricane
-];
-const CYBORG_LASERS = [
-	"Cyb-Hvywpn-PulseLsr",
-];
-const CYBORG_MG = [
-	"CyborgRotMG",
-	"CyborgChaingun",
+const VTOL_BODY_LIST = [
+	"Body14SUP", // dragon
+	"Body7ABT", // retribution
+	"Body3MBT", // retaliation
+	"Body6SUPP", // panther
+	"Body8MBT", // scorpion
+	"Body5REC", // cobra
+	"Body4ABT", // bug
 ];
 const SYSTEM_BODY_LIST = [
 	"Body8MBT", // scorpion
@@ -53,31 +25,27 @@ const SYSTEM_BODY_LIST = [
 	"Body4ABT", // bug
 	"Body1REC",  // Viper
 ];
-const SYSTEM_PROP_LIST = [
-	"hover01", // hover
+const TANK_PROP_LIST = [
+	"tracked01",
 	"HalfTrack",
-	"wheeled01", // wheels
+	"wheeled01",
 ];
-const SENSOR_TURRETS = [
+const ARTILLERY_PROP_LIST = [
+	"HalfTrack",
+	"wheeled01",
+];
+const SYSTEM_PROP_LIST = [
+	"hover01",
+	"HalfTrack",
+	"wheeled01",
+];
+const SENSOR_TURRETS_LIST = [
 	"Sensor-WideSpec",
 	"SensorTurret1Mk1",
 ];
-const VTOL_WEAPONS = [
-	"Bomb5-VTOL-Plasmite",
-	"ParticleGun-VTOL",
-	"Laser2PULSE-VTOL", // pulse
-	"Laser3BEAM-VTOL", // flashlight
-	"Cannon4AUTO-VTOL",
-	"MG4ROTARY-VTOL",
-];
-const VTOL_BODY_LIST = [
-	//"Body14SUP", //dragon handled elsewhere
-	"Body7ABT", // retribution
-	"Body3MBT", // retaliation
-	"Body6SUPP", // panther	
-	"Body8MBT", // scorpion
-	"Body5REC", // cobra
-	"Body4ABT", // bug
+const TANK_REPAIR_LIST = [
+	"HeavyRepair",
+	"LightRepair1",
 ];
 
 // mixed attacker definitions for high tech
@@ -86,23 +54,20 @@ const MIX_VTOL_WEAPONS = [
 	"RailGun2-VTOL",
 	"Bomb5-VTOL-Plasmite",
 	"Missile-VTOL-AT",
-	"Bomb5-VTOL-Plasmite",
 	"ParticleGun-VTOL",
 ];
 const MIX_TANK_WEAPONS = [
 	"RailGun3Mk1",
-	"SpyTurret01",
 	"ParticleGun",
+	"Missile-A-T",
 ];
 const SECONDARY_TANK_WEAPONS = [
-	"Laser2PULSEMk1",
+	"ParticleGun",
 	"RailGun3Mk1",
 	"Missile-A-T",
 ];
 const MIX_TANK_ARTILLERY = [
 	"Howitzer-Incendiary",
-	"PlasmaHeavy",
-	"Missile-HvyArt",
 ];
 const MIX_TANK_AA = [
 	"AAGunLaser",
@@ -110,244 +75,285 @@ const MIX_TANK_AA = [
 ];
 const MIX_CYBORG = [
 	"Cyb-Hvywpn-PulseLsr",
-	"Cyb-Hvywpn-TK",
+	"Cyb-Hvywpn-A-T",
 	"Cyb-Hvywpn-RailGunner",
 ];
 
-// build tank attackers and cyborgs
-function buildAttacker(struct) 
-{
-	if (DEBUG_EXTREME) {log("buildAttacker");}
+const HOVER_CHANCE = 8;
+const ARTILLERY_CHANCE = 32;
+const AA_CHANCE = 8;
 
+// build tank attackers and cyborgs
+function buildAttacker(fac)
+{
 	// build cyborgs
-	if (struct.stattype === CYBORG_FACTORY)
+	if (fac.stattype === CYBORG_FACTORY)
 	{
-		if (relyOnCyborgs) { return buildCyborg(struct);}
-		if (!relyOnCyborgs && random(100) < 30) { return buildCyborg(struct); }
+		if (relyOnCyborgs) return buildCyborg(fac);
+		if (!relyOnCyborgs && random(100) < 30) return buildCyborg(fac);
 		return false;
 	}
-	// build tanks
-	const HOVER_CHANCE = 15;
-	const WEAPON_CHANCE = 68;
-	var weaponChoice;
 
 	// if factory module and medium body are available, but factory is not upgraded do not build anything else
-	if (struct.modules < 2 && isStructureAvailable("A0FacMod1") && (componentAvailable("Body5REC") || componentAvailable("Body8MBT")) )
-	{ return false; }
+	if (fac.modules < 2 && isStructureAvailable("A0FacMod1") && (componentAvailable("Body5REC") || componentAvailable("Body8MBT")) )
+		{ return false; }
 
-	//Choose either flame or anti-tank.
-	if (random(100) > WEAPON_CHANCE && componentAvailable("Mortar-Incendiary")) { weaponChoice = TANK_FLAMERS; }
-	else { weaponChoice = TANK_WEAPON_LIST; }
-
-	// build at least one AA unit if enemyHasVtol if needed
-	if (enemyHasVtol && random(100) < 20 && groupSize(attackGroup) > MIN_GROUND_UNITS*1)
-	{
-		var vAA = 0;
-		const AAfacs = enumStruct(me, FACTORY_STAT);
-		for (fac of AAfacs)
-		{
-			var vdr = getDroidProduction(fac);
-			if (vdr && vdr.canHitAir === true && vdr.canHitGround === false) { ++vAA; }
-		}		
-		var AAunits = [];
-		AAunits = enumDroid(me).filter((obj) => (obj.canHitAir === true && obj.canHitGround === false) );
-		if (AAunits.length + vAA < 1)
-		{
-			weaponChoice = TANK_AA;
-		}
-	}
-	
-	// maybe build more AA tanks if enemyHasVtol
-	weaponChoice = (random(100) < 10 && enemyHasVtol) ? TANK_AA : weaponChoice;
-
-	var prop = TANK_PROP_LIST;
-
-	if ((isSeaMap || (random(100) < HOVER_CHANCE)) && componentAvailable("hover01"))
-	{
-		prop = "hover01";
-	}
+	let prop = TANK_PROP_LIST;
+	if ((isSeaMap || (random(100) < HOVER_CHANCE)) && componentAvailable("hover01")) prop = ["hover01"];
 
 	// build repair tanks based on combat droid count and autorepair
 	if (componentAvailable("HeavyRepair") || componentAvailable("LightRepair1") && random(100) < 80)
 	{
-		var div = 4;
+		let div = 4;
 		if (componentAvailable("AutoRepair")) { div = 8; }
 		
-		var repair = [];
-		var combat = [];
+		let repair = [];
+		let combat = [];
 		
 		repair = enumDroid(me, DROID_REPAIR);
 		combat = enumDroid(me, DROID_WEAPON).filter((dr) => (dr.isVTOL === false)).concat(enumDroid(me, DROID_CYBORG));
 		
-		var facs = enumStruct(me, FACTORY);
-		var vrepair = 0;
-		facs.forEach(fac => 
+		let facs = enumStruct(me, FACTORY);
+		let vrepair = 0;
+		for (let fac of facs)
 		{
-			var vdr = getDroidProduction(fac);
+			let vdr = getDroidProduction(fac);
 			if (vdr && vdr.droidType === DROID_REPAIR) { ++vrepair; }
-		});
+		}
 		
 		log("repair:"+repair.length+" vrepair:"+vrepair+" combat:"+combat.length+" combat/div:"+combat.length/div);
 		if (repair.length + vrepair < combat.length/div || repair.length + vrepair < 1)
 		{
-			return buildRepair(struct, prop);
+			return buildRepair(fac, prop);
 		}
 	}
-	
+
+	//build mobile artillery
+	if (componentAvailable("Mortar-Incendiary") && random(100) < ARTILLERY_CHANCE) return buildMobileArtillery(fac);
+
+	// build AA tanks based on combat droid count
+	if (enemyHasVtol && componentAvailable("QuadMg1AAGun"))
+	{
+		let div = 10;
+		if (componentAvailable("AAGunLaser")) { div = 20; }
+
+		let AA = enumDroid(me, DROID_WEAPON).filter((obj) => (obj.canHitAir === true && obj.canHitGround === false) );
+		let combat = enumDroid(me, DROID_WEAPON).filter((dr) => (dr.isVTOL === false)).concat(enumDroid(me, DROID_CYBORG));
+
+		let facs = enumStruct(me, FACTORY);
+		let vAA = 0;
+		for (let fac of facs)
+		{
+			let vdr = getDroidProduction(fac);
+			if (vdr && vdr.droidType === DROID_WEAPON && vdr.canHitAir === true && vdr.canHitGround === false)
+				{ ++vAA; }
+		}
+
+		log("AA:"+AA.length+" vAA:"+vAA.length+" combat:"+combat.length+" combat/div:"+combat.length/div);
+		if (AA.length + vAA < combat.length/div || AA.length + vAA < 1)
+		{
+			return buildMobileAA(fac);
+		}
+	}
+
 	// build MIN_SENSOR_DROIDS but only if needed
 	if (groupSize(attackGroup) > MIN_GROUND_UNITS*2 && componentAvailable("SensorTurret1Mk1") && groupSize(sensorGroup) < MIN_SENSOR_DROIDS && random(100) < 30)
 	{
-		var vsensor = 0;
+		let vsensor = 0;
 		const facs = enumStruct(me, FACTORY_STAT);
-		for (fac of facs)
+		for (let fac of facs)
 		{
-			var vdr = getDroidProduction(fac);
+			let vdr = getDroidProduction(fac);
 			if (vdr && vdr.droidType === DROID_SENSOR) { ++vsensor; }
 		}
 
 		log("sensor:"+groupSize(sensorGroup)+" vsensor:"+vsensor);
 		if (groupSize(sensorGroup) + vsensor < MIN_SENSOR_DROIDS)
 		{
-			return buildSensor(struct, prop);
+			return buildSensor(fac, prop);
 		}
 	}
+
+	// build tanks
+	return buildTank(fac, prop)
+}
+
+function buildTank(fac, prop)
+{
+	if (!fac) return false;
+	prop ??= isSeaMap ? SYSTEM_PROP_LIST : TANK_PROP_LIST;
+	let propName = StatsMap.get(firstAvailableComponent(prop)).Name;
 
 	// build dragon multi turret tanks
-	if (componentAvailable("Body14SUP")) 
+	if (componentAvailable("Body14SUP"))
 	{
-		if (random(100) < WEAPON_CHANCE)
-		{
-			var primary = shuffleArray(MIX_TANK_WEAPONS);
-			var secondary = shuffleArray(SECONDARY_TANK_WEAPONS);
-			// if spy turret build a double
-			if (primary[0] === "SpyTurret01") { secondary = primary; }
-			return buildDroid(struct, "Dragon Tank", "Body14SUP", prop, null, null, primary, secondary);
-		}
-		else
-		{
-			var primary = shuffleArray(MIX_TANK_ARTILLERY);
-			var secondary = shuffleArray(MIX_TANK_AA);
-			return buildDroid(struct, "Dragon Arti AA Tank", "Body14SUP", prop, null, null, primary, secondary);
-		}
+		let weapon1 = shuffleArray(MIX_TANK_WEAPONS);
+		let weapon2 = shuffleArray(SECONDARY_TANK_WEAPONS);
+		if (weapon1[0] === "SpyTurret01") weapon2 = weapon1;
+		let weaponName1 = StatsMap.get(firstAvailableComponent(weapon1)).Name;
+		let weaponName2 = StatsMap.get(firstAvailableComponent(weapon2)).Name;
+		let bodyName = StatsMap.get("Body14SUP").Name;
+		return buildDroid(fac, weaponName1+" "+weaponName2+" "+bodyName+" "+propName, "Body14SUP", prop, null, null, weapon1, weapon2);
 	}
-
 	// build standard tank
-	return buildDroid(struct, "Ranged Tank", TANK_BODY_LIST, prop, null, null, weaponChoice);
+	let weaponName = StatsMap.get(firstAvailableComponent(Schemes[Scheme].TANK_WEAPON_LIST)).Name;
+	let bodyName = StatsMap.get(firstAvailableComponent(TANK_BODY_LIST)).Name;
+	return buildDroid(fac, weaponName+" "+bodyName+" "+propName, TANK_BODY_LIST, prop, null, null, Schemes[Scheme].TANK_WEAPON_LIST);
 }
 
-function buildSensor(struct, prop)
+function buildMobileArtillery(fac, prop)
 {
-	if (DEBUG_EXTREME) {log("buildSensor");}
-	if (struct == null || prop == null) { return; }
-	return buildDroid(struct, "Sensor", TANK_BODY_LIST, prop, null, null, SENSOR_TURRETS);
+	if (!fac) return false;
+	prop ??= isSeaMap ? SYSTEM_PROP_LIST : ARTILLERY_PROP_LIST;
+	let propName = StatsMap.get(firstAvailableComponent(prop)).Name;
+
+	if (fac.stattype === FACTORY && componentAvailable("Body14SUP"))
+	{
+		let weaponName = StatsMap.get(firstAvailableComponent(Schemes[Scheme].TANK_ARTILLERY_LIST)).Name;
+		let bodyName = StatsMap.get(firstAvailableComponent(TANK_BODY_LIST)).Name;
+		return buildDroid(fac, weaponName+" "+bodyName+" "+propName, "Body14SUP", prop, null, null, Schemes[Scheme].TANK_ARTILLERY_LIST, Schemes[Scheme].TANK_ARTILLERY_LIST);
+	}
+	else if (fac.stattype === FACTORY)
+	{
+		let weaponName = StatsMap.get(firstAvailableComponent(Schemes[Scheme].TANK_ARTILLERY_LIST)).Name;
+		let bodyName = StatsMap.get(firstAvailableComponent(TANK_BODY_LIST)).Name;
+		return buildDroid(fac, weaponName+" "+bodyName+" "+propName, TANK_BODY_LIST, prop, null, null, Schemes[Scheme].TANK_ARTILLERY_LIST);
+	}
+	else if (fac.stattype === CYBORG_FACTORY)
+	{
+		return buildDroid(fac, "Cyborg Mortar", "CyborgLightBody", "CyborgLegs", "", "", "Cyb-Wpn-Grenade");
+	}
+	return false;
 }
 
-function buildCommander(struct, prop)
+function buildMobileAA(fac, prop)
 {
-	if (DEBUG_EXTREME) {log("buildCommander");}
-	if (struct == null || prop == null) { return; }
-	return buildDroid(struct, "Commander Tank", TANK_BODY_LIST, prop, null, null, COMMAND_TURRET);
+	if (!fac) return false;
+	prop ??= isSeaMap ? SYSTEM_PROP_LIST : TANK_PROP_LIST;
+	let propName = StatsMap.get(firstAvailableComponent(prop)).Name;
+
+	if (fac.stattype === FACTORY && componentAvailable("Body14SUP"))
+	{
+		let mixAA = shuffleArray(MIX_TANK_AA);
+		let weaponName = StatsMap.get(firstAvailableComponent(mixAA)).Name;
+		let bodyName = StatsMap.get("Body14SUP").Name;
+		return buildDroid(fac, weaponName+" "+bodyName+" "+propName, "Body14SUP", prop, null, null, mixAA, mixAA);
+	}
+	else if (fac.stattype === FACTORY)
+	{
+		let weaponName = StatsMap.get(firstAvailableComponent(Schemes[Scheme].TANK_AA_LIST)).Name;
+		let bodyName = StatsMap.get(firstAvailableComponent(TANK_BODY_LIST)).Name;
+		return buildDroid(fac, weaponName+" "+bodyName+" "+propName, TANK_BODY_LIST, prop, null, null, Schemes[Scheme].TANK_AA_LIST);
+	}
+	return false;
 }
 
-function buildRepair(struct, prop)
+function buildSensor(fac, prop)
 {
-	if (DEBUG_EXTREME) {log("buildRepair");}
-	if (struct == null || prop == null) { return; }
+	if (fac == null || prop == null) { return false; }
+	prop ??= isSeaMap ? SYSTEM_PROP_LIST : TANK_PROP_LIST;
+	let propName = StatsMap.get(firstAvailableComponent(prop)).Name;
+	let weaponName = StatsMap.get(firstAvailableComponent(SENSOR_TURRETS_LIST)).Name;
+
 	if (componentAvailable("Body13SUP")) // wyvern
 	{
-		return buildDroid(struct, "Heavy Repair Wyvern", "Body13SUP", prop, "", "", "HeavyRepair");
+		return buildDroid(fac, weaponName+" Wyvern "+propName, "Body13SUP", prop, "", "", SENSOR_TURRETS_LIST);
 	}
-	if (componentAvailable("HeavyRepair") && struct.modules > 0)
-	{
-		return buildDroid(struct, "Heavy Repair Tank", TANK_BODY_LIST, prop, "", "", "HeavyRepair");
-	}	
-	return buildDroid(struct, "Light Repair Tank", TANK_BODY_LIST, prop, "", "", "LightRepair1");
+
+	let bodyName = StatsMap.get(firstAvailableComponent(TANK_BODY_LIST)).Name;
+	return buildDroid(fac, weaponName+" "+bodyName+" "+propName, TANK_BODY_LIST, prop, null, null, SENSOR_TURRETS_LIST);
 }
 
-function buildCyborg(struct)
+function buildRepair(fac, prop)
 {
-	if (DEBUG_EXTREME) {log("buildCyborg");}
-	if (struct == null) { return; }
-	// build 1 repair cyborg if there are no repairs
-	// if (componentAvailable("CyborgRepair") && enumDroid(me, DROID_REPAIR).length === 0)
-	// {
-	// 	return buildDroid(struct, "Cyborg Repair", "CyborgLightBody", "CyborgLegs", "", "", "CyborgRepair");
-	// }
+	if (fac == null || prop == null) { return; }
+	prop ??= isSeaMap ? SYSTEM_PROP_LIST : TANK_PROP_LIST;
+	let propName = StatsMap.get(firstAvailableComponent(prop)).Name;
+
+	if (componentAvailable("Body13SUP")) // wyvern
+	{
+		return buildDroid(fac, "Heavy Repair Wyvern "+propName, "Body13SUP", prop, "", "", "HeavyRepair");
+	}
+
+	let weaponName = StatsMap.get(firstAvailableComponent(TANK_REPAIR_LIST)).Name;
+	let bodyName = StatsMap.get(firstAvailableComponent(TANK_BODY_LIST)).Name;
+	return buildDroid(fac, weaponName+" "+bodyName+" "+propName, TANK_BODY_LIST, prop, "", "", TANK_REPAIR_LIST);
+}
+
+function buildCyborg(fac)
+{
+	if (fac == null) { return; }
 
 	if (componentAvailable("CyborgHeavyBody"))
 	{
-		var mixcyborg = shuffleArray(MIX_CYBORG);
-		return buildDroid(struct, "Mix Cyborg", "CyborgHeavyBody", "CyborgLegs", "", "", mixcyborg);
+		let mixCyborg = shuffleArray(MIX_CYBORG);
+		let weaponName = StatsMap.get(firstAvailableComponent(mixCyborg)).Name;
+		return buildDroid(fac, weaponName, "CyborgHeavyBody", "CyborgLegs", "", "", mixCyborg);
 	} 
 	else
 	{
-		return buildDroid(struct, "Cyborg MG", "CyborgLightBody", "CyborgLegs", "", "", CYBORG_MG);
+		let weaponName = StatsMap.get(firstAvailableComponent(Schemes[Scheme].CYBORG_BASIC_LIST)).Name;
+		return buildDroid(fac, weaponName, "CyborgLightBody", "CyborgLegs", "", "", Schemes[Scheme].CYBORG_BASIC_LIST);
 	}
 }
 
-function buildVTOL(struct)
+function buildVTOL(fac)
 {
-	if (DEBUG_EXTREME) {log("buildVTOL");}
-	if (struct == null) { return; }
-	if (componentAvailable("Body14SUP"))
-	{
-		var weapon = shuffleArray(MIX_VTOL_WEAPONS);
-		return buildDroid(struct, "Dragon MIX VTOL", "Body14SUP", "V-Tol", "", "", weapon, weapon);
+	if (fac == undefined) return;
+	let prop = "V-Tol";
+	let weapon;
+	if (componentAvailable("Body14SUP")) {
+		weapon = shuffleArray(MIX_VTOL_WEAPONS);
+	} else {
+		weapon = Schemes[Scheme].VTOL_WEAPONS;
 	}
-	if (componentAvailable("Missile-VTOL-AT")) // 	"Missile-VTOL-AT",	"Bomb5-VTOL-Plasmite",
-	{
-		var weapon = shuffleArray(MIX_VTOL_WEAPONS);
-		return buildDroid(struct, "MIX VTOL", VTOL_BODY_LIST, "V-Tol", "", "", weapon);
-	}
-	return buildDroid(struct, "VTOL", VTOL_BODY_LIST, "V-Tol", "", "", VTOL_WEAPONS);
+	let weaponName = StatsMap.get(firstAvailableComponent(weapon)).Name;
+	let propName = StatsMap.get(prop).Name;
+	let bodyName = StatsMap.get(firstAvailableComponent(VTOL_BODY_LIST)).Name;
+	return buildDroid(fac, weaponName+" "+bodyName, VTOL_BODY_LIST, prop, "", "", weapon, weapon);
 }
 
 function buildTruck(fac)
 {
 	if (!fac || !fac.stattype) { return false; }
-	if (fac.stattype === FACTORY) { return buildDroid(fac, "Truck", SYSTEM_BODY_LIST, SYSTEM_PROP_LIST, null, null, "Spade1Mk1"); }
-	if (fac.stattype === CYBORG_FACTORY) { return buildDroid(fac, "CyborgSpade", "CyborgLightBody", "CyborgLegs", "", "", "CyborgSpade"); }
+	if (fac.stattype === FACTORY) {
+		let propName = StatsMap.get(firstAvailableComponent(SYSTEM_PROP_LIST)).Name;
+		let bodyName = StatsMap.get(firstAvailableComponent(SYSTEM_BODY_LIST)).Name;
+		return buildDroid(fac, "Spade "+bodyName+" "+propName, SYSTEM_BODY_LIST, SYSTEM_PROP_LIST, null, null, "Spade1Mk1");
+	}
+	if (fac.stattype === CYBORG_FACTORY) { return buildDroid(fac, "Spade Cyborg", "CyborgLightBody", "CyborgLegs", "", "", "CyborgSpade"); }
 	return false;
 }
 
+//// working version
 function produceAndResearch()
 {
-	if (DEBUG_EXTREME) {log("produceAndResearch");}
-	if (getRealPower() < MIN_PRODUCTION_POWER)
-	{
-		return;
-	}
+	if (getRealPower() < MIN_PRODUCTION_POWER) return;
 
 	const FAC_LIST = [FACTORY_STAT, VTOL_FACTORY_STAT, CYBORG_FACTORY_STAT];
-	var facsVirtual = enumStruct(me, FACTORY_STAT).concat(enumStruct(me, CYBORG_FACTORY_STAT));
-	var virtualTrucks = 0;
-	var i = 0;
-	var x = 0;
-	var l = 0;
+	let facsVirtual = enumStruct(me, FACTORY_STAT).concat(enumStruct(me, CYBORG_FACTORY_STAT));
+	let virtualTrucks = 0;
+	let i = 0;
+	let x = 0;
+	let l = 0;
 
 	//Count the trucks being built so as not to build too many of them.
-	for (i = 0, l = facsVirtual.length; i < l; ++i)
+	for (let i = 0, l = facsVirtual.length; i < l; ++i)
 	{
-		var virDroid = getDroidProduction(facsVirtual[i]);
+		let virDroid = getDroidProduction(facsVirtual[i]);
 		if (virDroid !== null)
 		{
-			if (virDroid.droidType === DROID_CONSTRUCT)
-			{
-				virtualTrucks += 1;
-			}
+			if (virDroid.droidType === DROID_CONSTRUCT) virtualTrucks += 1;
 		}
 	}
 
-	for (i = 0; i < 3; ++i)
+	for (let i = 0; i < 3; ++i)
 	{
-		var facs = enumStruct(me, FAC_LIST[i]);
-		if (FAC_LIST[i] === CYBORG_FACTORY_STAT && isSeaMap === true)
+		let facs = enumStruct(me, FAC_LIST[i]);
+		if (FAC_LIST[i] === CYBORG_FACTORY_STAT && isSeaMap === true) continue;
+		for (let x = 0, l = facs.length; x < l; ++x)
 		{
-			continue;
-		}
-		for (x = 0, l = facs.length; x < l; ++x)
-		{
-			var fc = facs[x];
+			let fc = facs[x];
 			if (structureIdle(fc))
 			{
 				if (FAC_LIST[i] === FACTORY_STAT || FAC_LIST[i] === CYBORG_FACTORY_STAT)
@@ -355,23 +361,23 @@ function produceAndResearch()
 					// check to see if trucks could be built
 					if (countDroid(DROID_CONSTRUCT) + virtualTrucks < getDroidLimit(me, DROID_CONSTRUCT) -2)
 					{
-						// build early trucks
-						if (gameTime < 1800000 && groupSize(oilBuilders) < MIN_OIL_TRUCKS*2) { buildTruck(fc); continue; }
+						let freeoils = enumFeature(ALL_PLAYERS, OIL_RES_STAT);
+						// build early trucks but only if oil is available
+						if (gameTime < 240000 && groupSize(oilBuilders) < MIN_OIL_TRUCKS*2 && freeoils.length > 6) { buildTruck(fc); continue; }
 						// build trucks as needed half the time, but not if under heavy attack
 						if (baseUnderAttack < 3 && random(100) > 50 && countDroid(DROID_CONSTRUCT) + virtualTrucks < MIN_BASE_TRUCKS + MIN_OIL_TRUCKS)
 							{ buildTruck(fc); continue; }
 						// build extra trucks if lots of bare oil wells, but only if plenty of attackers
-						var freeoils = enumFeature(ALL_PLAYERS, OIL_RES_STAT);
 						if (freeoils && freeoils.length > 8 && random(100) > 50 && groupSize(attackGroup)+groupSize(vtolGroup) > MIN_ATTACK_GSIZE*3)
 							{ buildTruck(fc); continue; }
 					}
 
 					// build attackers
-					if (countStruct(POW_GEN_STAT) != 0 || getRealPower() > 1500)
+					if (countStruct(POW_GEN_STAT) !== 0 || getRealPower() > 1500)
 					{
 						if (getRealPower() > 1500 || !componentAvailable("V-Tol") || groupSize(vtolGroup) > MIN_VTOL_UNITS*3) { buildAttacker(fc); continue; }
-						else if (relyOnVtols && componentAvailable("V-Tol") && groupSize(vtolGroup) < MIN_VTOL_UNITS*3) { continue; } // build nothing
-						else if (random(100) < 50) { buildAttacker(fc); continue; }
+						else if (relyOnVtols && componentAvailable("V-Tol") && groupSize(vtolGroup) < MIN_VTOL_UNITS*1 && random(1) == 0) { continue; } // build nothing
+						else if (random(100) < 70) { buildAttacker(fc); continue; }
 					}
 				}
 

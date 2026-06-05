@@ -1,75 +1,28 @@
-
-//Check if this vtol is armed or needs rearming
-function vtolReady(vtolID)
-{
-	if (DEBUG_EXTREME) {log("vtolReady");}
-
-	const vtol = getObject(DROID, me, vtolID);
-	if (vtol == null || vtol.id == null)
-	{
-		log("no vtol while checking if ready");
-		return false;
-	}
-	//logObj(vtol, "checking if vtol ready:"+JSON.stringify(vtol));
-
-	if (vtol.order === DORDER_REARM || vtol.action === 35 && vtol.weapons[0].armed < 99) // waitduringrearm
-	{
-		//logObj(vtol, "vtol rearming and not full");
-		return false;
-	}
-
-	if (vtol.order !== DORDER_REARM && vtol.weapons[0].armed < 1)
-	{
-		orderDroid(vtol, DORDER_REARM);
-		//logObj(vtol, "vtol ordered to rearm");
-		return false;
-	}
-	//logObj(vtol, "vtol ready");
-	return true;
-}
-
-//Does a droid need to repair.
 function droidNeedsRepair(droidID, percent = null)
 {
-	if (DEBUG_EXTREME) {log("droidNeedsRepair");}
 	const dr = getObject(DROID, me, droidID);
-	if (!dr || dr.id == null)
+	if (!dr || dr.id == undefined)
 	{
-		log("droidNeedsRepair no dr") 
+		log("droidNeedsRepair no dr")
 		return true; // dead?
 	}
 
 	// if already going for repairs or retreating return true
-	if (dr.order === DORDER_RTR || dr.order === DORDER_RTB) { return true;}
-	
+	if (dr.order === DORDER_RTR || dr.order === DORDER_RTB || dr.order === DORDER_REARM) return true;
+
 	if (!percent)
 	{
-		if (dr.propulsion === "hover01")
-		{
-			percent = 65;
-		}
-		else if (dr.propulsion === "CyborgLegs")	
-		{
-			percent = 85;
-		}
-		else if (dr.propulsion === "V-Tol")	
-		{
-			percent = 80;
-		}
-		else if (dr.propulsion === "wheeled01")	
-		{
-			percent = 75;
-		}
-		else 
-		{
-			percent = 60;
-		}
+		if (dr.propulsion === "hover01") { percent = 65; }
+		else if (dr.propulsion === "CyborgLegs") { percent = 85; }
+		else if (dr.propulsion === "V-Tol") { percent = 80; }
+		else if (dr.propulsion === "wheeled01") { percent = 75; }
+		else { percent = 60; }
 	}
 
 	// if damaged and already guarding a valid repair truck return true
 	if (dr.health <= percent && orderTargets.has(dr.id))
 	{
-		var guarding = getObject(DROID, me, orderTargets.get(dr.id));
+		let guarding = getObject(DROID, me, orderTargets.get(dr.id));
 		if (guarding && guarding.droidType === DROID_REPAIR)
 		{
 			return true;
@@ -78,12 +31,12 @@ function droidNeedsRepair(droidID, percent = null)
 
 	if (dr.health <= percent)
 	{
-		var repair_droids = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*3, me, true).filter((obj) => (obj.droidType === DROID_REPAIR));
-		var repair_facs = enumStruct(me, REPAIR_FACILITY_STAT);
+		let repair_droids = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*3, me, true).filter((obj) => (obj.droidType === DROID_REPAIR));
+		let repair_facs = enumStruct(me, REPAIR_FACILITY_STAT);
 		if (!repair_droids[0]) { repair_droids = enumDroid(me, DROID_REPAIR); }
-		
-		if (dr.droidType !== DROID_CONSTRUCT && dr.droidType !== DROID_REPAIR && dr.isVTOL === false) 
-		{ 
+
+		if (dr.droidType !== DROID_CONSTRUCT && dr.droidType !== DROID_REPAIR && dr.isVTOL === false)
+		{
 			if (repair_droids[0] && getMultiTechLevel() < 4)
 			{
 				orderDroidObj(dr, 25, repair_droids[random(repair_droids.length-1)]);
@@ -107,246 +60,39 @@ function droidNeedsRepair(droidID, percent = null)
 		}
 		else if (dr.droidType === DROID_CONSTRUCT && dr.order !== DORDER_RTR)
 		{
-//			orderDroid(dr, DORDER_RTR);
-//			log("damaged constructor ordered to RTR:"+dr.id);
+			orderDroid(dr, DORDER_RTR);
+			log("damaged constructor ordered to RTR:"+dr.id);
 		}
-		else if (dr.isVTOL && dr.order !== DORDER_REARM)
+		else if (dr.isVTOL && dr.order !== DORDER_REARM && enumStruct(me, VTOL_PAD_STAT))
 		{
 			orderDroid(dr, DORDER_REARM);
 			log("damaged vtol ordered to REARM:"+dr.id);
 		}
-
 		return true;
 	}
-
 	return false;
 }
 
-//Return all enemy players that are still alive. An optional argument can be
-//passed to determine if that specific player is alive or not.
-function getAliveEnemyPlayers(player)
+function vtolReady(dr)
 {
-	if (DEBUG_EXTREME) {log("getAliveEnemyPlayers");}
-	if (defined(player))
-	{
-		if (countStruct(FACTORY_STAT, player) +
-			countStruct(CYBORG_FACTORY_STAT, player) +
-			countStruct(VTOL_FACTORY_STAT, player) +
-			countStruct(DERRICK_STAT, player) +
-			countDroid(DROID_ANY, player) > 0)
-		{
-			return true;
-		}
-
-		return false;
-	}
-
-	var numEnemies = [];
-	for (let i = 0; i < maxPlayers; ++i)
-	{
-		if (i !== me && !allianceExistsBetween(i, me))
-		{
-			//Are they alive (have factories and constructs)
-			//Even if they still have attack droids, eventAttacked() will find them anyway if they do attack.
-			if ((countStruct(FACTORY_STAT, i) +
-				countStruct(CYBORG_FACTORY_STAT, i) +
-				countStruct(VTOL_FACTORY_STAT, i) +
-				countStruct(DERRICK_STAT, i) +
-				countDroid(DROID_ANY, i)) > 0)
-			{
-				numEnemies.push(i); // count 'em, then kill 'em :)
-			}
-		}
-	}
-
-	if (defined(scavengerPlayer) &&
-		(countStruct("A0BaBaFactory", scavengerPlayer) +
-		countStruct(DERRICK_STAT, scavengerPlayer) +
-		countDroid(DROID_ANY, scavengerPlayer)) > 0)
-	{
-		numEnemies.push(scavengerPlayer);
-	}
-
-	return numEnemies;
+	return (dr.weapons[0].armed === 100 && dr.health === 100);
 }
 
-//return the nearest factory ID (normal factory has precedence). undefined if none.
-function findNearestFactoryID(player)
+function recycleDroids(droids)
 {
-	if (DEBUG_EXTREME) {log("findNearestFactoryID");}
-	var facs = enumStruct(player, FACTORY_STAT).sort(sortByDistToBase);
-	var cybFacs = enumStruct(player, CYBORG_FACTORY_STAT).sort(sortByDistToBase);
-	var vtolFacs = enumStruct(player, VTOL_FACTORY_STAT).sort(sortByDistToBase);
-	var target;
-
-	if (facs.length > 0)
-	{
-		target = facs[0].id;
-	}
-	else if (cybFacs.length > 0)
-	{
-		target = cybFacs[0].id;
-	}
-	else if (vtolFacs.length > 0)
-	{
-		target = vtolFacs[0].id;
-	}
-
-	return target;
-}
-
-//Return closest player construct ID. Undefined if none.
-function findNearestConstructID(player)
-{
-	if (DEBUG_EXTREME) {log("findNearestConstructID");}
-	var constructs = enumDroid(player, DROID_CONSTRUCT).sort(sortByDistToBase);
-	var target;
-
-	if (constructs.length > 0)
-	{
-		target = constructs[0].id;
-	}
-
-	return target;
-}
-
-//Return closest player derrick ID. Undefined if none.
-function findNearestDerrickID(player)
-{
-	if (DEBUG_EXTREME) {log("findNearestDerrickID");}
-	var target;
-	var derr = enumStruct(player, DERRICK_STAT).sort(sortByDistToBase);
-
-	if (derr.length > 0)
-	{
-		target = derr[0].id;
-	}
-
-	return target;
-}
-
-function setPlayerAsTarget(player)
-{
-	currentEnemy = player;
-	currentEnemyTick = gameTime;
-}
-
-//Returns the current enemy that is being targeted. undefined if none.
-//Note that eventBeacon can reset the currentEnemyTick and target enemy player
-//so an enemy could be be harassed longer.
-function getCurrentEnemy()
-{
-	if (DEBUG_EXTREME) {log("getCurrentEnemy");}
-	if (!defined(currentEnemy) || (gameTime > (currentEnemyTick + 120000)))
-	{
-		var enemy = getStrongestEnemyPlayer();
-		if (enemy > 0)
-		{
-			setPlayerAsTarget(enemy); 
-		}
-		else
-		{
-			return undefined;
-		}
-	}
-
-	return currentEnemy;
-}
-
-// Use a slim version of the hover map checking code from Cobra AI.
-function isHoverMap()
-{
-	if (DEBUG_EXTREME) {log("isHoverMap");}
-	var hoverMap = false;
-
-	for (let i = 0; i < maxPlayers; ++i)
-	{
-		if (!propulsionCanReach("wheeled01", BASE.x, BASE.y, startPositions[i].x, startPositions[i].y))
-		{
-			//Check if hover can not reach this area.
-			var temp = 0;
-			for (let t = 0; t < maxPlayers; ++t)
-			{
-				var b1 = startPositions[i];
-				var b2 = startPositions[t];
-				if (b1 && b2 && !propulsionCanReach("hover01", b1.x, b1.y, b2.x, b2.y))
-				{
-					temp = temp + 1;
-				}
-			}
-
-			if (temp !== maxPlayers - 1)
-			{
-				hoverMap = true;
-				break;
-			}
-		}
-	}
-
-	return hoverMap;
-}
-
-
-function recycleDroidsForHover()
-{
-	if (DEBUG_EXTREME) {log("recycleDroidsForHover");}
-	if (componentAvailable("hover01") === false || countStruct(POW_GEN_STAT) === 0)
-	{
-		return;
-	}
-
-	const MIN_FACTORY = 1;
-	var systems = enumDroid(me, DROID_CONSTRUCT).filter((dr) => (
-		dr.propulsion !== "hover01" && dr.action === 0 && dr.group === oilBuilders
-	));
-	var unfinishedStructures = enumStruct(me).filter((obj) => (
-		obj.status !== BUILT && obj.stattype !== RESOURCE_EXTRACTOR && obj.stattype !== DEFENSE
-	));
-	const NON_HOVER_SYSTEMS = systems.length;
-
-	if (countStruct(FACTORY_STAT) > MIN_FACTORY)
-	{
-		if (unfinishedStructures.length === 0)
-		{
-			for (let i = 0; i < NON_HOVER_SYSTEMS; ++i)
-			{
-				orderDroid(systems[i], DORDER_RECYCLE);
-			}
-
-			if (isSeaMap === false && NON_HOVER_SYSTEMS === 0)
-			{
-				removeTimer("recycleDroidsForHover");
-			}
-		}
-
-		if (isSeaMap)
-		{
-			var tanks = enumGroup(attackGroup).filter((dr) => (
-				dr.droidType === DROID_WEAPON && dr.propulsion !== "hover01" && dr.action === 0
-			));
-			const NON_HOVER_TANKS = tanks.length;
-
-			for (let j = 0; j < NON_HOVER_TANKS; ++j)
-			{
-				orderDroid(tanks[j], DORDER_RECYCLE);
-				
-			}
-
-			if (NON_HOVER_TANKS + NON_HOVER_SYSTEMS === 0)
-			{
-				removeTimer("recycleDroidsForHover");
-			}
-		}
+	if (!droids || !droids.length) return false;
+	for (let dr of droids) {
+		logObj(dr, "recycle droid");
+		orderDroid(dr, DORDER_RECYCLE);
 	}
 }
 
 function scanForVTOLs()
 {
-	if (DEBUG_EXTREME) {log("scanForVTOLs");}
 	if (enemyHasVtol)
 	{
 		removeTimer("scanForVTOLs");
-		return; 
+		return;
 	}
 
 	// bandit pads
@@ -356,323 +102,287 @@ function scanForVTOLs()
 	}
 }
 
-// cheaty should be database driven
-function checkOrderLocations()
+function returnRandomScoutLoc(dr)
 {
-	if (DEBUG_EXTREME) {log("checkOrderLocations");}
-	var tmpLocations = new Map();
-	orderLocations.forEach((value, key) =>  
+	if (!dr) return false;
+	let count = 0;
+	while (count < 250)
 	{
-		if (value.x == null || value.y == null) { return; }
-		else
+		count++;
+		let ranx = random(mapWidth-1);
+		let rany = random(mapHeight-1);
+		if (dr.isVTOL)
 		{
-			tmpLocations.set(value.x+"x"+value.y, {x: value.x, y: value.y});
-			//log("checkOrderLocations setting tmpLocations:"+value.x+"x"+value.y);
-		}
-	});
-	
-	tmpLocations.forEach((value1, key1) =>
-	{
-		if (value1 == null || value1.x == null || value1.y == null) { return; }
-		else
-		{
-			//log("checkOrderLocations checking:"+value1.x+"x"+value1.y);
-			var enemies = enumRange(value1.x, value1.y, GROUP_SCAN_RADIUS*2, ENEMIES, false);
-
-			orderLocations.forEach((value2, key2) =>
+			let t_aa = getAAthreats({ x: ranx, y:rany });
+			if (t_aa && t_aa.length > 2)
 			{
-				if (value2 == null || value2.x == null || value2.y == null) { return; }
-				else
-				{
-					if (value2 && value1.x === value2.x && value1.y === value2.y && defined(enemies[0]))
-					{
-						orderLocations.set(key2, {x: value2.x, y: value2.y, enemies: true});
-						//log("checkOrderLocations updating "+key2+" enemies: true");
-					}
-					if (value2 && value1.x === value2.x && value1.y === value2.y && !defined(enemies[0]))
-					{
-						orderLocations.set(key2, {x: value2.x, y: value2.y, enemies: false});
-						//log("checkOrderLocations updating "+key2+" enemies: false");
-					}	
-				}
-			});
-		}
-	});
-}
-
-function getVTOLtarget(vtol, randomize)
-{
-	if (DEBUG_EXTREME) {log("getVTOLtarget");}
-	if (!vtol || !vtol.isVTOL || vtol.id == null) { return; }
-	
-	var enemies = []; var threats = []; var enemy_lassat = []; var enemy_uplink = [];
-	
-	// target nearby enemies if seen
-	enemies = enumRange(vtol.x, vtol.y, GROUP_SCAN_RADIUS*4, ENEMIES, true);
-	threats = getAAthreats(vtol);
-	
-	if ((enemies && enemies.length > 0 && threats && threats.length < 3) || (enemies && enemies.length > 0 && threats && threats.length > 0 && distBetweenTwoPoints(threats[0].x, threats[0].y, BASE.x, BASE.y) < AVG_BASE_RADIUS + 10))           
-	{
-		if (randomize && threats.length > 0)
-		{
-			logObj(vtol, "getVTOLtarget returning random nearby AA target");
-			return threats[random(threats.length-1)];
-		}
-		else if (threats.length > 0)
-		{
-			logObj(vtol, "getVTOLtarget returning first nearby AA target");
-			return threats[0];
-		} 
-		else if (randomize)
-		{
-			logObj(vtol, "getVTOLtarget returning random nearby target");
-			return enemies[random(enemies.length-1)];
-		}
-		else
-		{
-			logObj(vtol, "getVTOLtarget returning first nearby target");
-			return enemies[0];
-		}
-	}
-	
-	// target undefended lassat and uplinks
-	// cheaty
-	const players = getAliveEnemyPlayers();
-	for (player of players)
-	{
-		if (!allianceExistsBetween(me, player)) // enemy player
-		{
-			enemy_lassat = enemy_lassat.concat(enumStruct(player, LASSAT_STAT)).filter((obj) => (obj.status === BUILT));
-			enemy_uplink = enemy_uplink.concat(enumStruct(player, UPLINK_STAT)).filter((obj) => (obj.status === BUILT));
-		}
-	}		
-	for (lassat of enemy_lassat)
-	{
-		// check to see if defended
-		var lassat_AA = getAAthreats(lassat);
-		if (!lassat_AA[0])
-		{
-			logObj(vtol, "getVTOLtarget returning lassat_target");
-			return lassat;
-		}
-	}
-	for (uplink of enemy_uplink)
-	{
-		// check to see if defended
-		var uplink_AA = getAAthreats(uplink);
-		if (!uplink_AA[0])
-		{
-			logObj(vtol, "getVTOLtarget returning uplink_target");
-			return uplink;
-		}
-	}
-	
-	// target derricks and remaining structures
-	// cheaty
-	var structures = [];
-	
-	for (player of players)
-	{
-		if (!allianceExistsBetween(me, player)) // enemy player
-		{
-			var addstructs = [];
-			addstructs = enumStruct(player, DERRICK_STAT);
-			if (!addstructs || addstructs.length === 0) // player !== scavengerPlayer &&
-			{
-				addstructs = enumStruct(player);//.filter((obj) => (obj.stattype !== WALL));
-			}
-			structures = structures.concat(addstructs);
-		}	
-	}
-
-	if (structures.length === 0) 
-	{ 
-		//logObj(vtol, "getVTOLtarget no structures"); 
-		// if there are no buildings target any trucks
-		var enemyTrucks = [];
-  
-		playerData.forEach(function(player, id) {
-			if (!allianceExistsBetween(me, id)) { // enemy player
-				enemyTrucks = enemyTrucks.concat(enumDroid(id, DROID_CONSTRUCT));
-			}
-		});
-
-		if (enemyTrucks[0]) { return enemyTrucks[0]; }
-		return false; // no targets left
-	}
-
-	if (randomize) 
-	{
-		structures = shuffleArray(structures);
-		logObj(vtol, "getVTOLtarget shuffle targets");
-	}
-	else
-	{
-		structures.sort(sortByDistToBase);
-		logObj(vtol, "getVTOLtarget sortByDistToBase targets");
-	}
-	
-	for (struct of structures)
-	{
-		// check to see if area is safe for vtol
-		var threats = getAAthreats(struct);
-		if (!threats || threats.length < 3)
-		{
-			if (threats && threats.length > 0)
-			{
-				// if returning an AA target check it for nearby AA first
-				var threatsaa = getAAthreats(threats[0]);
-				if (!threatsaa || threatsaa.length < 3)
-				{
-					logObj(vtol, "getVTOLtarget found "+threatsaa.length+" AA at AA-target location. returning AA-target");
-					return threats[0];
-				}
-				else
-				{
-					logObj(vtol, "getVTOLtarget found "+threatsaa.length+" AA at AA-target location. checking next structure");
-				}	
+				log("returnTarget "+t_aa.length+" AA near random target - next target");
+				continue;
 			}
 			else
 			{
-				logObj(vtol, "getVTOLtarget found 0 AA at location. returning structure");
-				return struct;
-			}	
+				return ({x: ranx, y: rany});
+			}
 		}
 		else
 		{
-			logObj(vtol, "getVTOLtarget found "+threats.length+" AA at location. checking next structure");
+			if (dr && dr.id && seenStore.hasKey(dr.id) && droidCanReach(dr, ranx, rany)) return ({x: ranx, y: rany});
 		}
 	}
 	return false;
 }
 
-function addAAthreats(AA)
+function getNotMyOil(){
+	const oilResources = seenStore.query({ type: FEATURE, stattype: OIL_RESOURCE });
+	const alliedObjects = new Set();
+
+	// precompute allied derricks
+	for (const obj of seenStore.query({ isAllied: true, type: STRUCTURE, stattype: RESOURCE_EXTRACTOR})) {
+		alliedObjects.add(`${obj.x},${obj.y}`);
+	}
+	// filter unowned
+	const unalliedOilResources = oilResources.filter(obj => {
+		const positionKey = `${obj.x},${obj.y}`;
+		const hasAllied = alliedObjects.has(positionKey);
+		return !hasAllied;
+	});
+	return unalliedOilResources;
+}
+
+function returnTarget(dr, randomtarget=false, droidAge=120000, structAge=600000)
 {
-	if (DEBUG_EXTREME) {log("addAAthreats");}
-	if (!AA || AA.length === 0) { log("addAAthreats no records to add"); return; }
-	//log("addAAthreats:"+JSON.stringify(AA));
-	
-	for (threat of AA)
+	if (!dr || !dr.id) return false;
+	let targets = [];
+
+	// send vtols lightly defended lassat targets
+	if (dr.isVTOL)
 	{
-		//log("threat:"+JSON.stringify(threat));
-		if (!threat || threat.id == null || threat.x == null || threat.y == null) { logObj(threat, "addAAthreats not adding null threat"); continue; }
-		if (!(threat.canHitAir === true && threat.canHitGround === false)) { logObj(threat, "addAAthreats not adding non-AA threat"); continue; }
-		
-		if (threat.type === STRUCTURE) 
+		targets = seenStore.query({ isAllied: false, type: STRUCTURE, stattype: LASSAT }).filter((obj) => (obj.lastSeen > gameTime - 600000));
+		if (targets && targets.length)
 		{
-			if (threat.status === BUILT) // do not add unfinished AA sites
+			for (let targ of targets)
 			{
-				AAthreats.set(threat.id, {id: threat.id, x: threat.x, y: threat.y, type: threat.type,
-					range: threat.range, name: threat.name, cost: threat.cost, player: threat.player} );
+				if (!targ.x || !targ.y) continue;
+				let target_AA = getAAthreats(targ);
+				if (!target_AA || target_AA.length < 3)
+				{
+					logObj(dr, "getVTOLtarget returning lassat target");
+					return targ;
+				}
 			}
 		}
-		else if (threat.type === DROID)
+	}
+
+	targets = seenStore.query({ isAllied: false, type: DROID, isVTOL: false }).filter((obj) => (obj.lastSeen > gameTime - droidAge));
+	targets = targets.concat(seenStore.query({ isAllied: false, type: STRUCTURE}).filter((obj) => (obj.lastSeen > gameTime - structAge)));
+	targets = targets.concat(getNotMyOil());
+
+	if (targets.length === 0 || !targets[0].id) returnRandomScoutLoc(dr);
+	// handle lassat
+	if (dr.type === STRUCTURE && dr.stattype === LASSAT)
+	{
+		targets = targets.sort((a, b) => b.cost - a.cost); // decending
+		//if one of the first few are a lassat return it
+		let i = 0;
+		while (i < 3)
 		{
-			AAthreats.set(threat.id, {id: threat.id, x: threat.x, y: threat.y, type: threat.type, weapon: threat.weapons[0].id,
-				range: threat.range, name: threat.name, cost: threat.cost, player: threat.player, isVTOL: threat.isVTOL} );
+			if (targets[i].type === STRUCTURE && targets[i].stattype === LASSAT) return targets[i];
+			i++;
+		}
+		// otherwise return one of the most expensive targets
+		if (targets.length === 1) return targets[0];
+		return targets[random(1)];
+	}
+
+	if (randomtarget === true) { targets = shuffleArray(targets); }
+	else
+	{
+		targets.sort((obj1, obj2) => {
+				let dist1 = distBetweenTwoPoints(dr.x, dr.y, obj1.x, obj1.y);
+				let dist2 = distBetweenTwoPoints(dr.x, dr.y, obj2.x, obj2.y);
+				return (dist1 - dist2); }) // ascending
+	}
+	let target = {};
+	for (let t of targets)
+	{
+		// if aleady at target continue
+		if (distBetweenTwoPoints(dr.x, dr.y, t.x, t.y) < GROUP_SCAN_RADIUS) continue;
+		if (droidCanReach(dr, t.x, t.y))
+		{
+			// choose a random target in the nearist few
+			let chance = 100;
+			if (targets.length > 3) { chance = 20; }
+			else if (targets.length === 3) { chance = 33; }
+			else if (targets.length === 2) { chance = 50; }
+			if (random(100) <= chance)
+			{
+				// if vtol check aa
+				if (dr.isVTOL == true)
+				{
+					let t_aa = getAAthreats(t);
+					if (t_aa && t_aa.length > 2)
+					{
+						log("returnTarget "+t_aa.length+" AA near target - next target");
+						continue;
+					}
+				}
+
+				// return this target
+				target = t;
+				break;
+			}
+		}
+	}
+	if (!target || target.x == undefined || target.y == undefined) return returnRandomScoutLoc(dr);
+	return target;
+}
+
+function getHostilesNear(loc, range=GROUP_SCAN_RADIUS)
+{
+	if (!loc) return false;
+	let hostiles = seenStore.findNear(loc, range, { isAllied: false, type: DROID, isVTOL: false, isCombat: true })
+		.filter((obj) => (obj.lastSeen > gameTime - 60000) );
+	hostiles = hostiles.concat(seenStore.findNear(loc, range, { isAllied: false, type: STRUCTURE, isCombat: true })
+		.filter((obj) => (obj.status === BUILT && obj.lastSeen > gameTime - 600000)));
+	return hostiles;
+}
+
+//// refined version
+function getVTOLtarget(vtol, randomize = false) {
+    if (!vtol || !vtol.isVTOL || !vtol.id) {
+        log("getVTOLtarget passed invalid vtol: " + JNstr(dr));
+        return;
+    }
+
+    let seenEnemies = enumRange(vtol.x, vtol.y, GROUP_SCAN_RADIUS * 3, ENEMIES, true);
+    let AAthreats = getAAthreats(vtol);
+
+    // Target AA if not too many
+    if (AAthreats.length && AAthreats.length < 3) {
+        if (randomize) {
+            logObj(vtol, "getVTOLtarget returning random nearby AA target");
+            return returnRandInFirstFew(AAthreats);
+        } else {
+			logObj(vtol, "getVTOLtarget returning nearby AA target");
+			return AAthreats[0];
+		}
+    }
+
+    if (!AAthreats.length) {
+		if (seenEnemies.length && seenEnemies.id) {
+			return returnRandInFirstFew(seenEnemies);
+		} else {
+			let target = returnTarget(vtol);
+			if (target) {
+				logObj(vtol, "getVTOLtarget returning target");
+				return target;
+			}
+		}
+	}
+}
+
+function getAttackerTarget(dr, randomize=false)
+{
+	if (!dr || !dr.id || dr.isVTOL) { log("getAttackerTarget passed an invalid droid: "+JNstr(dr)); return; }
+
+	// target nearby enemies if seen
+	const enemies = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*3, ENEMIES, true);
+	if (enemies && enemies.length > 0)
+	{
+		if (randomize)
+		{
+			logObj(dr, "getAttackerTarget returning random nearby target");
+			return returnRandInFirstFew(enemies);
 		}
 		else
 		{
-			logObj(threat, "addAAthreats threat.type not STRUCTURE or DROID");
-		}	
+			logObj(dr, "getAttackerTarget returning first nearby target");
+			return enemies[0];
+		}
 	}
+
+	let target = returnTarget(dr, randomize);
+	if (!target || target.x == undefined || target.y == undefined) return false;
+	return target;
 }
 
 function getAAthreats(loc)
 {
-	if (DEBUG_EXTREME) {log("getAAthreats");}
-	if (!loc) { return; }
-	
-	var threats = [];
-	for (threat of AAthreats.values())
-	{
-		//log("getAAthreats threat:"+JSON.stringify(threat));
-		if (!threat) { continue; }
-		if (!threat.range) { threat.range = 24*128; }
-		
-		if (distBetweenTwoPoints(loc.x, loc.y, threat.x, threat.y) < (threat.range/128)+16) // add turnaround buffer
-		{
-			var threat_obj = getObject(threat.type, threat.player, threat.id);
-			if (threat_obj && threat_obj.id) { threats.push(threat_obj); }
-		}
+	if (!loc || loc.x === undefined || loc.y === undefined) {
+		log("getAAthreats passed invalid location: "+JNstr(loc));
+		return;
 	}
 
-	//log("getAAthreats threats:"+JSON.stringify(threats));
+	let threats = [];
+	let aathreats = AAseenStore.findNear(loc, 24, { isAllied: false });
+	for (let threat of aathreats)
+	{
+		if (!threat.range) { threat.range = 24*128; }
+		if (distBetweenTwoPoints(loc.x, loc.y, threat.x, threat.y) < (threat.range/128)+16) // add turnaround buffer
+			{ threats.push(threat); }
+	}
 	return threats;
 }
 
 function idleVtol(dr)
 {
-	if (DEBUG_EXTREME) {log("idleVtol");}
+	if (!dr || !dr.id) return;
+	if (ThrottleThis("idleVtol"+dr.id+"throttle", 2000)) { return; }
+	let randomize = false;
+	if (distBetweenTwoPoints(dr.x, dr.y, BASE.x, BASE.y) > AVG_BASE_RADIUS) { randomize = true; }
 
-	var random = false;
-	if (distBetweenTwoPoints(dr.x, dr.y, BASE.x, BASE.y) > AVG_BASE_RADIUS) { random = true; }
-	
-	const target = getVTOLtarget(dr, random);
+	const target = getVTOLtarget(dr, randomize);
+	if (!target || target.x == undefined || target.y == undefined) return false;
 
-	if (target && target.stattype == LASSAT_STAT && dr.weapons[0].armed > 50 && dr.health > 70)
+	if (target.stattype == LASSAT && dr.weapons[0].armed > 50 && dr.health > 85)
 	{
 		orderDroidObj(dr, DORDER_ATTACK, target);
-		logObj(dr, "droidAware idle vtol droid ordered to attack lassat");
-		return;
-	}	
-	else if (target && target.stattype == UPLINK_STAT && dr.weapons[0].armed > 50 && dr.health > 70)
-	{
-		orderDroidObj(dr, DORDER_ATTACK, target);
-		logObj(dr, "droidAware idle vtol droid ordered to attack uplink");
-		return;
-	}	
-	else if (target && dr.weapons[0].armed > 0 && dr.health > 85)
-	{
-		orderDroidLoc(dr, DORDER_SCOUT, target.x, target.y);
-		logObj(dr, "droidAware idle vtol droid ordered to scout to derrick:"+target.x+"x"+target.y);
+		logObj(dr, "idleVtol droid ordered to attack lassat");
 		return;
 	}
-	else 
+	else if (target.stattype == SAT_UPLINK && dr.weapons[0].armed > 50 && dr.health > 85)
+	{
+		orderDroidObj(dr, DORDER_ATTACK, target);
+		logObj(dr, "idleVtol droid ordered to attack uplink");
+		return;
+	}
+	else if (target.x !== undefined && dr.weapons[0].armed > 0 && dr.health > 85)
+	{
+		orderDroidLoc(dr, DORDER_SCOUT, target.x, target.y);
+		logObj(dr, "idleVtol droid ordered to scout to:"+target.x+"x"+target.y);
+		return;
+	}
+	else if ((dr.weapons[0].armed < 100 || dr.health < 100) && dr.order !== DORDER_REARM)
+	{
+		orderDroid(dr, DORDER_REARM);
+		logObj(dr, "idleVtol droid ordered to REARM");
+		return;
+	}
+	else
 	{
 		// circle vtol pad
 		const vtolFacs = enumStruct(me, VTOL_PAD_STAT);
 		if (vtolFacs[0])
 		{
 			orderDroidLoc(dr, 40, vtolFacs[0].x, vtolFacs[0].y); // DORDER_CIRCLE
-			logObj(dr, "droidAware idle vtol droid ordered to CIRCLE vtol factory");
+			logObj(dr, "idleVtol droid ordered to CIRCLE vtol factory");
 			return;
-		}				
+		}
 	}
 }
 
 function idleAttacker(dr)
 {
-	if (DEBUG_EXTREME) {log("idleAttacker");}
+	if (!dr || dr.id == undefined) return;
+	if (ThrottleThis("idleAttacker"+dr.id+"throttle", 2000)) { return; }
 	if (groupSize(attackGroup) >= MIN_GROUND_UNITS || componentAvailable("HeavyRepair"))
 	{
-		//enum targets
-		// cheaty should be database driven
-		var targets = [];
-		var target = false;
-
-		const players = getAliveEnemyPlayers();
-		for (player of players)
-		{
-			if (!allianceExistsBetween(me, player)) // enemy player
-			{
-				targets = enumStruct(player);
-			}
-		}
-		// sort targets by dist to attacker
-		targets.sort((obj1, obj2) =>
-		{
-			var dist1 = distBetweenTwoPoints(dr.x, dr.y, obj1.x, obj1.y);
-			var dist2 = distBetweenTwoPoints(dr.x, dr.y, obj2.x, obj2.y);
-			return (dist1 - dist2);
-		})
-		for (t of targets) { if (droidCanReach(dr, t.x, t.y)) { target = t; } }
-		// scout to closest target
-		if (target && target.id)
+		let target = getAttackerTarget(dr);
+		if (target && target.x && target.y)
 		{
 			orderDroidLoc(dr, DORDER_SCOUT, target.x, target.y);
 			log("attacker "+dr.id+" scouting: "+target.x+"x"+target.y);
-			orderLocations.set(dr.id, {x: target.x, y: target.y, enemies: true});
+			if (target.id !== undefined) orderLocations.set(dr.id, {x: target.x, y: target.y, enemies: true});
 			return;
 		}
 	}
@@ -680,11 +390,11 @@ function idleAttacker(dr)
 
 function idleRepair(dr)
 {
-	if (DEBUG_EXTREME) {log("idleRepair");}
-
+	if (dr.id == undefined) return;
+	if (ThrottleThis("idleRepair"+dr.id+"throttle", 2000)) { return; }
 	// escort a random attacker
-	var attackgroup = enumDroid(me).filter((obj) => (obj.droidType === DROID_WEAPON || obj.droidType === DROID_CYBORG));
-	var defrand = attackgroup[random(attackgroup.length-1)];
+	let attackgroup = enumDroid(me).filter((obj) => (obj.droidType === DROID_WEAPON || obj.droidType === DROID_CYBORG));
+	let defrand = attackgroup[random(attackgroup.length-1)];
 	if (defrand && droidCanReach(dr, defrand.x, defrand.y))
 	{
 		orderDroidObj(dr, 25, defrand); // DORDER_GUARD
@@ -696,82 +406,24 @@ function idleRepair(dr)
 
 function fireLassat()
 {
-	if (DEBUG_EXTREME) {log("fireLassat");}
-	var my_lassat = false;
-	my_lassat = enumStruct(me, LASSAT_STAT); //).filter((obj) => (obj.status === BUILT));
-
-	if (my_lassat.length === 0) {
-		//log("no lassat");
-		return false;
-	}
+	let my_lassat = [];
+	my_lassat = enumStruct(me, LASSAT_STAT);
+	if (my_lassat.length === 0) return false;
 
 	// no way to know if charged so just attempt to fire it
-	var satellite = my_lassat[0];
+	const satellite = my_lassat[0];
 
-	var enemy_lassat = []; var enemy_vtol_fact = []; var enemy_fact = [];  var enemy_gen = []; var enemy_hq = [];
-	var fired = false;
-	
-	// fire the laser sat at semi random target
-	// cheaty should be database driven
-	const players = getAliveEnemyPlayers();
-	for (player of players) 
-	{
-		if (!allianceExistsBetween(me, player)) // enemy player
-		{
-			enemy_lassat = enemy_lassat.concat(enumStruct(player, LASSAT_STAT)).filter((obj) => (obj.status === BUILT));
-			enemy_vtol_fact = enemy_vtol_fact.concat(enumStruct(player, VTOL_FACTORY_STAT)).filter((obj) => (obj.status === BUILT));
-			enemy_fact = enemy_fact.concat(enumStruct(player, FACTORY_STAT)).filter((obj) => (obj.status === BUILT));
-			enemy_generator = enemy_gen.concat(enumStruct(player, POW_GEN_STAT)).filter((obj) => (obj.status === BUILT));
-			enemy_hq = enemy_hq.concat(enumStruct(player, PLAYER_HQ_STAT)).filter((obj) => (obj.status === BUILT));
-		}
-	}
-	
-	if (enemy_lassat.length > 0) 
-	{ 
-		var randomtarget = enemy_lassat[random(enemy_lassat.length-1)];
-		fired = activateStructure(satellite, randomtarget); 
-		logObj(satellite, "firing at lassat");
-	}
-	if (enemy_vtol_fact.length > 0 && fired === false) 
-	{ 
-		var randomtarget = enemy_vtol_fact[random(enemy_vtol_fact.length-1)];
-		fired = activateStructure(satellite, randomtarget); 
-		logObj(satellite, "fireLassat firing at vtol_fact player:"+randomtarget.player);
-	}			
-	if (enemy_fact.length > 0 && fired === false) 
-	{ 
-		var randomtarget = enemy_fact[random(enemy_fact.length-1)];
-		fired = activateStructure(satellite, randomtarget); 
-		logObj(satellite, "fireLassat firing at factory player:"+randomtarget.player);
-	}	
-	if (enemy_gen.length > 0 && fired === false) 
-	{ 
-		var randomtarget = enemy_gen[random(enemy_gen.length-1)];
-		fired = activateStructure(satellite, randomtarget); 
-		logObj(satellite, "fireLassat firing at generator player:"+randomtarget.player);
-	}
-	if (enemy_hq.length > 0 && fired === false) 
-	{ 
-		var randomtarget = enemy_hq[random(enemy_hq.length-1)];
-		fired = activateStructure(satellite, randomtarget); 
-		logObj(satellite, "fireLassat firing at hq player:"+randomtarget.player);
-	}
-	if (fired === false)
-	{
-		//queue("fireLassat", 30000, satellite);
-		logObj(satellite, "fireLassat did not fire retry");
-		return false;
-	}
+	const target = returnTarget(satellite);
+	return activateStructure(satellite, target);
 }
 
 function getStrongestAttackDroids()
 {
-	if (DEBUG_EXTREME) {log("getStrongestAttackDroids");}
-	var support = new Map();
+	let support = new Map();
 	const droids = enumGroup(attackGroup).concat(enumGroup(defendGroup)).concat(enumGroup(supportGroup)).filter((obj) => (obj.droidType == DROID_WEAPON));
-	for (dr of droids)
+	for (let dr of droids)
 	{
-		var strength = dr.cost*(dr.bodySize+1)*(dr.experience/10);
+		let strength = dr.cost*(dr.bodySize+1)*(dr.experience/10);
 		support.set(dr.id, strength);
 		//log("support.set:"+dr.id+" str:"+strength);
 	}
@@ -781,14 +433,12 @@ function getStrongestAttackDroids()
 
 function getStrongestRepairDroids()
 {
-	if (DEBUG_EXTREME) {log("getStrongestRepairDroids");}
-	var support = new Map();
+	let support = new Map();
 	const droids = enumGroup(attackGroup).concat(enumGroup(defendGroup)).concat(enumGroup(supportGroup)).filter((obj) => (obj.droidType == DROID_REPAIR));
-	for (dr of droids)
+	for (let dr of droids)
 	{
-		var strength = dr.cost*(dr.bodySize+1);
+		let strength = dr.cost*(dr.bodySize+1);
 		support.set(dr.id, strength);
-		//log("support.set:"+dr.id+" str:"+strength);
 	}
 	const support_sort = new Map([...support.entries()].sort((a, b) => b[1] - a[1]));
 	return Array.from( support_sort.keys() );
@@ -796,12 +446,11 @@ function getStrongestRepairDroids()
 
 function findMostExpDroid()
 {
-	if (DEBUG_EXTREME) {log("findMostExpDroid");}
 	const droids = enumGroup(attackGroup).concat(enumGroup(defendGroup));
-	var most_exp = 0;
-	var most_exp_droid;
-	
-	for (dr of droids)
+	let most_exp = 0;
+	let most_exp_droid;
+
+	for (let dr of droids)
 	{
 		if (dr.experience > most_exp)
 		{
@@ -812,38 +461,5 @@ function findMostExpDroid()
 	return most_exp_droid;
 }
 
-// not working
-function getStrongestEnemyPlayer()
-{
-	if (DEBUG_EXTREME) {log("getStrongestEnemyPlayer");}
-	var playerStrength = [];
-	var most_str = 0;
-	var most_str_player = 0;
-	
-	const players = getAliveEnemyPlayers();
-	for (player of players)
-	{
-		const player_droids = enumDroid(player);
-		const player_base = enumStruct(player);
-		for (dr of player_droids)
-		{
-			playerStrength[player] = (dr.cost * (dr.bodySize+1)) + playerStrength[player];
-		}
-		for (st of player_base)
-		{
-			playerStrength[player] = st.cost + playerStrength[player];
-		}
-	}
-	for (player of playerStrength)
-	{
-		if (playerStrength[player] == null) { continue; }
-		if (playerStrength[player] > most_str)
-		{
-			most_str_player = player;
-			most_str = playerStrength[player];
-		}		
-	}
-	//log("strongest enemy player:"+most_str_player);
-	return most_str_player;
-}
+
 

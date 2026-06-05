@@ -1,64 +1,91 @@
 TODO for PeacemakerAI
 
-alphastrike massed mobile aa
-mobile aa not getting cleared from aathreats
--detect massive vtol losses and discontinue production
+don't build tower to steal oil if allied combat units are nearby
+don't build on buriing oil if there is a non burning oil seen
+-stop notmyoil scouting if at max power plants
+guard oil clusters
+maybe make units flee the opposite direction
+trucks on build not fleeing properly sometimes
 
-archangle missile group
+maybe build a third factory at start if oil rich map
+
+-only return accessible oil targets
+-gather vtol for alphastrike
+build a repairfac fortress and maintain
+
+repairs sensor daction none trigger idle
+
+-repairs guarding repairs stop
+-improve random building
+-if cyborgs get hit with reprogram ray run
+-trucks should select random oils within the first few
+artillery cyborgs should stay near max range and stop to attack only when ready
+hit and run tactics for mortar and missile
+
+-tie groupscanrange to sensor range
+
+-pick location for lassat
+
+alphastrike massed mobile aa
+-find clusters function
+-detect massive vtol losses and discontinue production
+-scout if no targets
+
+-redo fact upgrades
+
+maybe attack strongest opponent esp cobra tactics
+
+build defenses near clusters of oil
+-consider building double artillery
+-hvart not a good deal
+-capture ray not effective enough
+-burning ground move to nearby not burning ground instead of rtb
 
 -better repair droid routine
 rtr when fighting in base
 
-aa droids should escort not scout
-improve base maintenance
+--aa droids should escort not scout
+--improve base maintenance
 
 -building and crete strength upgrades much later
 
 -sensor escort most exp unit
-
 -rtb if on burning tile
-
 -early focus on mg not cannon
 
 recall idle oilbuilders to base and patrol
 
-repair trucks getting ordered to guard repeat
+-repair trucks getting ordered to guard repeat
 -extra oil truck building should be dependent on wells count
 
 -still not building enough trucks at start
-all idle trucks in base should patrol
+idle trucks in base should patrol
 
--trucks are getting pulled from building power generator modules
-trucks are getting pulled from building other modules
-lassat only fires when selected
+lassat only fires when selected for player, but works for non-player
 
 -improve mg some before cannon
 -only build defenses if affordable
 
-maybe not build oil defenses unless most wells are taken
 -produce more oil trucks early
 -detect mass cyborg losses and slow building them
-use tracks when high tech maybe
+-use tracks when high tech maybe
 
 -delay vtol plant construction if not relying on vtols
 -delay cyborg plant construction if relying vtols
 
-slim down droidawaretruck idletruck
+-slim down droidawaretruck idletruck
 
-safeDest()?
-
-less cheaty
-update checkaathreats so that coordinates are tracked instead of object id
-use database of seen opponents to find new building targets
-checkorderlocations use seen database
-scout when no more opponents seen
+-less cheaty
+-use database of seen opponents to find new building targets
+-checkorderlocations use seen database
+-scout when no more opponents seen
 
 -particle gun
 
 find a way to spend mass excess cash
 -limit building excess oil trucks
 
-repair units are not repairing the most damaged unit
+-repair units are not repairing the most damaged unit
 
 -take healthy attackers off RTR
 
@@ -102,7 +129,6 @@ handle group of roaming aa better with alphastrike
 derrick call in vtol support on spotted targets
 
 -prune eventattacked -- support is not called in
--delay research until 3 vtol pads built
 -print debugging to in-game console
 -vtols should respond to attacks on derricks and units
 -delay building second vtol factory
@@ -114,9 +140,6 @@ new units should stop moving on build -- not move to rally point
 -remove time from console logs
 -what to do with excess energy? defenses? repair? bank it? build factories?
 
-check to make sure all trucks are in groups
-patrol idle base trucks
-
 -leastaaplayer not working
 -destroyed base oil not being rebuilt
 ===========================================
@@ -125,7 +148,7 @@ patrol idle base trucks
 -delay upgrade of factories if vtol is available but not filled
 -attack bandit walls instead of scout
 -make pads sparse
-clean up remaining units after buildings
+-clean up remaining units after buildings
 -move off burning ground
 -build tech level 3 air defense
 -vtols not defending
@@ -137,7 +160,7 @@ clean up remaining units after buildings
 -AA bunker building not working
 -damaged vtols not repairing
 -command still being built before relay
-random lab still favors lab
+-random lab still favors lab
 -build AA site not working
 
 -no grabbing helpbuild basebuilders 
@@ -168,7 +191,7 @@ or building defense do not retreat
 ============================
 
 -demolish trees near base
-try to prevent basebuilders building in a difficult place to reach near base
+-try to prevent basebuilders building in a difficult place to reach near base
 idle basebuilders should patrol
 
 ====
@@ -176,8 +199,7 @@ idle basebuilders should patrol
 -build less defenses in base
 -prefer indirect fire for base defenses
 
-getClosestMapEdges()
-build base toward map edge
+-getClosestMapEdges()
 
 -basebuilders should be more if there are many derricks
 
