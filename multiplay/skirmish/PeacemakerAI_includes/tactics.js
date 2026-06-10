@@ -39,7 +39,7 @@ function droidNeedsRepair(droidID, percent = null)
 		{
 			if (repair_droids[0] && !componentAvailable("Body14SUP"))
 			{
-				orderDroidObj(dr, 25, repair_droids[random(repair_droids.length-1)]);
+				orderDroidObj(dr, 25, returnRandInFirstFew(repair_droids));
 				log("damaged droid ordered to guard random nearby repair:"+dr.id);
 			}
 			else if ( (repair_facs && repair_facs.length > 0) || (repair_droids && repair_droids.length > 0) )
@@ -251,7 +251,7 @@ function getHostilesNear(loc, range=GROUP_SCAN_RADIUS)
 //// refined version
 function getVTOLtarget(vtol, randomize = false) {
     if (!vtol || !vtol.isVTOL || !vtol.id) {
-        log("getVTOLtarget passed invalid vtol: " + JNstr(dr));
+        log("getVTOLtarget passed invalid vtol: " + JNstr(vtol));
         return;
     }
 
@@ -270,7 +270,7 @@ function getVTOLtarget(vtol, randomize = false) {
     }
 
     if (!AAthreats.length) {
-		if (seenEnemies.length && seenEnemies.id) {
+		if (seenEnemies.length && seenEnemies[0].id) {
 			return returnRandInFirstFew(seenEnemies);
 		} else {
 			let target = returnTarget(vtol);
@@ -405,7 +405,7 @@ function idleRepair(dr)
 	if (defrand)
 	{
 		orderDroidLoc(dr, DORDER_SCOUT, defrand.x, defrand.y);
-		orderLocations.set(dr.id, defrand.x, defrand.y);
+		orderLocations.set(dr.id, {x: defrand.x, y:defrand.y});
 		log("droidAware repair droid "+dr.id+" scouting nearby:"+defrand.id);
 	}
 	else {log("droidAware repair droid "+dr.id+" nowhere to scout");}

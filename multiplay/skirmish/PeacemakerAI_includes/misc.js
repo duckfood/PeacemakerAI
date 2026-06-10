@@ -57,8 +57,8 @@ function shuffleArray(array) {
 }
 
 function firstAvailableComponent(list) {
-
-	for (i = 0, t = list.length; i < t; ++i)
+    if (!list || !list.length) return false;
+	for (let i = 0; i < list.length; ++i)
 	{
 		if (componentAvailable(list[i]))
 		{
@@ -68,8 +68,8 @@ function firstAvailableComponent(list) {
 }
 
 function firstAvailableStructure(list) {
-
-	for (i = 0, t = list.length; i < t; ++i)
+    if (!list || !list.length) return false;
+	for (let i = 0; i < list.length; ++i)
 	{
 		if (isStructureAvailable(list[i], me))
 		{

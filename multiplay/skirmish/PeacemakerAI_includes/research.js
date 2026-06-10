@@ -51,7 +51,7 @@ function lookForResearch(tech, labParam) {
             if (!found) found = evalResearch(lab.id, Schemes[Scheme].FUNDAMENTALS3);
             if (!isResearched(Schemes[Scheme].FUNDAMENTALS3)) continue;
             if (!found) found = evalResearch(lab.id, Schemes[Scheme].FUNDAMENTALS4);
-            if (!isResearched(Schemes[Scheme].FUNDAMENTALS3)) continue;
+            if (!isResearched(Schemes[Scheme].FUNDAMENTALS4)) continue;
         }
         // finish upgrades
         if (!found) {

@@ -1,4 +1,4 @@
-﻿# PeacemakerAI v0.4
+﻿# PeacemakerAI v0.5
 
 **PeacemakerAI** is a skirmish AI bot for **Warzone2100**. It is released under the MIT license, so there are no warranties whatsoever. It may absorb your system, your life, or invoke a new world order!
 

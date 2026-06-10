@@ -1,4 +1,4 @@
-//// PeacemakerAI v0.4 10-6-2026 github.com/duckfood
+//// PeacemakerAI v0.5 10-6-2026 github.com/duckfood
 //// MIT license. No warranty whatsoever. Use this code at your own risk!
 
 // log messages to bot log file
@@ -81,7 +81,7 @@ let relyOnCyborgs = true;
 let totalCyborgBuilt = 0;
 let totalCyborgLost = 0;
 
-let baseUnderAttack = false;
+let baseUnderAttack = 0;
 let baseUnderAttackLoc = [];
 
 let lastBuildLoc = {x: truckStarts[0].x, y: truckStarts[0].y}

@@ -255,8 +255,8 @@ function eventDestroyed(object)
 	}
 	if (object.droidType === DROID_CYBORG) {
 		totalCyborgLost ++;
-		if (totalCyborgBuilt < totalCyborgLost*2) relyOnCybrogs = false;
-		if (totalCyborgBuilt > totalCyborgLost*2) relyOnCybrogs = true;
+		if (totalCyborgBuilt < totalCyborgLost*2) relyOnCyborgs = false;
+		if (totalCyborgBuilt > totalCyborgLost*2) relyOnCyborgs = true;
 	}
 }
 
