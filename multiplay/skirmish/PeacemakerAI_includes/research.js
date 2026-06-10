@@ -8,46 +8,62 @@ const THERMAL_ALLOYS = [
 	"R-Cyborg-Armor-Heat09",
 ];
 const STRUCTURE_DEFENSE_UPGRADES = [
-	"R-Defense-WallUpgrade11",
-	"R-Struc-Materials03",
+	"R-Struc-Materials03", // final structure upgrade
+	"R-Defense-WallUpgrade11", // final wall upgrade
 ];
 const POWER_AND_RESEARCH_UPGRADES = [
 	"R-Struc-Power-Upgrade03a", // final power upgrade
 	"R-Struc-Research-Upgrade07", // final research upgrade
 ];
 const VTOL_PADS_UPGRADES = [
-	"R-Struc-VTOLPad-Upgrade06",
+	"R-Struc-VTOLPad-Upgrade06", // final pad upgrade
 ];
 
-//// distilled version
+//// research priorities
 function lookForResearch(tech, labParam) {
-    if (baseUnderAttack > 2 && getRealPower() < 800) return;
-    if (!countDroid(DROID_CONSTRUCT) || researchDone) return;
+    if (researchDone) return;
+    if (baseUnderAttack > 2 && getRealPower() < 800) return; // produce instead
 
     const labList = labParam ? [labParam]
         : enumStruct(me, RES_LAB_STAT).filter(lab => lab.status === BUILT && structureIdle(lab));
 
     for (const lab of labList) {
-		if (getRealPower() < MIN_RESEARCH_POWER) return;
+		if (getRealPower() < MIN_RESEARCH_POWER) return; // avoid deficit spending
         let found = false;
 
+        // if hostiles have been spotted push for AA
         if (enemyHasVtol && !found) {
             found = evalResearch(lab.id, Schemes[Scheme].ANTI_AIR_TECH);
         }
-
+        // prioritize hover if needed
         if (isSeaMap && !found) {
             found = pursueResearch(lab, "R-Vehicle-Prop-Hover");
         }
-
+        // finish start tech first
+        found = evalResearch(lab.id, Schemes[Scheme].START_TECH);
+        if (!isResearched(Schemes[Scheme].START_TECH)) continue;
+        // prioritize fundamentals
         if (!found) {
             found = evalResearch(lab.id, Schemes[Scheme].FUNDAMENTALS1);
+            if (!isResearched(Schemes[Scheme].FUNDAMENTALS1)) continue;
             if (!found) found = evalResearch(lab.id, Schemes[Scheme].FUNDAMENTALS2);
-			if (!found) found = evalResearch(lab.id, Schemes[Scheme].BASIC_TECH);
+            if (!isResearched(Schemes[Scheme].FUNDAMENTALS2)) continue;
             if (!found) found = evalResearch(lab.id, Schemes[Scheme].FUNDAMENTALS3);
-            if (!found) found = evalResearch(lab.id, Schemes[Scheme].ADVANCED_TECH);
+            if (!isResearched(Schemes[Scheme].FUNDAMENTALS3)) continue;
             if (!found) found = evalResearch(lab.id, Schemes[Scheme].FUNDAMENTALS4);
+            if (!isResearched(Schemes[Scheme].FUNDAMENTALS3)) continue;
         }
-
+        // finish upgrades
+        if (!found) {
+            found = evalResearch(lab.id, POWER_AND_RESEARCH_UPGRADES);
+            if (!found) found = evalResearch(lab.id, KINETIC_ALLOYS);
+  			if (!found) found = evalResearch(lab.id, Schemes[Scheme].BASIC_TECH);
+			if (!found) found = evalResearch(lab.id, THERMAL_ALLOYS);
+            if (!found) found = evalResearch(lab.id, VTOL_PADS_UPGRADES);
+            if (!found) found = evalResearch(lab.id, Schemes[Scheme].ADVANCED_TECH);
+            if (!found) found = evalResearch(lab.id, STRUCTURE_DEFENSE_UPGRADES);
+        }
+        // randomly complete the rest if flush
         if (!found && getRealPower() > MIN_RESEARCH_POWER * 10) {
             const reslist = enumResearch();
             if (reslist.length > 0) {
@@ -56,6 +72,16 @@ function lookForResearch(tech, labParam) {
             }
         }
     }
+}
+
+function isResearched(list) {
+    if (!list.length) return false;
+    let done = true;
+    for (item of list) {
+        let itemsLeft = findResearch(item, me).length;
+        if (itemsLeft) done = false;
+    }
+    return done;
 }
 
 function evalResearch(labID, list) {

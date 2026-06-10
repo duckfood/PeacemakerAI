@@ -77,6 +77,7 @@ const MIX_CYBORG = [
 	"Cyb-Hvywpn-PulseLsr",
 	"Cyb-Hvywpn-A-T",
 	"Cyb-Hvywpn-RailGunner",
+
 ];
 
 const HOVER_CHANCE = 8;
@@ -91,11 +92,10 @@ function buildAttacker(fac)
 	{
 		if (relyOnCyborgs) return buildCyborg(fac);
 		if (!relyOnCyborgs && random(100) < 30) return buildCyborg(fac);
-		return false;
 	}
 
 	// if factory module and medium body are available, but factory is not upgraded do not build anything else
-	if (fac.modules < 2 && isStructureAvailable("A0FacMod1") && (componentAvailable("Body5REC") || componentAvailable("Body8MBT")) )
+	if (fac.modules < 1 && isStructureAvailable("A0FacMod1") && (componentAvailable("Body5REC") || componentAvailable("Body8MBT")) )
 		{ return false; }
 
 	let prop = TANK_PROP_LIST;
@@ -282,13 +282,18 @@ function buildRepair(fac, prop)
 
 function buildCyborg(fac)
 {
-	if (fac == null) { return; }
+	if (!fac) return false;
 
 	if (componentAvailable("CyborgHeavyBody"))
 	{
-		let mixCyborg = shuffleArray(MIX_CYBORG);
-		let weaponName = StatsMap.get(firstAvailableComponent(mixCyborg)).Name;
-		return buildDroid(fac, weaponName, "CyborgHeavyBody", "CyborgLegs", "", "", mixCyborg);
+		if (componentAvailable("Cyb-Hvywpn-A-T") || componentAvailable("Cyb-Hvywpn-PulseLsr")) {
+			let mixCyborgs = shuffleArray(MIX_CYBORG);
+			let weaponName = StatsMap.get(firstAvailableComponent(mixCyborgs)).Name;
+			return buildDroid(fac, weaponName, "CyborgHeavyBody", "CyborgLegs", "", "", mixCyborgs);
+		} else {
+			let weaponName = StatsMap.get(firstAvailableComponent(Schemes[Scheme].CYBORG_ADVANCED_LIST)).Name;
+			return buildDroid(fac, weaponName, "CyborgHeavyBody", "CyborgLegs", "", "", Schemes[Scheme].CYBORG_ADVANCED_LIST);
+		}
 	} 
 	else
 	{
@@ -337,7 +342,7 @@ function produceAndResearch()
 	let x = 0;
 	let l = 0;
 
-	//Count the trucks being built so as not to build too many of them.
+	// count the trucks being built so as not to build too many of them
 	for (let i = 0, l = facsVirtual.length; i < l; ++i)
 	{
 		let virDroid = getDroidProduction(facsVirtual[i]);
@@ -363,21 +368,19 @@ function produceAndResearch()
 					{
 						let freeoils = enumFeature(ALL_PLAYERS, OIL_RES_STAT);
 						// build early trucks but only if oil is available
-						if (gameTime < 240000 && groupSize(oilBuilders) < MIN_OIL_TRUCKS*2 && freeoils.length > 6) { buildTruck(fc); continue; }
+						if (gameTime < 180000 && groupSize(oilBuilders) < MIN_OIL_TRUCKS*2 && freeoils.length > 12) { buildTruck(fc); continue; }
 						// build trucks as needed half the time, but not if under heavy attack
 						if (baseUnderAttack < 3 && random(100) > 50 && countDroid(DROID_CONSTRUCT) + virtualTrucks < MIN_BASE_TRUCKS + MIN_OIL_TRUCKS)
 							{ buildTruck(fc); continue; }
 						// build extra trucks if lots of bare oil wells, but only if plenty of attackers
-						if (freeoils && freeoils.length > 8 && random(100) > 50 && groupSize(attackGroup)+groupSize(vtolGroup) > MIN_ATTACK_GSIZE*3)
+						if (freeoils && freeoils.length > 12 && random(100) > 50 && groupSize(attackGroup)+groupSize(vtolGroup) > MIN_ATTACK_GSIZE*3)
 							{ buildTruck(fc); continue; }
 					}
 
 					// build attackers
 					if (countStruct(POW_GEN_STAT) !== 0 || getRealPower() > 1500)
 					{
-						if (getRealPower() > 1500 || !componentAvailable("V-Tol") || groupSize(vtolGroup) > MIN_VTOL_UNITS*3) { buildAttacker(fc); continue; }
-						else if (relyOnVtols && componentAvailable("V-Tol") && groupSize(vtolGroup) < MIN_VTOL_UNITS*1 && random(1) == 0) { continue; } // build nothing
-						else if (random(100) < 70) { buildAttacker(fc); continue; }
+						if (random(100) < 70) { buildAttacker(fc); continue; }
 					}
 				}
 

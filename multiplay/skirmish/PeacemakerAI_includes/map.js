@@ -354,7 +354,7 @@ class heapupdatehash_PriorityQueue {
     }
 
     _elementKey(element) {
-        return JSON.stringify(element);
+        return `${element[0]},${element[1]}`;
     }
 
     _bubbleUp(n) {
@@ -405,39 +405,26 @@ class heapupdatehash_PriorityQueue {
     }
 }
 
-//// plot a line from one point1 to point2 or point2 to point1
-function extendLine(point1, point2, d, direction='beyond') {
-  // Calculate direction vector
-  const dx = point2.x - point1.x;
-  const dy = point2.y - point1.y;
+//// Extends a line segment from point1 to point2 by distance `d` in the specified direction.
+function extendLine(point1, point2, d, direction = 'beyond') {
+    // Validate inputs
+    if (!point1 || !point2 || typeof d !== 'number' || d <= 0) return null;
+    if (direction !== 'before' && direction !== 'beyond') return null;
 
-  // Length of the vector
-  const length = Math.hypot(dx, dy);
+    const dx = point2.x - point1.x;
+    const dy = point2.y - point1.y;
+    const length = Math.hypot(dx, dy);
 
-  // Avoid division by zero if points are identical
-  if (length === 0) return null;
+    // Early exit for collinear points
+    if (length === 0) return null;
 
-  // Normalize the direction vector
-  const unitX = dx / length;
-  const unitY = dy / length;
+    // Compute unit vector and displacement
+    const unitX = dx / length;
+    const unitY = dy / length;
+    const extendedX = point2.x + (direction === 'beyond' ? d : -d) * unitX;
+    const extendedY = point2.y + (direction === 'beyond' ? d : -d) * unitY;
 
-  // Compute displacement
-  const displacementX = unitX * d;
-  const displacementY = unitY * d;
-
-  // Extend the line based on direction
-  let extendedX, extendedY;
-  if (direction === 'beyond') {
-    extendedX = point2.x + displacementX;
-    extendedY = point2.y + displacementY;
-  } else if (direction === 'before') {
-    extendedX = point2.x - displacementX;
-    extendedY = point2.y - displacementY;
-  } else {
-    log("Invalid direction. Use 'beyond' or 'before'.");
-  }
-
-  return { x: extendedX, y: extendedY };
+    return { x: extendedX, y: extendedY };
 }
 
 //// updated A* working version [x][y]

@@ -37,7 +37,7 @@ function droidNeedsRepair(droidID, percent = null)
 
 		if (dr.droidType !== DROID_CONSTRUCT && dr.droidType !== DROID_REPAIR && dr.isVTOL === false)
 		{
-			if (repair_droids[0] && getMultiTechLevel() < 4)
+			if (repair_droids[0] && !componentAvailable("Body14SUP"))
 			{
 				orderDroidObj(dr, 25, repair_droids[random(repair_droids.length-1)]);
 				log("damaged droid ordered to guard random nearby repair:"+dr.id);
@@ -102,7 +102,7 @@ function scanForVTOLs()
 	}
 }
 
-function returnRandomScoutLoc(dr)
+function getRandomScoutLoc(dr)
 {
 	if (!dr) return false;
 	let count = 0;
@@ -177,7 +177,8 @@ function returnTarget(dr, randomtarget=false, droidAge=120000, structAge=600000)
 	targets = targets.concat(seenStore.query({ isAllied: false, type: STRUCTURE}).filter((obj) => (obj.lastSeen > gameTime - structAge)));
 	targets = targets.concat(getNotMyOil());
 
-	if (targets.length === 0 || !targets[0].id) returnRandomScoutLoc(dr);
+	// if no targets return a random location
+	if (!targets.length || !targets[0].id) return getRandomScoutLoc(dr);
 	// handle lassat
 	if (dr.type === STRUCTURE && dr.stattype === LASSAT)
 	{
@@ -187,7 +188,7 @@ function returnTarget(dr, randomtarget=false, droidAge=120000, structAge=600000)
 		while (i < 3)
 		{
 			if (targets[i].type === STRUCTURE && targets[i].stattype === LASSAT) return targets[i];
-			i++;
+			 i++;
 		}
 		// otherwise return one of the most expensive targets
 		if (targets.length === 1) return targets[0];
@@ -233,7 +234,7 @@ function returnTarget(dr, randomtarget=false, droidAge=120000, structAge=600000)
 			}
 		}
 	}
-	if (!target || target.x == undefined || target.y == undefined) return returnRandomScoutLoc(dr);
+	if (!target || target.x == undefined || target.y == undefined) return getRandomScoutLoc(dr);
 	return target;
 }
 
@@ -390,18 +391,24 @@ function idleAttacker(dr)
 
 function idleRepair(dr)
 {
-	if (dr.id == undefined) return;
+	if (!dr.id) return;
 	if (ThrottleThis("idleRepair"+dr.id+"throttle", 2000)) { return; }
-	// escort a random attacker
-	let attackgroup = enumDroid(me).filter((obj) => (obj.droidType === DROID_WEAPON || obj.droidType === DROID_CYBORG));
-	let defrand = attackgroup[random(attackgroup.length-1)];
-	if (defrand && droidCanReach(dr, defrand.x, defrand.y))
+
+	// select random closest nearby combat unit and scout to it
+	let droids = seenStore.query({type: DROID, isCombat: true, isAllied: true});
+	droids.sort((obj1, obj2) => {
+		let dist1 = distBetweenTwoPoints(dr.x, dr.y, obj1.x, obj1.y);
+		let dist2 = distBetweenTwoPoints(dr.x, dr.y, obj2.x, obj2.y);
+		return (dist1 - dist2); });
+
+	let defrand = returnRandInFirstFew(droids, 3);
+	if (defrand)
 	{
-		orderDroidObj(dr, 25, defrand); // DORDER_GUARD
-		orderTargets.set(dr.id, defrand.id);
-		log("droidAware repair droid "+dr.id+" guarding:"+defrand.id);
+		orderDroidLoc(dr, DORDER_SCOUT, defrand.x, defrand.y);
+		orderLocations.set(dr.id, defrand.x, defrand.y);
+		log("droidAware repair droid "+dr.id+" scouting nearby:"+defrand.id);
 	}
-	else {log("droidAware repair droid "+dr.id+" nothing to guard");}
+	else {log("droidAware repair droid "+dr.id+" nowhere to scout");}
 }
 
 function fireLassat()
@@ -425,7 +432,6 @@ function getStrongestAttackDroids()
 	{
 		let strength = dr.cost*(dr.bodySize+1)*(dr.experience/10);
 		support.set(dr.id, strength);
-		//log("support.set:"+dr.id+" str:"+strength);
 	}
 	const support_sort = new Map([...support.entries()].sort((a, b) => b[1] - a[1]));
 	return Array.from( support_sort.keys() );
@@ -461,5 +467,51 @@ function findMostExpDroid()
 	return most_exp_droid;
 }
 
+function moveFromBurningTile(dr){
+	if (tileIsBurning(dr.x, dr.y)) {
+		let spiral = plotSquareSpiral(dr.x, dr.y, 10, 2);
+		for (let i = 0; i < spiral.length; i=i+4) {
+			let x = spiral[i][0];
+			let y = spiral[i][1];
+			if (!tileIsBurning(x, y) && droidCanReach(dr, x, y)) {
+				orderDroidLoc(dr, DORDER_MOVE, x, y);
+				orderLocations.delete(dr.id);
+				logObj(dr, "moving from burning area");
+				return;
+			}
+		}
+		orderDroid(dr, DORDER_RTR);
+		logObj(dr, "retreating from burning area");
+	}
+}
 
+function fleeFromHostiles(dr)
+{
+	let enemies = getHostilesNear(dr, GROUP_SCAN_RADIUS).filter((obj) => (obj.isAA === false));
+	if (enemies && enemies.length > 0)
+	{
+		let longest_range = 0;
+		let longest_droid;
+
+		// find longest range weapon
+		for (let enemy of enemies) {
+			if (enemy.range > longest_range)
+			{
+				longest_range = enemy.range/128;
+				longest_droid = enemy;
+			}
+		}
+
+		// run if we get too close
+		if (longest_range && longest_droid && distBetweenTwoPoints(dr.x, dr.y, longest_droid.x, longest_droid.y) < longest_range + 3)
+		{
+			orderDroid(dr, DORDER_RTB);
+			logObj(dr, "truck ordered to RTB as enemies too close longest_range:"+longest_range);
+			orderLocations.delete(dr.id);
+			orderTargets.delete(dr.id);
+			return true;
+		}
+	}
+	return false;
+}
 

@@ -1,7 +1,9 @@
-//// PeacemakerAI v0.3 3-6-2026 github.com/duckfood
+//// PeacemakerAI v0.4 10-6-2026 github.com/duckfood
+//// MIT license. No warranty whatsoever. Use this code at your own risk!
 
-// set to true to log debug messages to file
-const DEBUG = true;
+// log messages to bot log file
+const DEBUG = false;
+// log messages in-game
 const DEBUG_CONSOLE = false;
 
 // api definitions
@@ -29,9 +31,10 @@ const STRUCTURE_TYPES = [HQ, FACTORY, POWER_GEN, RESOURCE_EXTRACTOR, LASSAT, DEF
 const MIN_BASE_TRUCKS = 2;
 const MAX_BASE_TRUCKS = 4;
 const MIN_OIL_TRUCKS = 3;
-const MIN_BUILD_POWER = 80;
-const MIN_RESEARCH_POWER = -50;
-const MIN_PRODUCTION_POWER = 60;
+const MIN_BUILD_POWER = 60;
+const MIN_RESEARCH_POWER = 0;
+const MIN_PRODUCTION_POWER = 40;
+const MIN_LIBERATE_POWER = -100;
 const MIN_ATTACK_GSIZE = 5;
 const MIN_SENSOR_DROIDS = 1;
 const HELP_CONSTRUCT_AREA = 20;
@@ -39,7 +42,7 @@ const MIN_GROUND_UNITS = 5;
 const MIN_VTOL_UNITS = 4;
 const AVG_BASE_RADIUS = 20;
 const ENEMY_DERRICK_SCAN_RANGE = 20;
-let GROUP_SCAN_RADIUS = 9; // adjusted latar for tech
+let GROUP_SCAN_RADIUS = 9; // adjusted later for tech
 
 // constants
 const TERRIAN_WATER = 7;
@@ -106,8 +109,8 @@ function eventStartLevel()
 	setTimer("pruneSeenStore", 2000 + ((1 + random(4)) * random(10)));
 
 	setTimer("produceAndResearch", 2000 + ((1 + random(4)) * random(10)));
-	setTimer("buildFundamentals", 2000 + ((1 + random(3)) * random(10))); // build stuff
-	setTimer("lookForOil", 2000 + ((1 + random(4)) * random(10)));
+	setTimer("buildFundamentals", 2000 + ((1 + random(3)) * random(10)));
+	setTimer("assignTrucksToOil", 2000 + ((1 + random(4)) * random(10)));
 
 	setTimer("baseAware", 5000 + ((1 + random(4)) * random(10)));
 	setTimer("droidAwareAttacker", 1000 + ((1 + random(4)) * random(10)));
@@ -131,18 +134,18 @@ function eventStartLevel()
 	// handle starting droids
 	for (let dr of startDroids) { eventDroidBuilt(dr); }
 
-	// add oil well objects to seenStore, as players would have seen the minimap
+	// add oil wells to seenStore, as players would have seen them on the minimap
 	let oils = enumFeature(ALL_PLAYERS, OIL_RES_STAT);
 	for (let oil of oils) seenStore.addObject(oil.id, oil);
 
-	// check if any research is available at start
+	// check if any research is available
 	const reslist = enumResearch();
-    if (reslist.length === 0) researchDone = true;
+    if (!reslist.length) researchDone = true;
 
 	// if advanced AA is available don't rely on vtols
 	if (componentAvailable("AAGunLaser") ||
-		componentAvailable("Missile-HvySAM") ||
-		componentAvailable("AAGun2Mk1Quad")) relyOnVtols = false;
+		componentAvailable("Rocket-Sunburst") ||
+		componentAvailable("QuadRotAAGun")) relyOnVtols = false;
 
 	buildFundamentals();
 }
@@ -163,9 +166,7 @@ const seenStore = new SpatialDataStore({
 	hasIndirect: new Map(),
 	isAA: new Map(),
 });
-const AAseenStore = new SpatialDataStore({
-	id: new Map()
-});
+const AAseenStore = new SpatialDataStore({isAllied: new Map()});
 const StatsMap = loadStatsData(Stats);
 const MapTilesFeatures = loadFeaturesIntoTiles(enumFeature(ALL_PLAYERS)
 	.filter((obj) =>(obj.stattype !== OIL_DRUM && obj.stattype !== ARTIFACT)), MapTiles);
@@ -195,5 +196,10 @@ log("VTOL_DEFEND_TIME: "+VTOL_DEFEND_TIME);
 // markTiles(path.path);
 // log("path: "+JNstr(path));
 // markCliffTiles(MapTilesFeatures);
+// let path = findShortestPath(BASE, {x:27, y:57 }, PROP_WHEEL, true); // roughness oil
+// markTiles(path.path);
+// log(JNstr(path));
+//
+//
 // throw "TILES";
 

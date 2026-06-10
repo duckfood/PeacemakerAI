@@ -68,7 +68,6 @@ function eventDroidBuilt(droid, struct)
 
 // throttled by api
 function eventAttacked(victim, attacker) {
-    // Early exit if any required fields are missing
     if (!victim || !attacker || !victim.id || !attacker.id) return;
 
     // Only proceed if the victim belongs to the current player
@@ -166,12 +165,10 @@ function eventAttacked(victim, attacker) {
             }
         }
     }
-
-    // Order VTOLs to scout if conditions are met
+	// order VTOLs scout to attacker if safe
     const vtols = enumGroup(vtolGroup);
     if (vtols.length > MIN_VTOL_UNITS) {
         for (let vt of vtols) {
-            // Ensure the location is safe before ordering
             let AA = getAAthreats(loc);
             if (AA && AA.length > 2) {
                 logObj(vt, "vtol not sent on defend mission AA");

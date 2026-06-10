@@ -1,13 +1,24 @@
-TODO for PeacemakerAI
+TODO and done for PeacemakerAI
 
-don't build tower to steal oil if allied combat units are nearby
-don't build on buriing oil if there is a non burning oil seen
+don't build tower to liberate oil if allied combat units are nearby
+don't build on burning oil if there is a non burning oil seen
 -stop notmyoil scouting if at max power plants
 guard oil clusters
 maybe make units flee the opposite direction
-trucks on build not fleeing properly sometimes
+-trucks on build not fleeing properly sometimes
+-phased research for better efficiency
+
+oilbuilders getting confused when there is oil to build on and an oil to liberate
+
+trucks are moving to owned oil
+parts of idleConstructor not working no defense building
+
+handle objects where the location is unknown eg. old mobile threats
+
+maybe use findpath for blocked oil
 
 maybe build a third factory at start if oil rich map
+trucks are attempting to build on inaccessible oil in roughness despite checks
 
 -only return accessible oil targets
 -gather vtol for alphastrike
@@ -32,8 +43,6 @@ alphastrike massed mobile aa
 -scout if no targets
 
 -redo fact upgrades
-
-maybe attack strongest opponent esp cobra tactics
 
 build defenses near clusters of oil
 -consider building double artillery

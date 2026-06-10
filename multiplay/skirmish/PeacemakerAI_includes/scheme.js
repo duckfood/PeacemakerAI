@@ -3,36 +3,41 @@ const Scheme = schemeOptions[0];
 
 const Schemes = {
     MGLAS: {
-        FUNDAMENTALS1: [
+        START_TECH: [
             "R-Wpn-MG1Mk1",
             "R-Sys-Engineering01",
-            "R-Defense-Tower01", // mg tower
             "R-Sys-MobileRepairTurret01",
+            "R-Defense-Tower01", // mg tower
             "R-Struc-PowerModuleMk1",
-            "R-Wpn-MG-Damage02", // hardened bullets
+            "R-Struc-Factory-Cyborg",
             "R-Vehicle-Prop-Halftracks",
+            "R-Wpn-MG-Damage04",
+            "R-Vehicle-Engine03",
             "R-Vehicle-Body05", // cobra
+            "R-Wpn-MG3Mk1", // heavy mg
+        ],
+        FUNDAMENTALS1: [
+            "R-Struc-Research-Upgrade01",
+            "R-Vehicle-Metals01",
+            "R-Sys-Sensor-Turret01",
+        	"R-Sys-MobileRepairTurretHvy",
             "R-Vehicle-Metals02",
             "R-Cyborg-Metals02",
-            "R-Defense-WallUpgrade1",
-            "R-Struc-Research-Upgrade01",
-        ],
-        FUNDAMENTALS2: [
-            "R-Wpn-MG3Mk1", // heavy mg
+        	"R-Struc-RepairFacility",
+        	"R-Struc-RprFac-Upgrade01",
         	"R-Vehicle-Metals04",
         	"R-Cyborg-Metals04",
         	"R-Sys-Sensor-Upgrade01",
-        	"R-Sys-MobileRepairTurretHvy",
+        ],
+        FUNDAMENTALS2: [
         	"R-Vehicle-Body11", // python
         	"R-Wpn-MG-ROF02", // rapid mg
-        	"R-Struc-RepairFacility",
-        	"R-Struc-RprFac-Upgrade03",
             "R-Wpn-MG4",
-            "R-Defense-RotMG",
         	"R-Vehicle-Prop-Tracks",
+            "R-Defense-RotMG",
+            "R-Wpn-MG5",
         ],
         FUNDAMENTALS3: [
-            "R-Wpn-MG5",
             "R-Struc-VTOLFactory",
             "R-Vehicle-Prop-VTOL",
             "R-Struc-VTOLPad",
@@ -99,7 +104,8 @@ const Schemes = {
             "CyborgChaingun",
         ],
         CYBORG_ADVANCED_LIST: [
-            "Cyb-Hvywpn-PulseLsr",
+            "Cyb-Hvywpn-TK",
+            "Cyb-Hvywpn-HPV",
         ],
         VTOL_WEAPONS: [
             "Bomb5-VTOL-Plasmite",
