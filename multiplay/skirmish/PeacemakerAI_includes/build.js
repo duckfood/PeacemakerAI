@@ -346,42 +346,35 @@ function buildRepairFacs()
 
 function buildLassat() {
     if (isStructureAvailable(LASSAT_STAT)) {
-        if (getRealPower() < MIN_BUILD_POWER/2) return false; // Ensure enough power to build
+        if (getRealPower() < 0) return false;
 
-        let trucks = findIdleTrucks(); // Find available trucks
-        if (!trucks.length) return false; // Check if any trucks are found
+        let trucks = findIdleTrucks();
+        if (!trucks.length) return false;
 
-        // Plot a spiral around the base starting from BASE coordinates, with an extended radius for scanning
         let spiral = plotSquareSpiral(BASE.x, BASE.y, GROUP_SCAN_RADIUS * 3);
-        if (!spiral || spiral.length <= 20) { // Check if the spiral points are valid
-            log("buildLassat: No valid spiral points found.");
+        if (!spiral || spiral.length <= 20) {
+            log("buildLassat no valid spiral points found.");
             return false;
         }
-
+		let buildloc;
         for (let i = 0; i < spiral.length; i += 4) {
             let x = spiral[i][0];
             let y = spiral[i][1];
+			if (!droidCanReach(trucks[0], x, y)) continue;
+            log(`buildLassat trying to build at ${x},${y}`);
+            buildloc = pickStructLocation(trucks[0], LASSAT_STAT, x, y);
+			let structs = enumRange(buildloc.x, buildloc.y, 8, me, true).filter((obj) => obj.type === STRUCTURE);
+			if (structs.length > 0) continue;
 
-            // Check if there are any structures within an 8-tile radius around the planned location
-            let structs = enumRange(x, y, 8, me, true).filter((obj) => obj.type === STRUCTURE);
-            if (structs.length > 0) continue; // Skip to the next spiral point if a structure is found nearby
-
-            log(`buildLassat: Trying to build at ${x},${y}`);
-
-            // Pick a location near the planned coordinates and attempt to build
-            let buildloc = pickStructLocation(trucks[0], LASSAT_STAT, x, y);
             if (buildloc && droidCanReach(trucks[0], buildloc.x, buildloc.y)) {
-                log(`buildLassat: Building at ${buildloc.x},${buildloc.y}`);
-                return orderDroidsBuild(trucks, LASSAT_STAT, buildloc); // Order the droid to build the structure
+                log(`buildLassat building at ${buildloc.x},${buildloc.y}`);
+                return orderDroidsBuild(trucks, LASSAT_STAT, buildloc);
             }
         }
-
-        log("buildLassat: No suitable place to build found.");
-    } else {
-        //console.log("LASSAT_STAT structure is not available.");
+        log("buildLassat no suitable place to build found.");
+		return orderDroidsBuild(trucks, LASSAT_STAT, buildloc); // just build it wherever
     }
-
-    return false; // Return false if no valid location or conditions are met for building
+    return false;
 }
 
 //// updated version

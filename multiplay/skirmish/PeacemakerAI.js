@@ -2,7 +2,7 @@
 //// MIT license. No warranty whatsoever. Use this code at your own risk!
 
 // log messages to bot log file
-const DEBUG = false;
+const DEBUG = true;
 // log messages in-game
 const DEBUG_CONSOLE = false;
 
