@@ -340,7 +340,7 @@ function droidAwareTruckQ()
 		}
 
 		// check if oilbuilder sees free oil to build on or a well to liberate
-		if (dr.group === oilBuilders && (dr.order === DORDER_MOVE || dr.order === DORDER_SCOUT || dr.action === 18)) // DACTION_MOVETOBUILD
+		if (dr.group === oilBuilders && dr.order === DORDER_SCOUT)
 		{
 			// check for free wells first
 			let oils = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS, ALL_PLAYERS, true).filter((obj) => (obj.type === FEATURE && obj.stattype === OIL_RESOURCE))
