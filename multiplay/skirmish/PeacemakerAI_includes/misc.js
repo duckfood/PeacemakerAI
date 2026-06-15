@@ -11,6 +11,11 @@ function logObj(obj, message)
 	if (DEBUG_CONSOLE) { console(" [" + obj.name + " id=" + obj.id + "] > " + message); }
 }
 
+function logTrace(message) {
+    log(message);
+    // get stack trace in quickjs
+}
+
 function getRealPower()
 {
 	return playerPower(me) - queuedPower(me);
@@ -206,7 +211,7 @@ function estimateMemoryCapacity() {
 }
 
 function dumpGlobals()
-	{
+{
 	let global = globalThis;
 	let globals = {};
 
@@ -226,3 +231,6 @@ function dumpGlobals()
 function JNstr(obj){
 	return JSON.stringify(obj);
 }
+
+const isIterable = (value) =>
+    value != null && typeof value[Symbol.iterator] === 'function';

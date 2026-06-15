@@ -19,7 +19,7 @@ const VTOL_PADS_UPGRADES = [
 	"R-Struc-VTOLPad-Upgrade06", // final pad upgrade
 ];
 
-//// research priorities
+//// perform research in tiered stages unless flush
 function lookForResearch(tech, labParam) {
     if (researchDone) return;
     if (baseUnderAttack > 2 && getRealPower() < 800) return; // produce instead
@@ -41,17 +41,17 @@ function lookForResearch(tech, labParam) {
         }
         // finish start tech first
         found = evalResearch(lab.id, Schemes[Scheme].START_TECH);
-        if (!isResearched(Schemes[Scheme].START_TECH)) continue;
+        if (getRealPower() < 1000 && !isResearched(Schemes[Scheme].START_TECH)) continue;
         // prioritize fundamentals
         if (!found) {
             found = evalResearch(lab.id, Schemes[Scheme].FUNDAMENTALS1);
-            if (!isResearched(Schemes[Scheme].FUNDAMENTALS1)) continue;
+            if (getRealPower() < 1000 && !isResearched(Schemes[Scheme].FUNDAMENTALS1)) continue;
             if (!found) found = evalResearch(lab.id, Schemes[Scheme].FUNDAMENTALS2);
-            if (!isResearched(Schemes[Scheme].FUNDAMENTALS2)) continue;
+            if (getRealPower() < 1000 && !isResearched(Schemes[Scheme].FUNDAMENTALS2)) continue;
             if (!found) found = evalResearch(lab.id, Schemes[Scheme].FUNDAMENTALS3);
-            if (!isResearched(Schemes[Scheme].FUNDAMENTALS3)) continue;
+            if (getRealPower() < 1000 && !isResearched(Schemes[Scheme].FUNDAMENTALS3)) continue;
             if (!found) found = evalResearch(lab.id, Schemes[Scheme].FUNDAMENTALS4);
-            if (!isResearched(Schemes[Scheme].FUNDAMENTALS4)) continue;
+            if (getRealPower() < 1000 && !isResearched(Schemes[Scheme].FUNDAMENTALS4)) continue;
         }
         // finish upgrades
         if (!found) {
@@ -64,7 +64,7 @@ function lookForResearch(tech, labParam) {
             if (!found) found = evalResearch(lab.id, STRUCTURE_DEFENSE_UPGRADES);
         }
         // randomly complete the rest if flush
-        if (!found && getRealPower() > MIN_RESEARCH_POWER * 10) {
+        if (!found && getRealPower() > 1000) {
             const reslist = enumResearch();
             if (reslist.length > 0) {
                 const idx = Math.floor(Math.random() * reslist.length);
@@ -103,4 +103,25 @@ function evalResearch(labID, list) {
     }
 
     return false;
+}
+
+function checkResearchCompletion() {
+    // Enumerate all available research topics
+    const resList = enumResearch();
+
+    // Check if the Dragon body is obtained and there are no more research topics left
+    if (componentAvailable("Body14SUP") && !resList.length) {
+        researchDone = true; // Mark that all research is completed
+
+        // Enumerate all labs in the current base
+        const labList = enumStruct(me, RES_LAB_STAT);
+
+        // Iterate through each lab and attempt to demolish it if it's idle
+        for (let i = 0, l = labList.length; i < l; ++i) {
+            const lab = labList[i];
+            if (!structureIdle(lab)) continue; // Skip non-idle labs
+
+            demolishThis(lab);
+        }
+    }
 }

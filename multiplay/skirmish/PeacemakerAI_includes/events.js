@@ -76,7 +76,7 @@ function eventAttacked(victim, attacker) {
     // Track seen attackers that do not belong to the current player
     if (attacker.player !== me && !allianceExistsBetween(attacker.player, me)) {
         seenStore.addObject(attacker.id, attacker);
-		AAseenStore.addObject(attacker.id, attacker);
+		// AAseenStore.addObject(attacker.id, attacker);
     }
 
     // Handle droid repairs if the victim is a droid
@@ -211,7 +211,7 @@ function eventObjectTransfer(object, whofrom)
 	if (!object || !object.id) return;
 	logObj(object, "transferred");
 	seenStore.deleteObjects({ id: object.id });
-	if (object.canHitGround === false && object.canHitAir === true) AAseenStore.deleteObjects({ id: object.id });
+	// if (object.canHitGround === false && object.canHitAir === true) AAseenStore.deleteObjects({ id: object.id });
 	if (object.player === me)
 	{
 		if (object.type === DROID) eventDroidBuilt(object);
@@ -230,7 +230,7 @@ function eventObjectRecycled(object)
 	if (!object || !object.id) return;
 	logObj(object, "recycled");
 	seenStore.deleteObjects({ id: object.id });
-	if (object.canHitGround === false && object.canHitAir === true) AAseenStore.deleteObjects({ id: object.id });
+	// if (object.canHitGround === false && object.canHitAir === true) AAseenStore.deleteObjects({ id: object.id });
 }
 
 function eventDestroyed(object)
@@ -239,9 +239,9 @@ function eventDestroyed(object)
 	let x = object.x; let y = object.y;
 	logObj(object, "destroyed");
 	if (object.type === FEATURE && object.damageable) {
-		if (MapTilesFeatures[x] != undefined && MapTilesFeatures[x][y] != undefined) MapTilesFeatures[x][y].destroyed = true;
+		if (MapTilesFeatures[x] !== undefined && MapTilesFeatures[x][y] !== undefined) MapTilesFeatures[x][y].destroyed = true;
 	}
-	if (object.canHitGround === false && object.canHitAir === true) AAseenStore.deleteObjects({ id: object.id });
+	// if (object.canHitGround === false && object.canHitAir === true) AAseenStore.deleteObjects({ id: object.id });
 	if ((object.type === FEATURE && object.stattype === OIL_RESOURCE) === false) seenStore.deleteObjects({ id: object.id });
 
 	if (object.player !== me) return;
@@ -271,31 +271,6 @@ function eventStructureBuilt(structure, droid)
 	if (distBetweenTwoPoints(lastBuildLoc.x, lastBuildLoc.y, BASE.x, BASE.y) > GROUP_SCAN_RADIUS*2)
 	{
 		lastBuildLoc = {x: BASE.x, y: BASE.y};
-	}
-	// upgrade power plant if possible as it costs nothing and is absolutely essential
-	if (structure && droid && structure.stattype === POWER_GEN && structure.modules < 1 && isStructureAvailable("A0PowMod1"))
-	{
-		orderDroidBuild(droid, DORDER_BUILD, "A0PowMod1", structure.x, structure.y);
-		orderLocations.set(droid.id, {x: structure.x, y: structure.y, enemies: false});
-		return;
-	}
-	// check if constructor sees oil to build on
-	if (droid.group === oilBuilders)
-	{
-		let oils = enumRange(droid.x, droid.y, GROUP_SCAN_RADIUS, ALL_PLAYERS, true).filter((obj) => (obj.type === FEATURE && obj.stattype === OIL_RESOURCE));
-		if (oils && oils.length > 0)
-		{
-			for (let oil of oils)
-			{
-				if (!tileIsBurning(oil.x, oil.y) && droidCanReach(droid, oil.x, oil.y))
-				{
-					orderDroidBuild(droid, DORDER_BUILD, DERRICK_STAT, oil.x, oil.y);
-					logObj(droid, "droidAware truck found free oil feature on way to build something")
-					orderLocations.set(droid.id, {x: oil.x, y: oil.y, enemies: false});
-					return;
-				}
-			}
-		}
 	}
 }
 

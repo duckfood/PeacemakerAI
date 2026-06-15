@@ -315,7 +315,7 @@ function droidAwareScoutQ()
 				continue;				
 			}
 		}
-	}	
+	}
 }
 
 function droidAwareTruck() { queue("droidAwareTruckQ"); }
@@ -332,15 +332,11 @@ function droidAwareTruckQ()
 		// make oil trucks RTB if they spot enemies, but not AA, and not if already in base
 		if (dr.group === oilBuilders && distBetweenTwoPoints(dr.x, dr.y, BASE.x, BASE.y) > AVG_BASE_RADIUS/2)
 		{
-			// and if not repairing
-			if (dr.action !== 5)
-			{
-				fleeFromHostiles(dr);
-			}
+			fleeFromHostiles(dr);
 		}
 
 		// check if oilbuilder sees free oil to build on or a well to liberate
-		if (dr.group === oilBuilders && dr.order === DORDER_SCOUT)
+		if (dr.group === oilBuilders && (dr.order === DORDER_MOVE || dr.order === DORDER_SCOUT))
 		{
 			// check for free wells first
 			let oils = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS, ALL_PLAYERS, true).filter((obj) => (obj.type === FEATURE && obj.stattype === OIL_RESOURCE))
@@ -349,13 +345,13 @@ function droidAwareTruckQ()
 					let dist2 = distBetweenTwoPoints(dr.x, dr.y, obj2.x, obj2.y);
 					return (dist1 - dist2); });
 
-			if (oils && oils.length > 0 && droidCanReach(dr, oils[0].x, oils[0].y))
+			if (oils && oils.length > 0 && seenStore.query({isReachable: true, requiresDestruction: false, x:oils[0].x, y:oils[0].y}).length && droidCanReach(dr, oils[0].x, oils[0].y))
 			{
 				let enemies = getHostilesNear(oils[0], GROUP_SCAN_RADIUS).filter((obj) => (obj.isAA === false));
 				if (enemies.length === 0)
 				{
 					orderDroidBuild(dr, DORDER_BUILD, DERRICK_STAT, oils[0].x, oils[0].y);
-					logObj(dr, "droidAware truck found free oil feature on way to build something")
+					logObj(dr, "droidAware truck found free oil feature on way to build something");
 					orderLocations.set(dr.id, {x: oils[0].x, y: oils[0].y, enemies: false});
 					continue;
 				}
@@ -368,12 +364,11 @@ function droidAwareTruckQ()
 					let dist2 = distBetweenTwoPoints(dr.x, dr.y, obj2.x, obj2.y);
 					return (dist1 - dist2); });
 
-			if (oils && oils.length > 0 && droidCanReach(dr, oils[0].x, oils[0].y))
+			if (oils && oils.length > 0 && seenStore.query({isReachable: true, requiresDestruction: false, x:oils[0].x, y:oils[0].y}).length && droidCanReach(dr, oils[0].x, oils[0].y))
 			{
 				let mydefenses = enumRange(oils[0].x, oils[0].y, GROUP_SCAN_RADIUS, ALLIES, true).filter((obj) => (obj.type === STRUCTURE && obj.stattype === DEFENSE));
 				if (mydefenses.length === 0) {
 					let enemies = getHostilesNear(oils[0], GROUP_SCAN_RADIUS).filter((obj) => (obj.isAA === false));
-					//logObj(dr, "liberate enemies: "+JSON.stringify(enemies));
 					if (enemies.length === 0)
 					{
 						let defense = firstAvailableStructure(Schemes[Scheme].STANDARD_DEFENSES);
@@ -434,7 +429,7 @@ function droidAwareBlockedoilQ() {
             let oils = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*2, ALL_PLAYERS, true)
                 .filter(obj => obj.type === FEATURE && obj.stattype === OIL_RESOURCE);
 
-            if (oils.length > 0 && !tileIsBurning(oils[0].x, oils[0].y)) {
+            if (oils.length > 0 && !tileIsBurning(oils[0].x, oils[0].y) && seenStore.query({isReachable: true, x:oils[0].x, y:oils[0].y})) {
                 let featuresNearOil = enumRange(oils[0].x, oils[0].y, GROUP_SCAN_RADIUS, ALL_PLAYERS, true)
                     .filter(obj => obj.type === FEATURE && obj.damageable);
 
@@ -519,7 +514,6 @@ function droidAwareRTBQ()
 		if (dr.order === DORDER_RTB && baseUnderAttack > 0) 
 		{
 			let enemies = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*2, ENEMIES, true);
-
 			if (!enemies[0] || distBetweenTwoPoints(dr.x, dr.y, BASE.x, BASE.y) < AVG_BASE_RADIUS)
 			{
 				if (dr.droidType == DROID_REPAIR)
@@ -670,6 +664,8 @@ function baseAware()
 
 function balanceGroups()
 {
+	// log("AAseenStore: "+JNstr(AAseenStore.query({})));
+	//log("seenStore: "+JNstr(seenStore.query({})));
 	if (getResearch("R-Sys-Sensor-Upgrade01").done) GROUP_SCAN_RADIUS = 11;
 	if (getResearch("R-Sys-Sensor-Upgrade02").done) GROUP_SCAN_RADIUS = 13;
 	if (getResearch("R-Sys-Sensor-Upgrade03").done) GROUP_SCAN_RADIUS = 15;
@@ -779,7 +775,7 @@ function checkVtolAlphaStrikeQ()
 						logObj(vtol, "vtols ordered to CIRCLE for alphastrike: "+cluster.centroid.x+"x"+cluster.centroid.y);
 					}
 				}
-				vtolAlphaStrikeLoc = { x: cluster.centroid.x, y: cluster.centroid.y };
+				vtolAlphaStrikeLoc = cluster.centroid;
 				queue(orderVtolAlphaStrike, VTOL_DEFEND_TIME);
 			}
 			return; // only check one
@@ -836,40 +832,39 @@ function updateSeenStoreQ()
     }
 
     // Process each object once with optimized checks
-    for (let obj of objects) {
-        if ((obj.id !== undefined && obj.x !== undefined) || obj.y !== undefined) {
-            // Directly handle the oil resource case
-            if (obj.type === FEATURE && obj.stattype === OIL_RESOURCE) {
-                seenStore.addObject(obj.id, { ...obj, id: obj.id });
-                continue;
-            }
+	for (let obj of objects) {
+		if ((obj.id !== undefined && obj.x !== undefined) || obj.y !== undefined) {
+			// Handle oil resource case directly
+			if (obj.type === FEATURE && obj.stattype === OIL_RESOURCE) {
+				seenStore.addObject(obj.id, { ...obj, id: obj.id });
+				continue;
+			}
+			let isAllied = allianceExistsBetween(me, obj.player);
+			let isAA = obj.canHitAir === true && obj.canHitGround === false;
+			let isCombat = obj.droidType === DROID_WEAPON ||
+						obj.droidType === DROID_CYBORG ||
+						obj.stattype === DEFENSE;
 
-            let isAllied = allianceExistsBetween(me, obj.player);
-            let isAA = obj.canHitAir === true && obj.canHitGround === false;
-            let isCombat = obj.droidType === DROID_WEAPON ||
-                           obj.droidType === DROID_CYBORG ||
-                           obj.stattype === DEFENSE;
+			// Directly add the object without cloning if not needed
+			seenStore.addObject(obj.id, { ...obj, id: obj.id, isAllied, isAA, isCombat, lastSeen: gameTime });
 
-            // Directly add with minimal cloning
-            seenStore.addObject(obj.id, { ...obj, id: obj.id, isAllied, isAA, isCombat, lastSeen: gameTime });
-
-            // Conditional check for AA and non-allied objects
-            if (isAA && !isAllied) {
-                AAseenStore.addObject(obj.id, { ...obj, id: obj.id, isAllied, isAA, lastSeen: gameTime });
-            }
-        }
-    }
+			// BUG object is not stored correctly in second instance of SpatialDataStore so no AAseenStore
+			// if (isAA && !isAllied) {
+			// 	AAseenStore.addObject(obj.id, { ...obj, id: obj.id, isAllied, isAA, isCombat, lastSeen: gameTime });
+			// }
+		}
+	}
 }
 
 function pruneSeenStore() { queue("pruneSeenStoreQ"); }
 function pruneSeenStoreQ() {
     // Expire AAthreats based on type and age
-    for (let obj of AAseenStore.query({})) {
-        if ((obj.type === STRUCTURE && obj.lastSeen < gameTime - 600000) ||
-            (obj.type === DROID && obj.lastSeen < gameTime - 120000)) {
-            AAseenStore.deleteKey(obj.id);
-        }
-    }
+    // for (let obj of AAseenStore.query({})) {
+    //     if ((obj.type === STRUCTURE && obj.lastSeen < gameTime - 600000) ||
+    //         (obj.type === DROID && obj.lastSeen < gameTime - 120000)) {
+    //         AAseenStore.deleteKey(obj.id);
+    //     }
+    // }
 
     // Remove structures that have been destroyed while unseen
     const seenNow = new Map();
@@ -885,7 +880,7 @@ function pruneSeenStoreQ() {
     for (let obj of seenStore.query({ type: STRUCTURE })) {
         if (obj.id && !seenNow.has(obj.id)) {
             seenStore.deleteKey(obj.id);
-            AAseenStore.deleteKey(obj.id);
+            //AAseenStore.deleteKey(obj.id);
         }
     }
 }
@@ -908,8 +903,8 @@ function recycleDroidsForHover()
 	}
 }
 
-function checkOrderLocationsQ() { queue("checkOrderLocations"); }
-function checkOrderLocations()
+function checkOrderLocations() { queue("checkOrderLocationsQ"); }
+function checkOrderLocationsQ()
 {
     // Single pass: update orderLocations with threat info
     orderLocations.forEach(({ x, y, enemies: oldEnemies }, key) => {
@@ -926,4 +921,19 @@ function checkOrderLocations()
             orderLocations.set(key, { x, y, enemies: false });
         }
     });
+}
+
+function checkUnreachableOils() { queue("checkUnreachableOilsQ"); }
+function checkUnreachableOilsQ() {
+	let reachableWithDestruction = seenStore.query({ type: FEATURE, stattype: OIL_RESOURCE, isReachable: true, requiresDestruction: true });
+	for (oil of reachableWithDestruction) {
+		// check for path without destruction
+		const adjacent = findPassableTileInPerimeter(oil.x, oil.y);
+		if (!adjacent || !adjacent.length) continue;
+		let pathWithoutDestruction = findShortestPath(BASE, { x: adjacent[0], y: adjacent[1] }, PROP_HOVER, false);
+		// update seenStore
+		if (!pathWithoutDestruction) continue;
+		seenStore.addObject(oil.id, { ...oil, isReachable: true, requiresDestruction: false});
+	}
+	JNstr(seenStore.query({ type: FEATURE, stattype: OIL_RESOURCE }));
 }

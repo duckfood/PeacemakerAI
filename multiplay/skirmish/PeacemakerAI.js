@@ -1,10 +1,11 @@
-//// PeacemakerAI v0.5 10-6-2026 github.com/duckfood
+//// PeacemakerAI v0.6 15-6-2026 github.com/duckfood
 //// MIT license. No warranty whatsoever. Use this code at your own risk!
 
 // log messages to bot log file
-const DEBUG = false;
+const DEBUG = true;
 // log messages in-game
 const DEBUG_CONSOLE = false;
+const DEBUG_TRACE = true;
 
 // api definitions
 const OIL_RES_STAT = "OilResource";
@@ -25,12 +26,15 @@ const TANKTRAP_STAT = "A0TankTrap";
 const FAC_MODULE_STAT = "A0FacMod1";
 const POW_MODULE_STAT = "A0PowMod1";
 const RES_MODULE_STAT = "A0ResearchModule1";
-const STRUCTURE_TYPES = [HQ, FACTORY, POWER_GEN, RESOURCE_EXTRACTOR, LASSAT, DEFENSE, WALL, RESEARCH_LAB, REPAIR_FACILITY, CYBORG_FACTORY, VTOL_FACTORY, REARM_PAD, SAT_UPLINK, GATE, STRUCT_GENERIC, COMMAND_CONTROL];
+const STRUCTURE_TYPES = [HQ, FACTORY, POWER_GEN, RESOURCE_EXTRACTOR, LASSAT,
+				DEFENSE, WALL, RESEARCH_LAB, REPAIR_FACILITY, CYBORG_FACTORY,
+				VTOL_FACTORY, REARM_PAD, SAT_UPLINK, GATE, STRUCT_GENERIC, COMMAND_CONTROL];
 
 // global config
 const MIN_BASE_TRUCKS = 2;
 const MAX_BASE_TRUCKS = 4;
 const MIN_OIL_TRUCKS = 3;
+const MAX_OIL_TRUCKS = 6;
 const MIN_BUILD_POWER = 60;
 const MIN_RESEARCH_POWER = 0;
 const MIN_PRODUCTION_POWER = 40;
@@ -45,8 +49,8 @@ const ENEMY_DERRICK_SCAN_RANGE = 20;
 let GROUP_SCAN_RADIUS = 9; // adjusted later for tech
 
 // constants
-const TERRIAN_WATER = 7;
-const TERRIAN_CLIFF = 8;
+const TERRAIN_WATER = 7;
+const TERRAIN_CLIFF = 8;
 const PROP_HOVER = "hover01";
 const PROP_WHEEL = "wheeled01";
 const truckStarts = enumDroid(me, DROID_CONSTRUCT);
@@ -74,7 +78,7 @@ let enemyHasVtol;
 
 // variables
 let BASE = startPositions[me];
-let relyOnVtols = true;
+let relyOnVtols = false;
 let totalVtolsBuilt = 0;
 let totalVtolsLost = 0;
 let relyOnCyborgs = true;
@@ -130,22 +134,18 @@ function eventStartLevel()
 	setTimer("balanceGroups", 10000 + ((1 + random(4)) * random(30)));
 	setTimer("handlePileups", 30000 + ((1 + random(4)) * random(30)));
 	setTimer("checkOrderLocations", 10000 + ((1 + random(4)) * random(10)));
+	//setTimer("checkUnreachableOils", 60000 + ((1 + random(4)) * random(10)));
 
 	// handle starting droids
 	for (let dr of startDroids) { eventDroidBuilt(dr); }
 
 	// add oil wells to seenStore, as players would have seen them on the minimap
-	let oils = enumFeature(ALL_PLAYERS, OIL_RES_STAT);
-	for (let oil of oils) seenStore.addObject(oil.id, oil);
+	checkOilsReachable();
+	markTiles(seenStore.query({type: FEATURE, stattype: OIL_RESOURCE, isReachable: false }));
 
 	// check if any research is available
 	const reslist = enumResearch();
     if (!reslist.length) researchDone = true;
-
-	// if advanced AA is available don't rely on vtols
-	if (componentAvailable("AAGunLaser") ||
-		componentAvailable("Rocket-Sunburst") ||
-		componentAvailable("QuadRotAAGun")) relyOnVtols = false;
 
 	buildFundamentals();
 }
@@ -165,8 +165,10 @@ const seenStore = new SpatialDataStore({
 	canHitGround: new Map(),
 	hasIndirect: new Map(),
 	isAA: new Map(),
+	isReachable: new Map(),
+	requiresDestruction: new Map(),
 });
-const AAseenStore = new SpatialDataStore({isAllied: new Map()});
+//const AAseenStore = new SpatialDataStore({});
 const StatsMap = loadStatsData(Stats);
 const MapTilesFeatures = loadFeaturesIntoTiles(enumFeature(ALL_PLAYERS)
 	.filter((obj) =>(obj.stattype !== OIL_DRUM && obj.stattype !== ARTIFACT)), MapTiles);
@@ -196,10 +198,14 @@ log("VTOL_DEFEND_TIME: "+VTOL_DEFEND_TIME);
 // markTiles(path.path);
 // log("path: "+JNstr(path));
 // markCliffTiles(MapTilesFeatures);
-// let path = findShortestPath(BASE, {x:27, y:57 }, PROP_WHEEL, true); // roughness oil
-// markTiles(path.path);
-// log(JNstr(path));
-//
-//
-// throw "TILES";
-
+// let startTime = new Date().getTime();
+//let path = findShortestPath(BASE, {x:65, y:80}, PROP_HOVER, true); // {x:87, y:41} roughness blocked oil requiresDestruction
+// getPerimeterPath(32, 10);// = findShortestPath(BASE, {x:65, y:80}, PROP_WHEEL, true); // roughness blocked oil {x:27, y:57 }
+// let endTime = new Date().getTime();
+// let totaltime = endTime - startTime;
+// log("findShortestPath: "+totaltime);
+//markTiles(path.path);
+//log(JNstr(path));
+//let testvar = findPassableTileInPerimeter(BASE.x, BASE.y);
+//log(JNstr(testvar));
+//markTiles([[testvar]]);

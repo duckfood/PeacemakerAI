@@ -366,6 +366,7 @@ function produceAndResearch()
 					// check to see if trucks could be built
 					if (countDroid(DROID_CONSTRUCT) + virtualTrucks < getDroidLimit(me, DROID_CONSTRUCT) -2)
 					{
+						// cheaty knows free oils
 						let freeoils = enumFeature(ALL_PLAYERS, OIL_RES_STAT);
 						// build early trucks but only if oil is available
 						if (gameTime < 180000 && groupSize(oilBuilders) < MIN_OIL_TRUCKS*2 && freeoils.length > 12) { buildTruck(fc); continue; }
@@ -373,18 +374,18 @@ function produceAndResearch()
 						if (baseUnderAttack < 3 && random(100) > 50 && countDroid(DROID_CONSTRUCT) + virtualTrucks < MIN_BASE_TRUCKS + MIN_OIL_TRUCKS)
 							{ buildTruck(fc); continue; }
 						// build extra trucks if lots of bare oil wells, but only if plenty of attackers
-						if (freeoils && freeoils.length > 12 && random(100) > 50 && groupSize(attackGroup)+groupSize(vtolGroup) > MIN_ATTACK_GSIZE*3)
-							{ buildTruck(fc); continue; }
+						if (freeoils && freeoils.length > 9 && groupSize(oilBuilders < MAX_OIL_TRUCKS) && random(100) > 50 &&
+							groupSize(attackGroup)+groupSize(vtolGroup) > MIN_ATTACK_GSIZE*3) { buildTruck(fc); continue; }
 					}
 
 					// build attackers
-					if (countStruct(POW_GEN_STAT) !== 0 || getRealPower() > 1500)
+					if (countStruct(POW_GEN_STAT) !== 0 || getRealPower() > 1000)
 					{
 						if (random(100) < 70) { buildAttacker(fc); continue; }
 					}
 				}
 
-				if (FAC_LIST[i] === VTOL_FACTORY_STAT && (countStruct(POW_GEN_STAT) != 0 || getRealPower() > 1500))
+				if (FAC_LIST[i] === VTOL_FACTORY_STAT && (countStruct(POW_GEN_STAT) != 0 || getRealPower() > 1000))
 				{
 					if (relyOnVtols) { buildVTOL(fc); continue; }
 					else if (groupSize(attackGroup) > MIN_ATTACK_GSIZE && random(100) < 50) { buildVTOL(fc); continue; }

@@ -8,7 +8,13 @@ maybe make units flee the opposite direction
 -trucks on build not fleeing properly sometimes
 -phased research for better efficiency
 
-oilbuilders getting confused when there is oil to build on and an oil to liberate
+if maxed out with cheap droids and advanced droids are available recycle the weakest
+
+using SpatialDataStore for AAseenStore as well as seenStore does not work right the second instance is frelled
+
+since defenses are unlimited, build defenses with mass extra cash
+
+oilbuilders getting confused when there are multiple oil to build on and an oil to liberate
 
 trucks are moving to owned oil
 parts of idleConstructor not working no defense building
@@ -18,7 +24,7 @@ handle objects where the location is unknown eg. old mobile threats
 maybe use findpath for blocked oil
 
 maybe build a third factory at start if oil rich map
-trucks are attempting to build on inaccessible oil in roughness despite checks
+-trucks are attempting to build on inaccessible oil in roughness despite checks
 
 -only return accessible oil targets
 -gather vtol for alphastrike
@@ -122,7 +128,7 @@ retreat from ultimate scavs maybe
 
 -detect and handle pileups
 
-limit oil trucks
+-limit oil trucks
 -dont send trucks to collect artifacts only players do that
 
 order units to stop before reaching rally point
@@ -135,7 +141,6 @@ maybe vtols should run from one high tech aa unit
 handle group of roaming aa better with alphastrike
 
 -vtol call in support when attacking aa
-derrick call in vtol support on spotted targets
 
 -prune eventattacked -- support is not called in
 -print debugging to in-game console

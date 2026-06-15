@@ -3,7 +3,7 @@ function droidNeedsRepair(droidID, percent = null)
 	const dr = getObject(DROID, me, droidID);
 	if (!dr || dr.id == undefined)
 	{
-		log("droidNeedsRepair no dr")
+		logTrace("droidNeedsRepair no dr");
 		return true; // dead?
 	}
 
@@ -133,7 +133,7 @@ function getRandomScoutLoc(dr)
 }
 
 function getNotMyOil(){
-	const oilResources = seenStore.query({ type: FEATURE, stattype: OIL_RESOURCE });
+	const oilResources = seenStore.query({ type: FEATURE, stattype: OIL_RESOURCE, isReachable: true, requiresDestruction: false });
 	const alliedObjects = new Set();
 
 	// precompute allied derricks
@@ -284,7 +284,7 @@ function getVTOLtarget(vtol, randomize = false) {
 
 function getAttackerTarget(dr, randomize=false)
 {
-	if (!dr || !dr.id || dr.isVTOL) { log("getAttackerTarget passed an invalid droid: "+JNstr(dr)); return; }
+	if (!dr || !dr.id || dr.isVTOL) { logTrace("getAttackerTarget passed an invalid droid: "+JNstr(dr)); return; }
 
 	// target nearby enemies if seen
 	const enemies = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*3, ENEMIES, true);
@@ -310,12 +310,11 @@ function getAttackerTarget(dr, randomize=false)
 function getAAthreats(loc)
 {
 	if (!loc || loc.x === undefined || loc.y === undefined) {
-		log("getAAthreats passed invalid location: "+JNstr(loc));
+		logTrace("getAAthreats passed invalid location: "+JNstr(loc));
 		return;
 	}
-
-	let threats = [];
-	let aathreats = AAseenStore.findNear(loc, 24, { isAllied: false });
+	let threats = []; // initialize return array
+	let aathreats = seenStore.findNear(loc, 24, {isAA: true, isAllied: false});
 	for (let threat of aathreats)
 	{
 		if (!threat.range) { threat.range = 24*128; }
@@ -467,6 +466,7 @@ function findMostExpDroid()
 	return most_exp_droid;
 }
 
+//// might not be working
 function moveFromBurningTile(dr){
 	if (tileIsBurning(dr.x, dr.y)) {
 		let spiral = plotSquareSpiral(dr.x, dr.y, 10, 2);
@@ -485,6 +485,7 @@ function moveFromBurningTile(dr){
 	}
 }
 
+//// used for non combat droids
 function fleeFromHostiles(dr)
 {
 	let enemies = getHostilesNear(dr, GROUP_SCAN_RADIUS).filter((obj) => (obj.isAA === false));
