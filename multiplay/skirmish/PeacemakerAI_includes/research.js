@@ -77,7 +77,7 @@ function lookForResearch(tech, labParam) {
 function isResearched(list) {
     if (!list.length) return false;
     let done = true;
-    for (item of list) {
+    for (let item of list) {
         let itemsLeft = findResearch(item, me).length;
         if (itemsLeft) done = false;
     }

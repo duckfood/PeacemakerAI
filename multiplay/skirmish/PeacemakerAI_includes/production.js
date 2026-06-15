@@ -175,7 +175,7 @@ function buildAttacker(fac)
 	}
 
 	// build tanks
-	return buildTank(fac, prop)
+	return buildTank(fac, prop);
 }
 
 function buildTank(fac, prop)
@@ -266,7 +266,7 @@ function buildSensor(fac, prop)
 
 function buildRepair(fac, prop)
 {
-	if (fac == null || prop == null) { return; }
+	if (fac == null || prop == null) return;
 	prop ??= isSeaMap ? SYSTEM_PROP_LIST : TANK_PROP_LIST;
 	let propName = StatsMap.get(firstAvailableComponent(prop)).Name;
 

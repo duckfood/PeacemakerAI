@@ -1,7 +1,4 @@
-SENSOR_TOWERS = [
-	"Sys-SensoTowerWS",
-	"Sys-SensoTower01"
-];
+const SENSOR_TOWERS = [ "Sys-SensoTowerWS", "Sys-SensoTower01" ];
 
 function findIdleTrucks()
 {
