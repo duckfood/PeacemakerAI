@@ -426,7 +426,7 @@ function fireLassat()
 function getStrongestAttackDroids()
 {
 	let support = new Map();
-	const droids = enumGroup(attackGroup).concat(enumGroup(defendGroup)).concat(enumGroup(supportGroup)).filter((obj) => (obj.droidType == DROID_WEAPON));
+	const droids = enumGroup(attackGroup).concat(enumGroup(defendGroup)).filter((obj) => (obj.droidType == DROID_WEAPON));
 	for (let dr of droids)
 	{
 		let strength = dr.cost*(dr.bodySize+1)*(dr.experience/10);

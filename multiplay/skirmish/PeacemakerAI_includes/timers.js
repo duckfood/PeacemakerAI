@@ -30,7 +30,7 @@ function droidAwareAttackerQ()
 			continue;
 		}
 		// check for damaged droids stuck on scout 
-		if (dr.health < 85 && dr.order === DORDER_SCOUT || dr.order === DORDER_ATTACK)
+		if ((dr.health < 85) && (dr.order === DORDER_SCOUT || dr.order === DORDER_ATTACK))
 		{ 
 			droidNeedsRepair(dr.id);
 			continue;
@@ -50,7 +50,7 @@ function droidAwareSensor()
 
 		if (dr.order === DORDER_RTR || dr.order === DORDER_RTB) continue;
 
-		// rtb if on buring tileIsBurning
+		// rtb if on tileIsBurning
 		moveFromBurningTile(dr);
 
 		if (dr.health < 80 && dr.order !== DORDER_RTR)
@@ -82,7 +82,7 @@ function droidAwareAA()
 		if (!(dr.canHitGround === false && dr.canHitAir === true)) { continue; }
 		if (dr.order === DORDER_RTR || dr.order === DORDER_RTB) { continue; }
 
-		// rtb if on buring tileIsBurning
+		// rtb if on tileIsBurning
 		moveFromBurningTile(dr);
 
 		if (dr.health < 80 && dr.order !== DORDER_RTR)
@@ -735,7 +735,6 @@ function balanceGroups()
 			if (dr.experience > 16 && (dr.body === "Body5REC" || dr.body === "Body4ABT"))
 			{
 				orderDroid(dr, DORDER_RECYCLE);
-				groupAdd(recycleGroup, dr);
 				orderLocations.delete(dr.id);
 				orderTargets.delete(dr.id);				
 				logObj(dr, "vtol ordered to recycle experience:"+dr.experience);

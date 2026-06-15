@@ -88,7 +88,7 @@ let totalCyborgLost = 0;
 let baseUnderAttack = 0;
 let baseUnderAttackLoc = [];
 
-let lastBuildLoc = {x: truckStarts[0].x, y: truckStarts[0].y}
+let lastBuildLoc = {x: truckStarts[0].x, y: truckStarts[0].y};
 
 let orderTargets = new Map();
 let orderLocations = new Map();
