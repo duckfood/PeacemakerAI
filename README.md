@@ -32,3 +32,5 @@ Screenshots of pacifying the formidable Cobra:
 ![Cobra2](https://github.com/duckfood/PeacemakerAI/releases/download/v0.6/bested_cobra-screenshot2.jpg)
 
 ![Cobra3](https://github.com/duckfood/PeacemakerAI/releases/download/v0.6/bested_cobra-screenshot3.jpg)
+
+<meta name="google-site-verification" content="ZL-ktI-d_SwJsuv6mZwiEgApZ4MIFo4ZuEDIaVX2v18" />
