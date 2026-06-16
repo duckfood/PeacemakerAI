@@ -5,10 +5,10 @@
 
 It is released under the MIT license, so there are no warranties whatsoever. It may absorb your system, your life, or invoke a new world order!
 
-## Installation
+### Installation
 To install, `git clone` or `unzip` into the mods folder for your version of Warzone2100 (eg. `data/warzone2100/mods/4.7.0`), then run `make.bat` or `make.sh` to install the mod package. The .wz mod package is available in the releases section on GitHub for manual installation.
 
-## Features
+### Features
 - **Lightweight Spatial Data Store**: Leverages data stores for observed objects and spatial queries. No knowledge of unseen objects.
 - **Human-like Operational Constraints**: Operates with the knowledge and constraints of a human player for fair play. Knows what a player would have the opportunity to know.
 - **Enhanced Droid Intelligence**: Utilizes queued timers to enhance droid intelligence while maintaining smooth performance. Droids operate efficiently and purposefully, with self preservation top priority.
