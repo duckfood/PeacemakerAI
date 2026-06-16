@@ -24,3 +24,11 @@ If you wish to contribute, fork, or download the latest version see https://gith
 PeacemakerAI grew out of a project to explore advanced JavaScript while leveraging large language models for coding assistance.
 
 Note: The main branch may be in an inconsistent state. Use the latest release for contests.
+
+Screenshots of pacifying the formidable Cobra:
+
+![Cobra1](https://github.com/duckfood/PeacemakerAI/releases/download/v0.6/bested_cobra-screenshot1.jpg)
+
+![Cobra2](https://github.com/duckfood/PeacemakerAI/releases/download/v0.6/bested_cobra-screenshot1.jpg)
+
+![Cobra3](https://github.com/duckfood/PeacemakerAI/releases/download/v0.6/bested_cobra-screenshot1.jpg)
