@@ -28,9 +28,17 @@ PeacemakerAI grew out of a project to explore advanced JavaScript while leveragi
 For more information and screenshots see [duckfood.github.io/PeacemakerAI](https://duckfood.github.io/PeacemakerAI)
 
 ### Screenshots
-Pacifying the formidable Cobra:
+Pacifying the formidable **Cobra**:
 ![Cobra1](https://duckfood.github.io/PeacemakerAI/media/bested_cobra-screenshot1.jpg)
 
 ![Cobra2](https://duckfood.github.io/PeacemakerAI/media/bested_cobra-screenshot2.jpg)
 
 ![Cobra3](https://duckfood.github.io/PeacemakerAI/media/bested_cobra-screenshot3.jpg)
+
+**BoneCrusher** fireworks:
+![BoneCrusher2](https://duckfood.github.io/PeacemakerAI/media/bested_bonecrusher-screenshot2.jpg)
+
+![BoneCrusher3](https://duckfood.github.io/PeacemakerAI/media/bested_bonecrusher-screenshot3.jpg)
+
+Basebuilding:
+![BoneCrusher1](https://duckfood.github.io/PeacemakerAI/media/bested_bonecrusher-screenshot1.jpg)
