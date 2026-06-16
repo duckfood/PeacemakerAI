@@ -1,4 +1,4 @@
-# PeacemakerAI v0.6
+## PeacemakerAI v0.6
 
 ### About
 **PeacemakerAI** is a non-cheating skirmish AI bot for **Warzone 2100** built with modern JavaScript and coding assistance from large language models. Outperforms NullBot, Cobra, and BoneCrusher using fair-play tactics by leveraging spatial data stores and enhanced droid self awareness.
