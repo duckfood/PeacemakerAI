@@ -264,19 +264,21 @@ function markCliffTiles(tiles)
     });
 }
 
+//// uses hackMarkTiles to mark tiles in an array
 function markTiles(tiles) {
 	if (isIterable(tiles)) {
 		for (let tile of tiles) {
 			if (isIterable(tile)) {
 				hackMarkTiles(tile[0], tile[1]);
-			} else if (typeof tile.x === 'number') {
+			} else if (typeof tile.x === 'number' && typeof tile.y === 'number') {
 				hackMarkTiles(tile.x, tile.y);
 			} else {
               log("markTiles tiles not valid: "+JNstr(tiles));
             }
 		}
-	}
-	log("markTiles tiles not iterable: "+JNstr(tiles));
+	} else {
+      log("markTiles tiles not iterable: "+JNstr(tiles));
+    }
 }
 
 //// loads features into maptiles

@@ -139,6 +139,8 @@ function eventStartLevel()
 	// handle starting droids
 	for (let dr of startDroids) { eventDroidBuilt(dr); }
 
+	testPathfinding();
+
 	// add oil wells to seenStore, as players would have seen them on the minimap
 	checkOilsReachable();
 	markTiles(seenStore.query({type: FEATURE, stattype: OIL_RESOURCE, isReachable: false }));
@@ -180,6 +182,40 @@ include("/multiplay/skirmish/PeacemakerAI_includes/events.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/research.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/timers.js");
 log("VTOL_DEFEND_TIME: "+VTOL_DEFEND_TIME);
+
+function testPathfinding() {
+	// coordinates of 3 unreachable oils in 2 player map Roughness
+	let left = {x: 27, y:55}; // adjacent to left unreachable oil
+	let center = {x:67, y:37}; // adjacent to center unreachable oil
+	let right = {x:89, y:40}; // adjacent to right oil only reachable with destruction
+	let reference = {x:65, y:80}; // second base
+	// get trucks
+	let trucks = findIdleTrucks();
+	// test droidCanReach
+	log("testing droidCanReach:");
+	if (droidCanReach(trucks[0], reference.x, reference.y)) log("droidCanReach reference: true");
+	if (droidCanReach(trucks[0], left.x, left.y)) log("droidCanReach left: true");
+	if (droidCanReach(trucks[0], center.x, center.y)) log("droidCanReach center: true");
+	if (droidCanReach(trucks[0], right.x, right.y)) log("droidCanReach right: true");
+	// test propCanReach
+	log("testing propulsionCanReach:");
+	if (propulsionCanReach(PROP_WHEEL, BASE.x, BASE.y, reference.x, reference.y)) log("propulsionCanReach reference: true");
+	if (propulsionCanReach(PROP_WHEEL, BASE.x, BASE.y, left.x, left.y)) log("propulsionCanReach left: true");
+	if (propulsionCanReach(PROP_WHEEL, BASE.x, BASE.y, center.x, center.y)) log("propulsionCanReach center: true");
+	if (propulsionCanReach(PROP_WHEEL, BASE.x, BASE.y, right.x, right.y)) log("propulsionCanReach right: true");
+	// test findShortestPath without destruction
+	log("testing findShortestPath:");
+	if (findShortestPath(BASE, reference, PROP_WHEEL, false)) log("findShortestPath without destruction reference: true");
+	if (findShortestPath(BASE, left, PROP_WHEEL, false)) log("findShortestPath without destruction left: true");
+	if (findShortestPath(BASE, center, PROP_WHEEL, false)) log("findShortestPath without destruction center: true");
+	if (findShortestPath(BASE, right, PROP_WHEEL, false)) log("findShortestPath without destruction right: true");
+	// test findShortestPath with destruction
+	log("testing findShortestPath with destruction:");
+	if (findShortestPath(BASE, reference, PROP_WHEEL, true)) log("findShortestPath with destruction reference: true");
+	if (findShortestPath(BASE, left, PROP_WHEEL, true)) log("findShortestPath with destruction left: true");
+	if (findShortestPath(BASE, center, PROP_WHEEL, true)) log("findShortestPath with destruction center: true");
+	if (findShortestPath(BASE, right, PROP_WHEEL, true)) log("findShortestPath with destruction right: true");
+}
 
 //// performance testing
 // let start = {x: 10, y: 90}; // highground
