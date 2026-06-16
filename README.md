@@ -1,6 +1,9 @@
-﻿# PeacemakerAI v0.6
+# PeacemakerAI v0.6
 
-**PeacemakerAI** is a skirmish AI bot for **Warzone2100**. It is released under the MIT license, so there are no warranties whatsoever. It may absorb your system, your life, or invoke a new world order!
+## About
+**PeacemakerAI** is a non-cheating skirmish AI bot for **Warzone 2100** built with modern JavaScript and coding assistance from large language models. Outperforms NullBot, Cobra, and BoneCrusher using fair-play tactics by leveraging spatial data stores and enhanced droid self awareness.
+
+It is released under the MIT license, so there are no warranties whatsoever. It may absorb your system, your life, or invoke a new world order!
 
 ## Installation
 To install, `git clone` or `unzip` into the mods folder for your version of Warzone2100 (eg. `data/warzone2100/mods/4.7.0`), then run `make.bat` or `make.sh` to install the mod package. The .wz mod package is available in the releases section on GitHub for manual installation.
