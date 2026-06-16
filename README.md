@@ -20,7 +20,7 @@ The location of your mods folder will depend on your method of installing Warzon
 - **Outperforms Nullbot, Cobra, Bonecrusher, and SemperFi**: Bests existing bots despite their knowledge of unseen objects. Efficiently pacifies multiple opponents for total world peace!
 
 ### Attribution
-**Inspired by the prototypical SemperFi from the base Warzone 2100**. Although they share similar naming conventions, PeacemakerAI has undergone significant revisions and enhancements thanks to assistance from qwen3, granite4, deepseek-coder, and gpt4 large language models. Special thanks to GitHub Copilot and Claude Haiku 4.5 for assistance solving the toughest bugs.
+**Inspired by the prototypical SemperFi from the base Warzone 2100**. Although they share similar naming conventions, PeacemakerAI has undergone significant revisions and enhancements thanks to assistance from qwen3, granite4, deepseek-coder-v2, and gpt4 large language models. Special thanks to GitHub Copilot and Claude Haiku 4.5 for assistance solving the toughest bugs.
 
 ### Motivation
 PeacemakerAI grew out of a project to explore advanced JavaScript while leveraging large language models for coding assistance.
