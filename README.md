@@ -2,12 +2,14 @@
 
 PeacemakerAI is released under the MIT license, so there are no warranties whatsoever. It may absorb your system, your life, or invoke a new world order!
 
+---
+
 ### Installation
 Download the source archive or mod package from [github.com/duckfood/PeacemakerAI](https://github.com/duckfood/PeacemakerAI/releases)
 
 To install the pre-built wz mod package place PeacemakerAI.wz in the autoload folder for your version of Warzone 2100 (eg.`data/warzone2100/mods/4.7.0/autoload`)
 
-For the source `git clone` or `unzip` into the mods folder for your version of Warzone 2100 (eg. `data/warzone2100/mods/4.7.0`), then run `make.bat` or `make.sh` to install the mod package.
+To install from source `git clone` or `unzip` into the mods folder for your version of Warzone 2100 (eg. `data/warzone2100/mods/4.7.0`), then run `make.bat` or `make.sh` to install the mod package.
 
 The location of your mods folder will depend on your method of installing Warzone 2100.
 
@@ -23,22 +25,24 @@ The location of your mods folder will depend on your method of installing Warzon
 ### Motivation
 PeacemakerAI grew out of a project to explore advanced JavaScript while leveraging large language models for coding assistance.
 
+---
+
 **Note**: The main branch may be in an inconsistent state. Use the latest release for contests.
 
 For more information and screenshots see [duckfood.github.io/PeacemakerAI](https://duckfood.github.io/PeacemakerAI)
 
 ### Screenshots
-Pacifying the formidable **Cobra**:
+***Pacifying the formidable Cobra***
 ![Cobra1](https://duckfood.github.io/PeacemakerAI/media/bested_cobra-screenshot1.jpg)
 
 ![Cobra2](https://duckfood.github.io/PeacemakerAI/media/bested_cobra-screenshot2.jpg)
 
 ![Cobra3](https://duckfood.github.io/PeacemakerAI/media/bested_cobra-screenshot3.jpg)
 
-**BoneCrusher** fireworks:
+***BoneCrusher fireworks***
 ![BoneCrusher2](https://duckfood.github.io/PeacemakerAI/media/bested_bonecrusher-screenshot2.jpg)
 
 ![BoneCrusher3](https://duckfood.github.io/PeacemakerAI/media/bested_bonecrusher-screenshot3.jpg)
 
-Basebuilding:
+***Basebuilding***
 ![BoneCrusher1](https://duckfood.github.io/PeacemakerAI/media/bested_bonecrusher-screenshot1.jpg)
