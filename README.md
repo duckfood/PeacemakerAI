@@ -1,9 +1,7 @@
-## PeacemakerAI v0.6
-
 ### About
-**PeacemakerAI** is a non-cheating skirmish AI bot for **Warzone 2100** built with modern JavaScript and coding assistance from large language models. Outperforms NullBot, Cobra, and BoneCrusher using fair-play tactics by leveraging spatial data stores and enhanced droid self awareness.
+**PeacemakerAI** is a non-cheating skirmish AI bot for **Warzone 2100** built with modern JavaScript and coding assistance from large language models. Outperforms NullBot, Cobra, and BoneCrusher using fair-play tactics by leveraging spatial data stores and enhanced droid self-awareness.
 
-It is released under the MIT license, so there are no warranties whatsoever. It may absorb your system, your life, or invoke a new world order!
+PeacemakerAI is released under the MIT license, so there are no warranties whatsoever. It may absorb your system, your life, or invoke a new world order!
 
 ### Installation
 To install, `git clone` or `unzip` into the mods folder for your version of Warzone2100 (eg. `data/warzone2100/mods/4.7.0`), then run `make.bat` or `make.sh` to install the mod package. The .wz mod package is available in the releases section on GitHub for manual installation.
@@ -18,19 +16,17 @@ To install, `git clone` or `unzip` into the mods folder for your version of Warz
 **Inspired by the prototypical SemperFi from the base Warzone2100**. Although they share similar naming conventions, PeacemakerAI has undergone significant revisions and enhancements thanks to assistance from qwen3, granite4, deepseek-coder, and gpt4 large language models. Special thanks to GitHub Copilot and Claude Haiku 4.5 for assistance solving the toughest bugs.
   
 ### Contribution
-If you wish to contribute, fork, or download the latest version see https://github.com/duckfood/PeacemakerAI
+If you wish to contribute, fork, or download the latest version see [https://github.com/duckfood/PeacemakerAI](https://github.com/duckfood/PeacemakerAI)
 
 ### Motivation
 PeacemakerAI grew out of a project to explore advanced JavaScript while leveraging large language models for coding assistance.
 
-Note: The main branch may be in an inconsistent state. Use the latest release for contests.
+**Note**: The main branch may be in an inconsistent state. Use the latest release for contests.
 
-Screenshots of pacifying the formidable Cobra:
+### Screenshots
+Pacifying the formidable Cobra:
+![Cobra1](https://duckfood.github.io/PeacemakerAI/media/bested_cobra-screenshot1.jpg)
 
-![Cobra1](https://github.com/duckfood/PeacemakerAI/releases/download/v0.6/bested_cobra-screenshot1.jpg)
+![Cobra2](https://duckfood.github.io/PeacemakerAI/media/bested_cobra-screenshot2.jpg)
 
-![Cobra2](https://github.com/duckfood/PeacemakerAI/releases/download/v0.6/bested_cobra-screenshot2.jpg)
-
-![Cobra3](https://github.com/duckfood/PeacemakerAI/releases/download/v0.6/bested_cobra-screenshot3.jpg)
-
-<meta name="google-site-verification" content="ZL-ktI-d_SwJsuv6mZwiEgApZ4MIFo4ZuEDIaVX2v18" />
+![Cobra3](https://duckfood.github.io/PeacemakerAI/media/bested_cobra-screenshot3.jpg)
