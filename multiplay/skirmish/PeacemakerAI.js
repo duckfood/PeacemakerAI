@@ -138,8 +138,8 @@ function eventStartLevel()
 
 	// handle starting droids
 	for (let dr of startDroids) { eventDroidBuilt(dr); }
-
-	testPathfinding();
+	
+	//testPathfinding();
 
 	// add oil wells to seenStore, as players would have seen them on the minimap
 	checkOilsReachable();
