@@ -39,10 +39,14 @@ For more information and screenshots see [duckfood.github.io/PeacemakerAI](https
 
 ![Cobra3](https://duckfood.github.io/PeacemakerAI/media/bested_cobra-screenshot3.jpg)
 
+![Cobra4](https://duckfood.github.io/PeacemakerAI/media/bested_cobra-screenshot4.jpg)
+
+![Cobra5](https://duckfood.github.io/PeacemakerAI/media/bested_cobra-screenshot5.jpg)
+
 ***BoneCrusher fireworks***
 ![BoneCrusher2](https://duckfood.github.io/PeacemakerAI/media/bested_bonecrusher-screenshot2.jpg)
 
 ![BoneCrusher3](https://duckfood.github.io/PeacemakerAI/media/bested_bonecrusher-screenshot3.jpg)
 
 ***Basebuilding***
-![BoneCrusher1](https://duckfood.github.io/PeacemakerAI/media/bested_bonecrusher-screenshot1.jpg)
+![Basebuilding1](https://duckfood.github.io/PeacemakerAI/media/basebuilding-screenshot1.jpg)
