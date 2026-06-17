@@ -72,6 +72,8 @@ function buildBasicBase()
 
 	// build hq early because player designs can't be made without it
 	if (countStruct(PLAYER_HQ_STAT) === 0 && grabTrucksAndBuild(PLAYER_HQ_STAT, 1))	return true;
+
+	// make sure generators get upgraded asap
 	if (upgradeGenerators()) return true;
 
 	// build another power generator
@@ -105,29 +107,35 @@ function buildFundamentals()
 		if (upgradeFactories(FACTORY)) return true;
 		if (upgradeFactories(VTOL_FACTORY)) return true;
 	}
+
 	if (upgradeResearch()) return true;
-	if (buildBaseArtillery(2)) return true;
-
-	buildFundamentals2(); // go on to the next level
-}
-
-function buildFundamentals2()
-{
 	if (factoryBuildOrder()) return true;
 	if (buildResearchLabs()) return true;
-	if (buildVTOLpads()) return true;
-	if (getRealPower() < MIN_BUILD_POWER*2) return false;
-	if (enemyHasVtol && buildAntiAir(1)) return true;
-	if (buildLassat()) return true;
-	if (getRealPower() < MIN_BUILD_POWER*3) return false;
-	if (enemyHasVtol && buildAntiAir(2)) return true;
-	if (countStruct(UPLINK_STAT) === 0 && grabTrucksAndBuild(UPLINK_STAT, 1)) return true;
-	if (getRealPower() < MIN_BUILD_POWER*5) return false;
-	if (enemyHasVtol && buildAntiAir(3)) return true;
-	if (getRealPower() < MIN_BUILD_POWER*50) return false;
-	if (buildBaseOilDefenses(3)) return true;
-	if (enemyHasVtol && buildAntiAir(12)) return true;
-	if (buildBaseArtillery(12)) return true;
+
+	if (getRealPower() > MIN_BUILD_POWER*5) {
+		if (buildLassat()) return true;
+		if (enemyHasVtol && buildAntiAir(2)) return true;
+		if (buildBaseArtillery(2)) return true;
+	}
+	if (getRealPower() > MIN_BUILD_POWER*10) {
+		if (enemyHasVtol && buildAntiAir(3)) return true;
+		if (countStruct(UPLINK_STAT) === 0 && grabTrucksAndBuild(UPLINK_STAT, 1)) return true;
+	}
+
+	if (getRealPower() > MIN_BUILD_POWER*15) {
+		if (enemyHasVtol && buildAntiAir(3)) return true;
+		if (buildBaseOilDefenses(1)) return true;
+	}
+
+	if (getRealPower() > MIN_BUILD_POWER*50) {
+		if (enemyHasVtol && buildAntiAir(6)) return true;
+		if (buildBaseArtillery(6)) return true;
+		if (enemyHasVtol && buildAntiAir(8)) return true;
+		if (buildBaseArtillery(8)) return true;
+		if (enemyHasVtol && buildAntiAir(12)) return true;
+		if (buildBaseArtillery(12)) return true;
+	}
+
 	checkResearchCompletion();
 }
 
@@ -322,7 +330,7 @@ function buildRepairFacs()
 		// get a location likely to be in front of the base
 		let baseEdge = closestPointOnRectEdge({x: 0, y: 0, width: mapWidth, height: mapHeight}, {x: BASE.x, y: BASE.y});
 		let site = extendLine({x: baseEdge.x, y: baseEdge.y}, {x: BASE.x, y: BASE.y}, 10);
-		return orderTrucksBuild(REPAIR_FACILITY_STAT, site, 4);
+		return grabTrucksAndBuild(REPAIR_FACILITY_STAT, 2, site.x, site.y);
 	}
 	return false;
 }

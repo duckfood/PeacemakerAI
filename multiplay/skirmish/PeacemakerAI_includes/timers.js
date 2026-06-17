@@ -347,6 +347,8 @@ function droidAwareTruckQ()
 
 			if (oils && oils.length > 0 && seenStore.query({isReachable: true, requiresDestruction: false, x:oils[0].x, y:oils[0].y}).length && droidCanReach(dr, oils[0].x, oils[0].y))
 			{
+				// for each oil check to see if its burning first
+				// if all are burning build on any one
 				let enemies = getHostilesNear(oils[0], GROUP_SCAN_RADIUS).filter((obj) => (obj.isAA === false));
 				if (enemies.length === 0)
 				{
@@ -366,7 +368,9 @@ function droidAwareTruckQ()
 
 			if (oils && oils.length > 0 && seenStore.query({isReachable: true, requiresDestruction: false, x:oils[0].x, y:oils[0].y}).length && droidCanReach(dr, oils[0].x, oils[0].y))
 			{
-				let mydefenses = enumRange(oils[0].x, oils[0].y, GROUP_SCAN_RADIUS, ALLIES, true).filter((obj) => (obj.type === STRUCTURE && obj.stattype === DEFENSE));
+				// if allied combat droids or defenses are present do not liberate
+				let mydefenses = enumRange(oils[0].x, oils[0].y, GROUP_SCAN_RADIUS, ALLIES, true).filter((obj) =>
+						(obj.droidType === DROID_WEAPON || obj.droidType === DROID_CYBORG || obj.stattype === DEFENSE));
 				if (mydefenses.length === 0) {
 					let enemies = getHostilesNear(oils[0], GROUP_SCAN_RADIUS).filter((obj) => (obj.isAA === false));
 					if (enemies.length === 0)

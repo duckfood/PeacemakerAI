@@ -394,7 +394,7 @@ function idleRepair(dr)
 	if (ThrottleThis("idleRepair"+dr.id+"throttle", 2000)) { return; }
 
 	// select random closest nearby combat unit and scout to it
-	let droids = seenStore.query({type: DROID, isCombat: true, isAllied: true});
+	let droids = seenStore.query({type: DROID, isCombat: true, isAllied: true, isVTOL: false});
 	droids.sort((obj1, obj2) => {
 		let dist1 = distBetweenTwoPoints(dr.x, dr.y, obj1.x, obj1.y);
 		let dist2 = distBetweenTwoPoints(dr.x, dr.y, obj2.x, obj2.y);

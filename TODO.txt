@@ -1,6 +1,26 @@
 TODO and done for PeacemakerAI
 
-don't build tower to liberate oil if allied combat units are nearby
+trucks seem to be getting assigned all to one oil sometimes
+-repairfac should use grabtrucks not ordertrucks
+-mix up defense spending for better balance
+shift repair droids to the front line maybe
+-increase mass cash spending threshold
+-repairs are hanging around the base vtols maybe?
+
+try to collect artifacts and oil drums, but only a few times, maybe try again later
+
+accessible oils not claimed on Strikeout with no red mark to indicate
+droidAwareTruckQ oil reachability test incomplete does not check destructible paths
+needs routine to make sure destructible paths get cleared out and update seenStore
+try actually driving a droid to the site, if it sulks it can't really get there
+if a truck is just one tile from a wonky oil, build on it without checking seenStore
+combine the path clearing with base obstacle clearing
+select one low end combat unit and assign to clearing task instead of current mass approach
+
+if any droid has been sulking for some time give it a new task or self-destruct/recycle
+requires keeping track of droid order and action states over time
+
+-don't build tower to liberate oil if allied combat units are nearby
 don't build on burning oil if there is a non burning oil seen
 -stop notmyoil scouting if at max power plants
 guard oil clusters
@@ -12,16 +32,15 @@ if maxed out with cheap droids and advanced droids are available recycle the wea
 
 using SpatialDataStore for AAseenStore as well as seenStore does not work right the second instance is frelled
 
-since defenses are unlimited, build defenses with mass extra cash
+-since defenses are unlimited, build defenses with mass extra cash
 
-oilbuilders getting confused when there are multiple oil to build on and an oil to liberate
+-oilbuilders getting confused when there are multiple oil to build on and an oil to liberate
 
-trucks are moving to owned oil
-parts of idleConstructor not working no defense building
+trucks are moving to owned oil maybe stop scouting if now owned
 
 handle objects where the location is unknown eg. old mobile threats
 
-maybe use findpath for blocked oil
+-maybe use findpath for blocked oil
 
 maybe build a third factory at start if oil rich map
 -trucks are attempting to build on inaccessible oil in roughness despite checks
@@ -43,7 +62,7 @@ hit and run tactics for mortar and missile
 
 -pick location for lassat
 
-alphastrike massed mobile aa
+alphastrike massed mobile aa not tested
 -find clusters function
 -detect massive vtol losses and discontinue production
 -scout if no targets
@@ -57,7 +76,7 @@ build defenses near clusters of oil
 -burning ground move to nearby not burning ground instead of rtb
 
 -better repair droid routine
-rtr when fighting in base
+-rtr when fighting in base
 
 --aa droids should escort not scout
 --improve base maintenance
@@ -68,7 +87,7 @@ rtr when fighting in base
 -rtb if on burning tile
 -early focus on mg not cannon
 
-recall idle oilbuilders to base and patrol
+maybe recall idle oilbuilders to base and patrol
 
 -repair trucks getting ordered to guard repeat
 -extra oil truck building should be dependent on wells count
@@ -138,7 +157,7 @@ maybe vtols should run from one high tech aa unit
 -re-enable double tanks
 
 -retreating vtols should attack random derrick after a few secs
-handle group of roaming aa better with alphastrike
+handle group of roaming aa better with alphastrike not tested
 
 -vtol call in support when attacking aa
 
@@ -149,6 +168,7 @@ handle group of roaming aa better with alphastrike
 -repairs getting stuck at base after rtb defend
 
 new units should stop moving on build -- not move to rally point
+relocate rally points
 -truck run zone should be smaller
 -remove strongest player messages
 -remove time from console logs
