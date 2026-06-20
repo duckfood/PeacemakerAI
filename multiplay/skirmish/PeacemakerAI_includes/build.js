@@ -2,7 +2,7 @@ const SENSOR_TOWERS = [ "Sys-SensoTowerWS", "Sys-SensoTower01" ];
 
 function findIdleTrucks()
 {
-	// enumerate the group list and filter to select inactive trucks
+	// enumerate the basebuilders group list and filter to select inactive
 	return enumGroup(baseBuilders).filter(dr => dr.action === 0);
 }
 
@@ -108,22 +108,25 @@ function buildFundamentals()
 		if (upgradeFactories(VTOL_FACTORY)) return true;
 	}
 
+	if (enemyHasVtol && buildAntiAir(1)) return true;
+
 	if (upgradeResearch()) return true;
 	if (factoryBuildOrder()) return true;
 	if (buildResearchLabs()) return true;
 
-	if (getRealPower() > MIN_BUILD_POWER*5) {
+	if (getRealPower() > MIN_BUILD_POWER*3) {
 		if (buildLassat()) return true;
 		if (enemyHasVtol && buildAntiAir(2)) return true;
 		if (buildBaseArtillery(2)) return true;
 	}
-	if (getRealPower() > MIN_BUILD_POWER*10) {
+
+	if (getRealPower() > MIN_BUILD_POWER*7) {
 		if (enemyHasVtol && buildAntiAir(3)) return true;
 		if (countStruct(UPLINK_STAT) === 0 && grabTrucksAndBuild(UPLINK_STAT, 1)) return true;
 	}
 
 	if (getRealPower() > MIN_BUILD_POWER*15) {
-		if (enemyHasVtol && buildAntiAir(3)) return true;
+		if (enemyHasVtol && buildAntiAir(4)) return true;
 		if (buildBaseOilDefenses(1)) return true;
 	}
 
@@ -140,7 +143,7 @@ function buildFundamentals()
 }
 
 //// used to build core base buildings but not accessory buildings
-// cascaded if version working version
+// cascaded if working version
 function grabTrucksAndBuild(structure, maxBlocking=1, x=BASE.x, y=BASE.y, direction=[0, 90, 180, 270][random(3)])
 {
     if (!isStructureAvailable(structure)) return false;
@@ -324,7 +327,7 @@ function buildVTOLpads()
 
 function buildRepairFacs()
 {
-	if (getRealPower() < MIN_BUILD_POWER) return false;
+	if (getRealPower() < MIN_BUILD_POWER/2) return false;
 	if (isStructureAvailable(REPAIR_FACILITY_STAT) && countStruct(REPAIR_FACILITY_STAT) < (countStruct(FACTORY_STAT) + countStruct(CYBORG_FACTORY_STAT))/4)
 	{
 		// get a location likely to be in front of the base
@@ -475,7 +478,6 @@ function upgradeResearch()
 	let labs = seenStore.query({ player: me, type: STRUCTURE, stattype: RESEARCH_LAB });
 	for (let struct of labs) {
 		if (struct.modules < 1) {
-
 			return orderTrucksBuild(RES_MODULE_STAT, struct);
 		}
 	}
@@ -492,7 +494,7 @@ function assignTrucksToOil() {
     // Step 2: Identify safe sites by filtering out hostile-adjacent oil sites
     const sites = getNotMyOil();
     const safeSites = sites.filter(site => {
-        const hostileCount = getHostilesNear({ x: site.x, y: site.y }).length;
+        const hostileCount = getHostilesNear(site, GROUP_SCAN_RADIUS).length;
         return hostileCount === 0;
     });
     if (!safeSites.length) return false;
@@ -544,46 +546,6 @@ function assignTrucksToOil() {
         logObj(assignment.builder, `truck assigned to oil at ${assignment.site.x},${assignment.site.y}`);
     }
     return assignments.length > 0; // Return true if any assignments were made
-}
-
-function checkOilsReachable() {
-	const sites = enumFeature(ALL_PLAYERS, OIL_RES_STAT);
-
-	let unReachableSites = sites.length;
-    // Iterate over each site
-    for (let site of sites) {
-        // Get all passable perimeter tiles around the current site
-        const passablePerimeterTiles = getPassablePerimeterTiles(site.x, site.y);
-
-        let isReachable = false;
-        let requiresDestruction = false;
-
-        // Check each passable tile to see if it's reachable from the base
-        for (let perimeterTile of passablePerimeterTiles) {
-            const path = findShortestPath(BASE, perimeterTile, PROP_HOVER, false);
-
-            if (path) {
-                // If a path is found to any adjacent passable tile, mark the site as reachable
-                isReachable = true;
-				unReachableSites--;
-                break; // No need to check further once we find one reachable path
-            } else {
-                // Check again with obstacle destruction enabled if no path was found without it
-                const pathWithDestruction = findShortestPath(BASE, perimeterTile, PROP_HOVER, true);
-
-                if (pathWithDestruction) {
-                    requiresDestruction = true;
-                    isReachable = true; // Mark as reachable but with destruction required
-                    unReachableSites--;
-                    break;
-                }
-            }
-        }
-        // Store the accessibility status in the database
-        seenStore.addObject( site.id, { ...site, id: site.id, isReachable: isReachable, requiresDestruction: requiresDestruction });
-    }
-	log("unreachable oils: "+unReachableSites);
-	console("unreachable oils: "+unReachableSites);
 }
 
 //// reduced original working version
@@ -647,5 +609,45 @@ function idleConstructor(droid)
 		logObj(droid,"idle oilbuilder nothing safe to do");
 		return false;
 	}
+}
+
+function checkOilsReachable() { queue("checkOilsReachableQ"); }
+function checkOilsReachableQ() {
+	const sites = enumFeature(ALL_PLAYERS, OIL_RES_STAT);
+
+	let unReachableSites = sites.length;
+	let reachableWithDestruction = 0;
+    // Iterate over each site
+    for (let site of sites) {
+        let isReachable = false;
+        let requiresDestruction = false;
+
+		// check for a path without obstacles
+		const path = findShortestPath(site, BASE, PROP_HOVER, false); // reversed start and dest
+		if (path) {
+			isReachable = true;
+			unReachableSites--;
+			log(`oil reachable: ${site.x},${site.y}`);
+		} else {
+			// Check again with obstacle destruction enabled if no path was found without it
+			const pathWithDestruction = findShortestPath(site, BASE, PROP_HOVER, true); // reversed start and dest
+
+			if (pathWithDestruction) {
+				requiresDestruction = true;
+				isReachable = true; // Mark as reachable but with destruction required
+				unReachableSites--;
+				reachableWithDestruction++;
+				log(`oil reachable with destruction: ${site.x},${site.y}`);
+			}
+		}
+		if (!isReachable) log(`oil not reachable: ${site.x},${site.y}`);
+
+        // Store the accessibility status in the database
+        seenStore.addObject( site.id, { ...site, id: site.id, isReachable: isReachable, requiresDestruction: requiresDestruction });
+    }
+	log("unreachable oils: "+unReachableSites);
+	console("unreachable oils: "+unReachableSites);
+	log("requires destruction: "+reachableWithDestruction);
+	console("requires destruction: "+reachableWithDestruction);
 }
 

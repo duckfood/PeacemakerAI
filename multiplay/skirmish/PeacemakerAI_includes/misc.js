@@ -232,5 +232,14 @@ function JNstr(obj){
 	return JSON.stringify(obj);
 }
 
-const isIterable = (value) =>
-    value != null && typeof value[Symbol.iterator] === 'function';
+function isIterable(value) {
+    return value != null && typeof value[Symbol.iterator] === 'function';
+}
+
+function sortByDistToLoc(loc, list) {
+	list.sort((obj1, obj2) => {
+			let dist1 = distBetweenTwoPoints(loc.x, loc.y, obj1.x, obj1.y);
+			let dist2 = distBetweenTwoPoints(loc.x, loc.y, obj2.x, obj2.y);
+			return (dist1 - dist2); }) // ascending
+	return list;
+}

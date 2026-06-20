@@ -1,4 +1,4 @@
-**PeacemakerAI** is a fair-play skirmish AI bot for **Warzone 2100**, crafted using modern JavaScript and aided by advanced large language models to ensure fair, strategic gameplay. Surpasses NullBot, Cobra, and BoneCrusher with fair-play tactics by leveraging spatial data stores and enhanced droid self-awareness.
+﻿**PeacemakerAI** is a fair-play skirmish AI bot for **Warzone 2100**, crafted using modern JavaScript and aided by advanced large language models to ensure fair, strategic gameplay. Surpasses NullBot, Cobra, and BoneCrusher with fair-play tactics by leveraging spatial data stores and enhanced droid awareness.
 
 PeacemakerAI is released under the MIT license, so there are no warranties whatsoever. It may absorb your system, your life, or invoke a new world order!
 
@@ -52,5 +52,3 @@ For more information and screenshots see [duckfood.github.io/PeacemakerAI](https
 ![Basebuilding1](https://duckfood.github.io/PeacemakerAI/media/basebuilding-screenshot1.jpg)
 
 [![Hits](https://hits.sh/duckfood.github.io/PeacemakerAI/hits.svg)](https://hits.sh/duckfood.github.io/PeacemakerAI)
-
-

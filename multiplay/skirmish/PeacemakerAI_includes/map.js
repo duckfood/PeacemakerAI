@@ -281,17 +281,14 @@ function markTiles(tiles) {
     }
 }
 
-//// loads features into maptiles
 function loadFeaturesIntoTiles(features, tiles) {
     let newTiles = transposeTiles(tiles);
-
-    features.forEach(feature => {
-        const {x, y} = feature;
+    for (const feature of features) {
+        const { x, y } = feature;
         if (newTiles[x] && newTiles[x][y]) {
-            newTiles[x][y] = {...newTiles[x][y], ...feature, destroyed: false};
+            newTiles[x][y] = { ...newTiles[x][y], ...feature, destroyed: false };
         }
-    });
-
+    }
     return newTiles;
 }
 
@@ -421,10 +418,12 @@ class ultimate_PriorityQueue {
     }
 }
 
-//// advanced version A* pathfinding with options
+//// ultimate version A* pathfinding with options
 // 4-way only as diagonal movement is not possible for droids
-// droidCanReach returns incorrect results involving diagonal movement
+// droidCanReach returns incorrect results involving diagonal movement eg. Roughness blocked oils
 // map bounds clipped to avoid pathfinding off map as game map is inaccessible around the edge
+// considers start tile to be accessible if adjacent tile is
+// allows a path to an inaccessible tile can be formed by reversing start and dest
 function findShortestPath(start, dest, propulsion = PROP_WHEEL, allowDestruction = false, maxPathLength = Infinity) {
     if (!start || start.x === undefined || start.y === undefined) {
         log("findShortestPath no or invalid start for path");
@@ -436,27 +435,27 @@ function findShortestPath(start, dest, propulsion = PROP_WHEEL, allowDestruction
     }
     const tiles = MapTilesFeatures;
     const directions = [[0,1],[1,0],[0,-1],[-1,0]]; // only consider up, down, left, right movements as diagonal is not possible
-    // correctly assign map dimensions
     const cols = tiles.length;       // x-axis
     const rows = tiles[0].length;    // y-axis
-    // validate start and destination
-    if (start.x < 1 || start.x >= cols-1 || start.y < 1 || start.y >= rows-1) { // clip map edge to avoid pathfinding on map edge bug
+    if (start.x < 1 || start.x >= cols-1 || start.y < 1 || start.y >= rows-1) { // clip map edges
         log("Start position is out of bounds");
         return false;
     }
-    if (dest.x < 1 || dest.x >= cols-1 || dest.y < 1 || dest.y >= rows-1) { // clip map edge to avoid pathfinding on map edge bug
+    if (dest.x < 1 || dest.x >= cols-1 || dest.y < 1 || dest.y >= rows-1) { // clip map edges
         log("Destination is out of bounds");
         return false;
     }
-    // Use Manhattan distance for heuristic for grid based map
-    const heuristic = (x1, y1, x2, y2) => Math.abs(x1 - x2) + Math.abs(y1 - y2);
+    const heuristic = (x1, y1, x2, y2) => {
+        if (x1 === start.x && y1 === start.y) return 0; // Always consider the start position with zero heuristic value
+        return Math.abs(x1 - x2) + Math.abs(y1 - y2); // Standard Manhattan distance for other nodes
+    };
     const openSet = new ultimate_PriorityQueue();
     const cameFrom = Array(cols).fill().map(() => Array(rows).fill(null));
     const gScore = Array(cols).fill().map(() => Array(rows).fill(Infinity));
     const fScore = Array(cols).fill().map(() => Array(rows).fill(Infinity));
     gScore[start.x][start.y] = 0;
     fScore[start.x][start.y] = heuristic(start.x, start.y, dest.x, dest.y);
-    openSet.enqueue([start.x, start.y], fScore[start.x][start.y]);
+    openSet.enqueue([start.x, start.y], fScore[start.x][start.y]); // Enqueue with a heuristic score of 0 for immediate consideration
     while (!openSet.isEmpty()) {
         const [x, y] = openSet.dequeue();
         if (x === dest.x && y === dest.y) {
@@ -465,21 +464,14 @@ function findShortestPath(start, dest, propulsion = PROP_WHEEL, allowDestruction
         for (const [dx, dy] of directions) {
             const nx = x + dx;
             const ny = y + dy;
-            if (nx < 1 || nx >= cols-1 || ny < 1 || ny >= rows-1) {
-                continue; // This should block edge tiles
-            }
+            if (nx < 1 || nx >= cols-1 || ny < 1 || ny >= rows-1) continue; // clip map edges
             const tile = tiles[nx][ny];
-
-            // skip tile if impassable terrain
-            if (tile.terrainType === TERRAIN_CLIFF) continue; // impassable: cliff tiles are not damageable and do not have features
-            if (tile.terrainType === TERRAIN_WATER && propulsion !== PROP_HOVER) continue; // impassable without hover and water tile not damageable do not have features
-            // Handle impassable features
+            if (tile.terrainType === TERRAIN_CLIFF) continue;
+            if (tile.terrainType === TERRAIN_WATER && propulsion !== PROP_HOVER) continue;
             if (tile.type === FEATURE) {
-                if (!tile.damageable) continue; // impassable: Non-damageable features always block
-                if (!allowDestruction && tile.damageable && !tile.destroyed) continue; // impassable: no destruction and damageable tile not destroyed
+                if (!tile.damageable) continue;
+                if (!allowDestruction && tile.damageable && !tile.destroyed) continue;
             }
-
-            // Determine movement cost
             const cost = 1;
             const tentativeGScore = gScore[x][y] + cost;
             if (tentativeGScore < gScore[nx][ny]) {
@@ -499,10 +491,9 @@ function findShortestPath(start, dest, propulsion = PROP_WHEEL, allowDestruction
         while (cameFrom[current[0]][current[1]]) {
             current = cameFrom[current[0]][current[1]];
             path.unshift(current);
-            // Check for destructible features along path
             const tile = tiles[current[0]][current[1]];
             if (tile.type === FEATURE && tile.damageable && !tile.destroyed) {
-                destructionList.push({x: current[0], y: current[1], id: tile.id});
+                destructionList.push(tile); // ({x: current[0], y: current[1], id: tile.id, type: tile.type, stattype: tile.stattype, health: tile.health, player: tile.player}); // rebuild oil object from tiles
             }
         }
         return {
@@ -548,76 +539,4 @@ function plotSquareSpiral(xCenter, yCenter, maxRadius = 20, expansionRate = 3) {
     }
 }
 
-//// Function to generate the perimeter path around a point based on steps and turns
-function getPerimeterPath(startX, startY, numSides=4, stepsPerSide=2) {
-  const turns = [[0, -1], [-1, 0], [0, 1], [1, 0]];
-  const path = [];
-  let directionIndex = 0;
-  let x = startX;
-  let y = startY;
-
-  for (let side = 0; side < numSides; side++) {
-    for (let step = 0; step < stepsPerSide; step++) {
-      path.push([x, y]);
-      if (step === 0 && side > 0) { // On the first step of each new side, update direction
-        directionIndex = (directionIndex + 1) % 4; // Turn right (clockwise)
-      }
-      x += turns[directionIndex][0];
-      y += turns[directionIndex][1];
-    }
-  }
-  return path;
-}
-
-function findPassableTileInPerimeter(x, y) {
-  const perimeter = getPerimeterPath(x, y);
-
-  for (const [stepx, stepy] of perimeter) {
-    if (MapTilesFeatures[stepx][stepy].terrainType === TERRAIN_CLIFF) continue;
-    if (MapTilesFeatures[stepx][stepy].name && MapTilesFeatures[stepx][stepy].name === "Oil Resource") continue;
-    return [stepx, stepy];
-  }
-
-  return false;
-}
-
-function getPassablePerimeterTiles(x, y) {
-  const map = MapTilesFeatures;
-  const passableTiles = [];
-  const directions = [
-    { dx: -1, dy: -1 }, // Top-left
-    { dx: 0,   dy: -1 }, // Top-center
-    { dx: 1,   dy: -1 }, // Top-right
-    { dx: -1, dy: 0 },   // Left
-    { dx: 1,   dy: 0 },   // Right
-    { dx: -1, dy: 1 },   // Bottom-left
-    { dx: 0,   dy: 1 },   // Bottom-center
-    { dx: 1,   dy: 1 }    // Bottom-right
-  ];
-
-  for (const direction of directions) {
-    const newX = x + direction.dx;
-    const newY = y + direction.dy;
-
-    // Check if the new coordinates are within the bounds of the map
-    if (newX < 0 || newY < 0 || newX >= map.length || newY >= map[0].length) {
-      continue; // Skip out-of-bounds tiles
-    }
-
-    const tile = map[newX][newY];
-
-    // Apply your passable logic
-    if (tile.terrainType === TERRAIN_CLIFF) {
-      continue; // Impassable: cliff tiles are not damageable and do not have features
-    }
-    if (tile.type === 'FEATURE' && !tile.damageable) {
-      continue; // Impassable: un-damageable features
-    }
-
-    // If the tile passes all checks, add it to the passableTiles array
-    passableTiles.push({ x: newX, y: newY, ...tile });
-  }
-
-  return passableTiles;
-}
 

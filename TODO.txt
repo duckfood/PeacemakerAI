@@ -1,24 +1,19 @@
 TODO and done for PeacemakerAI
 
+routine to help prevent damaged droids from getting stuck on each other
+option to include local player built blockades in pathfinding
+
 trucks seem to be getting assigned all to one oil sometimes
 -repairfac should use grabtrucks not ordertrucks
 -mix up defense spending for better balance
-shift repair droids to the front line maybe
 -increase mass cash spending threshold
 -repairs are hanging around the base vtols maybe?
 
+some oils which are accessible not getting claimed on Strikeout
+
 try to collect artifacts and oil drums, but only a few times, maybe try again later
 
-accessible oils not claimed on Strikeout with no red mark to indicate
-droidAwareTruckQ oil reachability test incomplete does not check destructible paths
-needs routine to make sure destructible paths get cleared out and update seenStore
-try actually driving a droid to the site, if it sulks it can't really get there
-if a truck is just one tile from a wonky oil, build on it without checking seenStore
-combine the path clearing with base obstacle clearing
-select one low end combat unit and assign to clearing task instead of current mass approach
-
-if any droid has been sulking for some time give it a new task or self-destruct/recycle
-requires keeping track of droid order and action states over time
+-redo obstacle destruction
 
 -don't build tower to liberate oil if allied combat units are nearby
 don't build on burning oil if there is a non burning oil seen
@@ -30,10 +25,8 @@ maybe make units flee the opposite direction
 
 if maxed out with cheap droids and advanced droids are available recycle the weakest
 
-using SpatialDataStore for AAseenStore as well as seenStore does not work right the second instance is frelled
-
+-using SpatialDataStore for AAseenStore as well as seenStore does not work right the second instance is frelled
 -since defenses are unlimited, build defenses with mass extra cash
-
 -oilbuilders getting confused when there are multiple oil to build on and an oil to liberate
 
 trucks are moving to owned oil maybe stop scouting if now owned
@@ -41,7 +34,6 @@ trucks are moving to owned oil maybe stop scouting if now owned
 handle objects where the location is unknown eg. old mobile threats
 
 -maybe use findpath for blocked oil
-
 maybe build a third factory at start if oil rich map
 -trucks are attempting to build on inaccessible oil in roughness despite checks
 

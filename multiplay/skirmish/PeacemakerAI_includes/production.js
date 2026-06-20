@@ -77,7 +77,6 @@ const MIX_CYBORG = [
 	"Cyb-Hvywpn-PulseLsr",
 	"Cyb-Hvywpn-A-T",
 	"Cyb-Hvywpn-RailGunner",
-
 ];
 
 const HOVER_CHANCE = 8;
@@ -94,9 +93,10 @@ function buildAttacker(fac)
 		if (!relyOnCyborgs && random(100) < 30) return buildCyborg(fac);
 	}
 
+	if (fac.stattype !== FACTORY) return false;
+
 	// if factory module and medium body are available, but factory is not upgraded do not build anything else
-	if (fac.modules < 1 && isStructureAvailable("A0FacMod1") && (componentAvailable("Body5REC") || componentAvailable("Body8MBT")) )
-		{ return false; }
+	if (fac.modules < 1 && isStructureAvailable("A0FacMod1") && (componentAvailable("Body5REC") || componentAvailable("Body8MBT")) ) return false;
 
 	let prop = TANK_PROP_LIST;
 	if ((isSeaMap || (random(100) < HOVER_CHANCE)) && componentAvailable("hover01")) prop = ["hover01"];
@@ -367,7 +367,7 @@ function produceAndResearch()
 					if (countDroid(DROID_CONSTRUCT) + virtualTrucks < getDroidLimit(me, DROID_CONSTRUCT) -2)
 					{
 						// cheaty knows free oils
-						let freeoils = enumFeature(ALL_PLAYERS, OIL_RES_STAT);
+						let freeoils = enumFeature(ALL_PLAYERS, OIL_RES_STAT).length;
 						// build early trucks but only if oil is available
 						if (gameTime < 180000 && groupSize(oilBuilders) < MIN_OIL_TRUCKS*2 && freeoils.length > 12) { buildTruck(fc); continue; }
 						// build trucks as needed half the time, but not if under heavy attack

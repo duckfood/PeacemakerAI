@@ -75,13 +75,12 @@ function lookForResearch(tech, labParam) {
 }
 
 function isResearched(list) {
-    if (!list.length) return false;
-    let done = true;
+    if (!list.length) return false; // nothing is not done
     for (let item of list) {
         let itemsLeft = findResearch(item, me).length;
-        if (itemsLeft) done = false;
+        if (itemsLeft && itemsLeft.length) return false; // not done
     }
-    return done;
+    return true; // done
 }
 
 function evalResearch(labID, list) {

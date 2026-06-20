@@ -19,6 +19,7 @@ const Schemes = {
         FUNDAMENTALS1: [
             "R-Struc-Research-Upgrade01",
             "R-Vehicle-Metals01",
+            "R-Cyborg-Metals01",
             "R-Sys-Sensor-Turret01",
         	"R-Sys-MobileRepairTurretHvy",
             "R-Vehicle-Metals02",
@@ -32,8 +33,8 @@ const Schemes = {
         FUNDAMENTALS2: [
         	"R-Vehicle-Body11", // python
         	"R-Wpn-MG-ROF02", // rapid mg
-            "R-Wpn-MG4",
         	"R-Vehicle-Prop-Tracks",
+            "R-Wpn-MG4",
             "R-Defense-RotMG",
             "R-Wpn-MG5",
         ],

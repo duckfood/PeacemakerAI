@@ -75,8 +75,11 @@ function eventAttacked(victim, attacker) {
 
     // Track seen attackers that do not belong to the current player
     if (attacker.player !== me && !allianceExistsBetween(attacker.player, me)) {
-        seenStore.addObject(attacker.id, attacker);
-		// AAseenStore.addObject(attacker.id, attacker);
+		if (attacker.canHitAir === true && attacker.canHitGround === false) {
+			AAseenStore.addObject(attacker.id, { ...attacker, isAllied: false, isAA: true, isCombat: true, lastSeen: gameTime });
+		} else {
+			seenStore.addObject(attacker.id, { ...attacker, isAllied: false, isAA: false, isCombat: true, lastSeen: gameTime });
+		}
     }
 
     // Handle droid repairs if the victim is a droid
@@ -112,6 +115,7 @@ function eventAttacked(victim, attacker) {
             let allyHealth = 0;
             let enemyHealth = 0;
 
+			// TODO should consider experience too
             // Aggregate health estimates for allies and enemies
             for (let ally of seenAllyGroup) {
                 const cost = ally.cost ?? 100;
@@ -171,7 +175,7 @@ function eventAttacked(victim, attacker) {
         for (let vt of vtols) {
             let AA = getAAthreats(loc);
             if (AA && AA.length > 2) {
-                logObj(vt, "vtol not sent on defend mission AA");
+                logObj(vt, "vtol not sent on defend mission AA: "+AA.length);
                 return;
             }
             if (!ThrottleThis("eventAttacked_throttle_Vtol_" + vt.id, VTOL_DEFEND_TIME)
@@ -211,7 +215,7 @@ function eventObjectTransfer(object, whofrom)
 	if (!object || !object.id) return;
 	logObj(object, "transferred");
 	seenStore.deleteObjects({ id: object.id });
-	// if (object.canHitGround === false && object.canHitAir === true) AAseenStore.deleteObjects({ id: object.id });
+	if (object.canHitGround === false && object.canHitAir === true) AAseenStore.deleteObjects({ id: object.id });
 	if (object.player === me)
 	{
 		if (object.type === DROID) eventDroidBuilt(object);
@@ -230,18 +234,17 @@ function eventObjectRecycled(object)
 	if (!object || !object.id) return;
 	logObj(object, "recycled");
 	seenStore.deleteObjects({ id: object.id });
-	// if (object.canHitGround === false && object.canHitAir === true) AAseenStore.deleteObjects({ id: object.id });
+	if (object.canHitGround === false && object.canHitAir === true) AAseenStore.deleteObjects({ id: object.id });
 }
 
 function eventDestroyed(object)
 {
-	if (!object || object.id == undefined) return;
-	let x = object.x; let y = object.y;
+	if (!object || !object.id) return;
 	logObj(object, "destroyed");
-	if (object.type === FEATURE && object.damageable) {
-		if (MapTilesFeatures[x] !== undefined && MapTilesFeatures[x][y] !== undefined) MapTilesFeatures[x][y].destroyed = true;
-	}
-	// if (object.canHitGround === false && object.canHitAir === true) AAseenStore.deleteObjects({ id: object.id });
+
+	if (object.type === FEATURE) MapTilesFeatures[object.x][object.y].destroyed = true;
+
+	if (object.canHitGround === false && object.canHitAir === true) AAseenStore.deleteObjects({ id: object.id });
 	if ((object.type === FEATURE && object.stattype === OIL_RESOURCE) === false) seenStore.deleteObjects({ id: object.id });
 
 	if (object.player !== me) return;

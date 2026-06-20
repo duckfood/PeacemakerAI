@@ -162,7 +162,7 @@ function returnTarget(dr, randomtarget=false, droidAge=120000, structAge=600000)
 		{
 			for (let targ of targets)
 			{
-				if (!targ.x || !targ.y) continue;
+				if (targ.x === undefined || targ.y === undefined) continue;
 				let target_AA = getAAthreats(targ);
 				if (!target_AA || target_AA.length < 3)
 				{
@@ -183,30 +183,30 @@ function returnTarget(dr, randomtarget=false, droidAge=120000, structAge=600000)
 	if (dr.type === STRUCTURE && dr.stattype === LASSAT)
 	{
 		targets = targets.sort((a, b) => b.cost - a.cost); // decending
-		//if one of the first few are a lassat return it
+		// if one of the first few are a lassat return it
 		let i = 0;
 		while (i < 3)
 		{
 			if (targets[i].type === STRUCTURE && targets[i].stattype === LASSAT) return targets[i];
-			 i++;
+			i++;
 		}
 		// otherwise return one of the most expensive targets
-		if (targets.length === 1) return targets[0];
-		return targets[random(1)];
+		return returnRandInFirstFew(targets);
 	}
 
 	if (randomtarget === true) { targets = shuffleArray(targets); }
-	else
-	{
-		targets.sort((obj1, obj2) => {
-				let dist1 = distBetweenTwoPoints(dr.x, dr.y, obj1.x, obj1.y);
-				let dist2 = distBetweenTwoPoints(dr.x, dr.y, obj2.x, obj2.y);
-				return (dist1 - dist2); }) // ascending
-	}
+	else { targets = sortByDistToLoc(dr, targets); }
+
 	let target = {};
 	for (let t of targets)
 	{
-		// if aleady at target continue
+		// skip dead targets but don't check oils
+		if (!(t.type === FEATURE && t.stattype === OIL_RESOURCE)) {
+			let tObj = getObject(t.type, t.player, t.id);
+			if (!tObj) continue;
+		}
+
+		// if aleady at target skip
 		if (distBetweenTwoPoints(dr.x, dr.y, t.x, t.y) < GROUP_SCAN_RADIUS) continue;
 		if (droidCanReach(dr, t.x, t.y))
 		{
@@ -314,12 +314,15 @@ function getAAthreats(loc)
 		return;
 	}
 	let threats = []; // initialize return array
-	let aathreats = seenStore.findNear(loc, 24, {isAA: true, isAllied: false});
+	let aathreats = AAseenStore.findNear(loc, 24);
 	for (let threat of aathreats)
 	{
 		if (!threat.range) { threat.range = 24*128; }
-		if (distBetweenTwoPoints(loc.x, loc.y, threat.x, threat.y) < (threat.range/128)+16) // add turnaround buffer
-			{ threats.push(threat); }
+		if (distBetweenTwoPoints(loc.x, loc.y, threat.x, threat.y) < (threat.range/128)+16) {
+			// check to ensure added threat it still alive
+			let threatObject = getObject(threat.type, threat.player, threat.id);
+			if (threatObject) threats.push(threatObject);
+		}
 	}
 	return threats;
 }
@@ -395,16 +398,13 @@ function idleRepair(dr)
 
 	// select random closest nearby combat unit and scout to it
 	let droids = seenStore.query({type: DROID, isCombat: true, isAllied: true, isVTOL: false});
-	droids.sort((obj1, obj2) => {
-		let dist1 = distBetweenTwoPoints(dr.x, dr.y, obj1.x, obj1.y);
-		let dist2 = distBetweenTwoPoints(dr.x, dr.y, obj2.x, obj2.y);
-		return (dist1 - dist2); });
+	droids = sortByDistToLoc(dr, droids);
 
 	let defrand = returnRandInFirstFew(droids, 3);
 	if (defrand)
 	{
 		orderDroidLoc(dr, DORDER_SCOUT, defrand.x, defrand.y);
-		orderLocations.set(dr.id, {x: defrand.x, y:defrand.y});
+		orderLocations.set(dr.id, { x: defrand.x, y:defrand.y });
 		log("droidAware repair droid "+dr.id+" scouting nearby:"+defrand.id);
 	}
 	else {log("droidAware repair droid "+dr.id+" nowhere to scout");}
@@ -423,37 +423,50 @@ function fireLassat()
 	return activateStructure(satellite, target);
 }
 
-function getStrongestAttackDroids()
-{
-	let support = new Map();
-	const droids = enumGroup(attackGroup).concat(enumGroup(defendGroup)).filter((obj) => (obj.droidType == DROID_WEAPON));
-	for (let dr of droids)
-	{
-		let strength = dr.cost*(dr.bodySize+1)*(dr.experience/10);
-		support.set(dr.id, strength);
-	}
-	const support_sort = new Map([...support.entries()].sort((a, b) => b[1] - a[1]));
-	return Array.from( support_sort.keys() );
+function getStrongestAttackDroids() {
+    // Combine attack and defend groups, filtering for relevant droid types
+    const allDroids = [].concat(
+        enumGroup(attackGroup),
+        enumGroup(defendGroup)
+    ).filter(droid => droid.droidType === DROID_WEAPON || droid.droidType === DROID_CYBORG);
+
+    // Sort droids by descending strength
+    const sortedDroids = allDroids.sort((a, b) => {
+        const strengthA = a.cost * (a.bodySize + 1) * (a.experience / 10);
+        const strengthB = b.cost * (b.bodySize + 1) * (b.experience / 10);
+        return strengthB - strengthA; // Descending order
+    });
+
+    // Return sorted array of droid objects
+    return sortedDroids;
 }
 
-function getStrongestRepairDroids()
-{
-	let support = new Map();
-	const droids = enumGroup(attackGroup).concat(enumGroup(defendGroup)).concat(enumGroup(supportGroup)).filter((obj) => (obj.droidType == DROID_REPAIR));
-	for (let dr of droids)
-	{
-		let strength = dr.cost*(dr.bodySize+1);
-		support.set(dr.id, strength);
-	}
-	const support_sort = new Map([...support.entries()].sort((a, b) => b[1] - a[1]));
-	return Array.from( support_sort.keys() );
+function getStrongestRepairDroids() {
+    // Combine groups, filtering for repair droids
+    const allDroids = [].concat(
+        enumGroup(attackGroup),
+        enumGroup(defendGroup),
+        enumGroup(supportGroup)
+    ).filter(droid => droid.droidType === DROID_REPAIR);
+
+
+    // Sort droids by descending strength (cost * (bodySize + 1))
+    const sortedDroids = allDroids.sort((a, b) => {
+        const strengthA = a.cost * (a.bodySize + 1); // TODO should include turret size
+        const strengthB = b.cost * (b.bodySize + 1);
+        return strengthB - strengthA; // Descending order
+    });
+
+    // Return sorted array of droid objects
+    return sortedDroids;
 }
 
 function findMostExpDroid()
 {
 	const droids = enumGroup(attackGroup).concat(enumGroup(defendGroup));
+
 	let most_exp = 0;
-	let most_exp_droid;
+	let most_exp_droid = {};
 
 	for (let dr of droids)
 	{
@@ -515,4 +528,3 @@ function fleeFromHostiles(dr)
 	}
 	return false;
 }
-
