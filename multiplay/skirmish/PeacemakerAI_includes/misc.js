@@ -12,8 +12,8 @@ function logObj(obj, message)
 }
 
 function logTrace(message) {
-    log(message);
-    // get stack trace in quickjs
+    let caller = debugGetCallerFuncName();
+    log(`${message} ${JSstr(caller)}`);
 }
 
 function getRealPower()
@@ -43,15 +43,6 @@ function setupTruckGroups()
 	}
 }
 
-function isUltimateScavs()
-{
-	if (scavengers && countStruct("A0BaBaFactory", scavengerPlayer))
-	{
-		return true;
-	}
-	return false;
-}
-
 function shuffleArray(array) {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -61,61 +52,23 @@ function shuffleArray(array) {
   return shuffled;
 }
 
+//// used to help generate droid names
 function firstAvailableComponent(list) {
     if (!list || !list.length) return false;
-	for (let i = 0; i < list.length; ++i)
-	{
-		if (componentAvailable(list[i]))
-		{
-			return list[i];
-		}
+	for (let item of list) {
+		if (item.length && componentAvailable(item)) return item;
 	}
 }
-
+//// used for defenses
 function firstAvailableStructure(list) {
     if (!list || !list.length) return false;
-	for (let i = 0; i < list.length; ++i)
-	{
-		if (isStructureAvailable(list[i], me))
-		{
-			return list[i];
-		}
+	for (let item of list) {
+		if (item.length && isStructureAvailable(item, me))	return item;
 	}
 }
-
-//// check if defined routine, but does not work if parent element is undefined
-const defined = data => typeof data !== 'undefined';
 
 //// returns a random integer from 0 to max
 function random(max) { return max <= 0 ? 0 : Math.random() * max | 0; }
-
-//// find an element in nested data by id and add key as property
-function findElementById(data, id) {
-  for (const category in data) {
-    for (const item in data[category]) {
-      if (data[category][item].Id === id) {
-        return {
-          ...data[category][item],
-          Name: item
-        };
-      }
-    }
-  }
-  return null;
-}
-
-//// get the key of an element in nested data by property value
-function findKeyById(data, id) {
-    for (const category in data) {
-        const items = data[category];
-        for (const key in items) {
-            if (items[key].Id === id) {
-                return key;
-            }
-        }
-    }
-    return null;
-}
 
 //// load stats data into Map using property as key while adding data that would be lost
 function loadStatsData(data) {
@@ -134,38 +87,22 @@ function returnRandInFirstFew(arr, max=4) {
 	return arr[Math.floor(Math.random() * Math.min(max, arr.length))];
 }
 
-//// stop blocks of code from executing too often
-function ThrottleThis(throttleThis, time = 2000) {
-    const caller = debugGetCallerFuncObject();
-    caller.throttleTimes ??= {};
+//// throttle a block of code for a specified time using Map() for storage
+function throttleThis(throttleId, time = 2000) {
+    if (!throttleThis.throttleTimesMap) throttleThis.throttleTimesMap = new Map();
+    const lastTime = throttleThis.throttleTimesMap.get(throttleId);
 
-    const lastTime = caller.throttleTimes[throttleThis];
-    if (lastTime === undefined) {
-        caller.throttleTimes[throttleThis] = gameTime;
+    if (!lastTime) {
+        throttleThis.throttleTimesMap.set(throttleId, gameTime);
         return false;
     }
 
-    if (gameTime - lastTime < time) return true;
+    if (gameTime - lastTime < time) return true; // Throttled
 
-    caller.throttleTimes[throttleThis] = gameTime;
+    // Update the last execution time and allow execution
+    throttleThis.throttleTimesMap.set(throttleId, gameTime);
     return false;
 }
-
-//// Deep copy an object. Does not work for Map or Set.
-function deepCopy(obj)
-{
-  if (obj === null || typeof obj !== 'object') return obj;
-  if (obj instanceof Date) return new Date(obj);
-  if (obj instanceof RegExp) return new RegExp(obj);
-
-  const clone = Array.isArray(obj) ? [] : {};
-  for (const key in obj) {
-    if (obj.hasOwnProperty(key)) {
-      clone[key] = deepCopy(obj[key]);
-    }
-  }
-  return clone;
-};
 
 function estimateMemoryCapacity() {
   const maxTestSizeMB = 1024; // 1 GB as an initial maximum test
@@ -237,9 +174,10 @@ function isIterable(value) {
 }
 
 function sortByDistToLoc(loc, list) {
-	list.sort((obj1, obj2) => {
+	return list.sort((obj1, obj2) => {
 			let dist1 = distBetweenTwoPoints(loc.x, loc.y, obj1.x, obj1.y);
 			let dist2 = distBetweenTwoPoints(loc.x, loc.y, obj2.x, obj2.y);
-			return (dist1 - dist2); }) // ascending
-	return list;
+			return (dist1 - dist2); }); // ascending
 }
+
+function showGameTime() { console("gameTime: "+gameTime/1000+" seconds"); } // timer

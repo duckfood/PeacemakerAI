@@ -1,9 +1,17 @@
 TODO and done for PeacemakerAI
 
+-expire order locations
+
+-improve early game no tech high oil efficiency
+
 routine to help prevent damaged droids from getting stuck on each other
 option to include local player built blockades in pathfinding
 
-trucks seem to be getting assigned all to one oil sometimes
+if opponents go rocket build cyborgs not tanks
+
+eliminate production unseen free oil check
+
+-trucks seem to be getting assigned all to one oil sometimes
 -repairfac should use grabtrucks not ordertrucks
 -mix up defense spending for better balance
 -increase mass cash spending threshold
@@ -11,12 +19,12 @@ trucks seem to be getting assigned all to one oil sometimes
 
 some oils which are accessible not getting claimed on Strikeout
 
-try to collect artifacts and oil drums, but only a few times, maybe try again later
+-try to collect artifacts and oil drums, but only a few times, maybe try again later
 
 -redo obstacle destruction
 
 -don't build tower to liberate oil if allied combat units are nearby
-don't build on burning oil if there is a non burning oil seen
+-don't build on burning oil if there is a non burning oil seen
 -stop notmyoil scouting if at max power plants
 guard oil clusters
 maybe make units flee the opposite direction
@@ -25,7 +33,6 @@ maybe make units flee the opposite direction
 
 if maxed out with cheap droids and advanced droids are available recycle the weakest
 
--using SpatialDataStore for AAseenStore as well as seenStore does not work right the second instance is frelled
 -since defenses are unlimited, build defenses with mass extra cash
 -oilbuilders getting confused when there are multiple oil to build on and an oil to liberate
 

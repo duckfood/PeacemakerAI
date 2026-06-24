@@ -7,8 +7,8 @@ class SpatialDataStore {
   }
 
   addObject(id, obj) {
-    if (!id || !obj) log('Object and id must be defined');
-    if (obj.x === undefined || obj.y === undefined) log('Object must have x,y properties');
+    if (!id || !obj) log('WARNING Object and id must be defined');
+    if (obj.x === undefined || obj.y === undefined) log('WARNING Object must have x,y properties');
 
     this.objects.set(id, obj);
 
@@ -123,7 +123,7 @@ class SpatialDataStore {
 
   findNear(position, radius, conditions = {}) {
     if (!position || position.x === undefined || position.y === undefined) {
-      log('findNear must have x,y properties');
+      log('WARNING findNear must have x,y properties');
     }
 
     const { x, y } = position;
@@ -273,14 +273,15 @@ function markTiles(tiles) {
 			} else if (typeof tile.x === 'number' && typeof tile.y === 'number') {
 				hackMarkTiles(tile.x, tile.y);
 			} else {
-              log("markTiles tiles not valid: "+JNstr(tiles));
+              log("WARNING markTiles tiles not valid: "+JNstr(tiles));
             }
 		}
 	} else {
-      log("markTiles tiles not iterable: "+JNstr(tiles));
+      log("WARNING markTiles tiles not iterable: "+JNstr(tiles));
     }
 }
 
+//// used to prepare pathfinding data
 function loadFeaturesIntoTiles(features, tiles) {
     let newTiles = transposeTiles(tiles);
     for (const feature of features) {
@@ -326,7 +327,7 @@ function isHoverMap() {
 //// Extends a line segment from point1 to point2 by distance `d` in the specified direction.
 function extendLine(point1, point2, d, direction = 'beyond') {
     // Validate inputs
-    if (!point1 || !point2 || typeof d !== 'number' || d <= 0) return null;
+    if (!point1 || !point2 || !d) return null;
     if (direction !== 'before' && direction !== 'beyond') return null;
 
     const dx = point2.x - point1.x;
@@ -426,11 +427,11 @@ class ultimate_PriorityQueue {
 // allows a path to an inaccessible tile can be formed by reversing start and dest
 function findShortestPath(start, dest, propulsion = PROP_WHEEL, allowDestruction = false, maxPathLength = Infinity) {
     if (!start || start.x === undefined || start.y === undefined) {
-        log("findShortestPath no or invalid start for path");
+        log("WARNING findShortestPath no or invalid start for path");
         return false;
     }
     if (!dest || dest.x === undefined || dest.y === undefined) {
-        log("findShortestPath no or invalid dest for path");
+        log("WARNING findShortestPath no or invalid dest for path");
         return false;
     }
     const tiles = MapTilesFeatures;
@@ -438,11 +439,11 @@ function findShortestPath(start, dest, propulsion = PROP_WHEEL, allowDestruction
     const cols = tiles.length;       // x-axis
     const rows = tiles[0].length;    // y-axis
     if (start.x < 1 || start.x >= cols-1 || start.y < 1 || start.y >= rows-1) { // clip map edges
-        log("Start position is out of bounds");
+        log("WARNING Start position is out of bounds");
         return false;
     }
     if (dest.x < 1 || dest.x >= cols-1 || dest.y < 1 || dest.y >= rows-1) { // clip map edges
-        log("Destination is out of bounds");
+        log("WARNING Destination is out of bounds");
         return false;
     }
     const heuristic = (x1, y1, x2, y2) => {
@@ -504,39 +505,29 @@ function findShortestPath(start, dest, propulsion = PROP_WHEEL, allowDestruction
     }
 }
 
-//// original version plus expansionRate
+//// modernized version
 function plotSquareSpiral(xCenter, yCenter, maxRadius = 20, expansionRate = 3) {
     let x = xCenter;
     let y = yCenter;
     const path = [[x, y]];
-    const dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+    const dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]]; // Directions for movement: right, up, left, down
     let stepsPerLoop = 1; // Initial number of steps per loop
-    let loopNumber = 0;
+    let currentDirIndex = 0; // Start with the first direction in dirs array
 
     while (true) {
-        for (let i = 0; i < 4; i++) { // Four directions in a loop
-            if (i === 1 || i === 3) {
-                stepsPerLoop += expansionRate; // Scale the increment of steps per loop
-            }
-            let stepCount = stepsPerLoop;
-            for (let j = 0; j < stepCount; j++) {
-                x += dirs[i][0];
-                y += dirs[i][1];
+        for (let i = 0; i < 2; i++) { // Two times for each direction to complete a "loop" in all directions
+            const dir = dirs[currentDirIndex];
+            for (let j = 0; j < stepsPerLoop; j++) {
+                x += dir[0];
+                y += dir[1];
                 path.push([x, y]);
                 if (Math.max(Math.abs(x - xCenter), Math.abs(y - yCenter)) > maxRadius) {
-                    return path.filter((obj) =>
-                        obj[0] >= 0 && obj[1] >= 0 &&
-                        obj[0] < mapWidth && obj[1] < mapHeight
-                    );
+                    return path.filter((obj) => obj[0] >= 0 && obj[1] >= 0 && obj[0] < mapWidth && obj[1] < mapHeight);
                 }
             }
-            loopNumber++;
-            // After completing two loops, increase steps again, scaled by expansionRate
-            if ((loopNumber % 2) === 0) {
-                stepsPerLoop += expansionRate;
-            }
+            currentDirIndex = (currentDirIndex + 1) % 4; // Cycle through the directions
         }
+        stepsPerLoop += expansionRate; // Increase steps after completing one full set of loops in all directions
     }
 }
-
 

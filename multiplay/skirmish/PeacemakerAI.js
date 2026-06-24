@@ -1,4 +1,4 @@
-//// PeacemakerAI v0.7 20-6-2026 github.com/duckfood
+//// PeacemakerAI v0.8 24-6-2026 github.com/duckfood
 //// MIT license. No warranty whatsoever. Use this code at your own risk!
 
 // log messages to bot log file
@@ -35,9 +35,9 @@ const MIN_BASE_TRUCKS = 2;
 const MAX_BASE_TRUCKS = 4;
 const MIN_OIL_TRUCKS = 3;
 const MAX_OIL_TRUCKS = 6;
-const MIN_BUILD_POWER = 60;
-const MIN_RESEARCH_POWER = 0;
-const MIN_PRODUCTION_POWER = 40;
+const MIN_BUILD_POWER = 100;
+const MIN_RESEARCH_POWER = 20;
+const MIN_PRODUCTION_POWER = 50;
 const MIN_LIBERATE_POWER = -100;
 const MIN_ATTACK_GSIZE = 5;
 const MIN_SENSOR_DROIDS = 1;
@@ -49,8 +49,8 @@ const ENEMY_DERRICK_SCAN_RANGE = 20;
 let GROUP_SCAN_RADIUS = 9; // adjusted later for tech
 
 // constants
-const TERRAIN_WATER = 7;
-const TERRAIN_CLIFF = 8;
+const TERRAIN_WATER = 7; // somehow TER_WATER is undefined and defined
+const TERRAIN_CLIFF = 8; // maybe TER_CLIFFFACE too
 const PROP_HOVER = "hover01";
 const PROP_WHEEL = "wheeled01";
 const truckStarts = enumDroid(me, DROID_CONSTRUCT);
@@ -79,7 +79,7 @@ let enemyHasVtol;
 
 // variables
 let BASE = startPositions[me];
-let relyOnVtols = false;
+let relyOnVtols = true;
 let totalVtolsBuilt = 0;
 let totalVtolsLost = 0;
 let relyOnCyborgs = true;
@@ -93,6 +93,9 @@ let lastBuildLoc = {x: truckStarts[0].x, y: truckStarts[0].y};
 
 let orderTargets = new Map();
 let orderLocations = new Map();
+
+let artifactPickups = new Map();
+let oilAssignments = new Map();
 
 function eventStartLevel()
 {
@@ -114,7 +117,8 @@ function eventStartLevel()
 	setTimer("updateSeenStore", 500 + ((1 + random(4)) * random(10)));
 	setTimer("pruneSeenStore", 1000 + ((1 + random(4)) * random(10)));
 
-	setTimer("produceAndResearch", 2000 + ((1 + random(4)) * random(10)));
+	setTimer("produceDroids", 2000 + ((1 + random(4)) * random(10)));
+	setTimer("lookForResearch", 2000 + ((1 + random(4)) * random(10)));
 	setTimer("buildFundamentals", 2000 + ((1 + random(3)) * random(10)));
 	setTimer("assignTrucksToOil", 2000 + ((1 + random(4)) * random(10)));
 
@@ -133,10 +137,13 @@ function eventStartLevel()
 	setTimer("recycleDroidsForHover", 300000 + ((1 + random(4)) * random(100)));
 	setTimer("scanForVTOLs", 10000 + ((1 + random(5)) * random(60)));
 	setTimer("balanceGroups", 10000 + ((1 + random(4)) * random(30)));
-	setTimer("updateMapTilesFeatures", 30000 + ((1 + random(4)) * random(30)));
+	setTimer("adjustSchemeAndStance", 60000 + ((1 + random(4)) * random(30)));
+	setTimer("updateMapTilesFeatures", 60000 + ((1 + random(4)) * random(30)));
 	setTimer("handlePileups", 30000 + ((1 + random(4)) * random(30)));
 	setTimer("checkOrderLocations", 10000 + ((1 + random(4)) * random(10)));
 	setTimer("checkUnreachableOils", 60000 + ((1 + random(4)) * random(10)));
+
+	setTimer("showGameTime", 30000); // show gameTime in console
 
 	// lassat api is packed with bugs such that it cannot be relied on, sometimes this even fires repeatedly!
 	setTimer("fireLassat", 10000 + ((1 + random(4)) * random(100)));
@@ -150,6 +157,11 @@ function eventStartLevel()
 	checkOilsReachable();
 	markTiles(seenStore.query({type: FEATURE, stattype: OIL_RESOURCE, isReachable: true, requiresDestruction: true }));
 
+	// don't rely on vtols if advanced AA is available
+	if (componentAvailable("AAGunLaser") ||
+		componentAvailable("Missile-HvySAM") ||
+		componentAvailable("AAGun2Mk1Quad")) relyOnVtols = false;
+
 	// check if any research is available
 	const reslist = enumResearch();
     if (!reslist.length) researchDone = true;
@@ -157,9 +169,13 @@ function eventStartLevel()
 	buildFundamentals();
 }
 
+// include key portions
 include("/multiplay/skirmish/PeacemakerAI_includes/scheme.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/misc.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/map.js");
+include("/multiplay/skirmish/PeacemakerAI_includes/timers.js");
+
+// initialize seenStore
 const seenStore = new SpatialDataStore({
 	type: new Map(),
 	stattype: new Map(),
@@ -174,28 +190,34 @@ const seenStore = new SpatialDataStore({
 	isAA: new Map(),
 	isReachable: new Map(),
 	requiresDestruction: new Map(),
+	requiresHover: new Map(),
 });
+
+// initialize AAseenStore for faster AA queries
 const AAseenStore = new SpatialDataStore({
 	player: new Map(),
 	isVTOL: new Map(),
 	canHitAir: new Map(),
 	canHitGround: new Map(),
 });
+
 // used for naming droids
 const StatsMap = loadStatsData(Stats);
 
+// initialize pathfinding data
+let MapTilesFeatures;
+updateMapTilesFeatures();
+
+// include the rest
 include("/multiplay/skirmish/PeacemakerAI_includes/production.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/build.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/tactics.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/events.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/research.js");
-include("/multiplay/skirmish/PeacemakerAI_includes/timers.js");
+
 log("VTOL_DEFEND_TIME: "+VTOL_DEFEND_TIME);
 
-// initialize pathfinding data
-let MapTilesFeatures;
-updateMapTilesFeaturesQ();
-
+// pathfinding test routine for Roughness blocked oils
 function testPathfinding() {
 	// coordinates of 3 unreachable oils in 2 player map Roughness
 	let left = {x: 27, y:55}; // adjacent to left unreachable oil

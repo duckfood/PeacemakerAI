@@ -48,6 +48,8 @@ const TANK_REPAIR_LIST = [
 	"LightRepair1",
 ];
 
+const CYBORG_MORTAR = ["Cyb-Wpn-Grenade"];
+
 // mixed attacker definitions for high tech
 const MIX_VTOL_WEAPONS = [
 	"Bomb5-VTOL-Plasmite",
@@ -90,7 +92,7 @@ function buildAttacker(fac)
 	if (fac.stattype === CYBORG_FACTORY)
 	{
 		if (relyOnCyborgs) return buildCyborg(fac);
-		if (!relyOnCyborgs && random(100) < 30) return buildCyborg(fac);
+		if (!relyOnCyborgs && random(100) < 50) return buildCyborg(fac);
 	}
 
 	if (fac.stattype !== FACTORY) return false;
@@ -284,6 +286,13 @@ function buildCyborg(fac)
 {
 	if (!fac) return false;
 
+	// build one machinegunner if this is our fist cyborg, as they excel at demolition
+	if (!buildCyborg._builtFirstDroid) {
+		buildCyborg._builtFirstDroid = true;
+		let weaponName = StatsMap.get("CyborgChaingun").Name;
+		return buildDroid(fac, weaponName, "CyborgLightBody", "CyborgLegs", "", "", "CyborgChaingun");
+	}
+
 	if (componentAvailable("CyborgHeavyBody"))
 	{
 		if (componentAvailable("Cyb-Hvywpn-A-T") || componentAvailable("Cyb-Hvywpn-PulseLsr")) {
@@ -294,9 +303,15 @@ function buildCyborg(fac)
 			let weaponName = StatsMap.get(firstAvailableComponent(Schemes[Scheme].CYBORG_ADVANCED_LIST)).Name;
 			return buildDroid(fac, weaponName, "CyborgHeavyBody", "CyborgLegs", "", "", Schemes[Scheme].CYBORG_ADVANCED_LIST);
 		}
-	} 
+	}
 	else
 	{
+		// maybe build a mortar cyborg
+		if (componentAvailable(CYBORG_MORTAR) && random(100) > 60) {
+			let weaponName = StatsMap.get(firstAvailableComponent(CYBORG_MORTAR)).Name;
+			return buildDroid(fac, weaponName, "CyborgLightBody", "CyborgLegs", "", "", CYBORG_MORTAR);
+		}
+
 		let weaponName = StatsMap.get(firstAvailableComponent(Schemes[Scheme].CYBORG_BASIC_LIST)).Name;
 		return buildDroid(fac, weaponName, "CyborgLightBody", "CyborgLegs", "", "", Schemes[Scheme].CYBORG_BASIC_LIST);
 	}
@@ -330,8 +345,9 @@ function buildTruck(fac)
 	return false;
 }
 
-//// working version
-function produceAndResearch()
+//// standard version
+function produceDroids() { queue("produceDroidsQ"); } // timer
+function produceDroidsQ()
 {
 	if (getRealPower() < MIN_PRODUCTION_POWER) return;
 
@@ -361,21 +377,24 @@ function produceAndResearch()
 			let fc = facs[x];
 			if (structureIdle(fc))
 			{
+				// build ground units
 				if (FAC_LIST[i] === FACTORY_STAT || FAC_LIST[i] === CYBORG_FACTORY_STAT)
 				{
 					// check to see if trucks could be built
 					if (countDroid(DROID_CONSTRUCT) + virtualTrucks < getDroidLimit(me, DROID_CONSTRUCT) -2)
 					{
-						// cheaty knows free oils
+						// cheaty knows free oils without having seen them
 						let freeoils = enumFeature(ALL_PLAYERS, OIL_RES_STAT).length;
 						// build early trucks but only if oil is available
-						if (gameTime < 180000 && groupSize(oilBuilders) < MIN_OIL_TRUCKS*2 && freeoils.length > 12) { buildTruck(fc); continue; }
+						if (gameTime < 180000 && groupSize(oilBuilders) < MAX_OIL_TRUCKS && freeoils > 20) { buildTruck(fc); continue; }
 						// build trucks as needed half the time, but not if under heavy attack
 						if (baseUnderAttack < 3 && random(100) > 50 && countDroid(DROID_CONSTRUCT) + virtualTrucks < MIN_BASE_TRUCKS + MIN_OIL_TRUCKS)
 							{ buildTruck(fc); continue; }
 						// build extra trucks if lots of bare oil wells, but only if plenty of attackers
-						if (freeoils && freeoils.length > 9 && groupSize(oilBuilders < MAX_OIL_TRUCKS) && random(100) > 50 &&
+						if (freeoils > 12 && groupSize(oilBuilders < MAX_OIL_TRUCKS) && random(100) > 50 &&
 							groupSize(attackGroup)+groupSize(vtolGroup) > MIN_ATTACK_GSIZE*3) { buildTruck(fc); continue; }
+						// ensure that baseBuilders has 3 trucks
+						if (groupSize(baseBuilders) === MIN_BASE_TRUCKS && random(100) > 50) { buildTruck(fc); continue; }
 					}
 
 					// build attackers
@@ -385,6 +404,7 @@ function produceAndResearch()
 					}
 				}
 
+				// build vtols
 				if (FAC_LIST[i] === VTOL_FACTORY_STAT && (countStruct(POW_GEN_STAT) != 0 || getRealPower() > 1000))
 				{
 					if (relyOnVtols) { buildVTOL(fc); continue; }
@@ -393,11 +413,5 @@ function produceAndResearch()
 			}
 		}
 	}
-
-	lookForResearch();
 }
-
-
-
-
 

@@ -47,7 +47,7 @@ function checkLocalJobs()
 	return success;
 }
 
-// Base build scheme
+// standard base build scheme
 function buildBasicBase()
 {
 	// build a factory
@@ -57,14 +57,21 @@ function buildBasicBase()
 		// build another factory if cyborgs are not available
 		if ((isSeaMap || !isStructureAvailable(CYBORG_FACTORY_STAT)) && countStruct(FACTORY_STAT) < 2 && grabTrucksAndBuild(FACTORY_STAT, 1)) return true;
 
-		// build one lab early if no tech
-		if (!researchDone && !componentAvailable("MG1Mk1") && countStruct(RES_LAB_STAT) === 0 && grabTrucksAndBuild(RES_LAB_STAT, 1)) return true;
+		// build another factory if cyborgs are not available and oil rich map
+		let oils = seenStore.query({isReachable: true}).length;
+		if ((isSeaMap || !isStructureAvailable(CYBORG_FACTORY_STAT)) && oils > 40 && countStruct(FACTORY_STAT) < 3 && grabTrucksAndBuild(FACTORY_STAT, 1)) return true;
 
-		// build vtol support early if available
-		if (relyOnVtols && countStruct(VTOL_FACTORY_STAT) === 0 && grabTrucksAndBuild(VTOL_FACTORY_STAT, 1)) return true;
+		// build two labs early if no tech
+		if (!researchDone && !componentAvailable("MG1Mk1") && countStruct(RES_LAB_STAT) < 2 && grabTrucksAndBuild(RES_LAB_STAT, 1)) return true;
 
-		// build cyborg factory early if not relying on vtols
-		if (!isSeaMap && !relyOnVtols && countStruct(CYBORG_FACTORY_STAT) < 1 && grabTrucksAndBuild(CYBORG_FACTORY_STAT, 1)) return true;
+		// build cyborg factory early at start
+		if (!isSeaMap && countStruct(CYBORG_FACTORY_STAT) < 1 && grabTrucksAndBuild(CYBORG_FACTORY_STAT, 1)) return true;
+
+		// build a repair facility early
+		if (buildRepairFacs()) return true;
+
+		// build one base artillery defense
+		if (buildBaseArtillery(1)) return true;
 	}
 
 	// build a power generator and upgrade
@@ -79,11 +86,8 @@ function buildBasicBase()
 	// build another power generator
 	if (countStruct(POW_GEN_STAT) < 2 && grabTrucksAndBuild(POW_GEN_STAT, 1)) return true;
 
-	// build a repair facility early
-	if (buildRepairFacs()) return true;
-
-	// build one base artillery defense
-	if (buildBaseArtillery(1)) return true;
+	// build vtol pads early when relying on vtol
+	if (relyOnVtols && buildVTOLpads()) return true;
 
 	/// build one lab
 	if (!researchDone && countStruct(RES_LAB_STAT) === 0 && grabTrucksAndBuild(RES_LAB_STAT, 1)) return true;
@@ -94,10 +98,12 @@ function buildBasicBase()
 	return false;
 }
 
-function buildFundamentals()
+function buildFundamentals() { queue("buildFundamentalsQ"); } // timer
+function buildFundamentalsQ()
 {
 	if (checkLocalJobs()) return true;
 	if (buildBasicBase()) return true;
+	if (buildRepairFacs()) return true;
 	if (buildVTOLpads()) return true;
 
 	if (relyOnVtols) {
@@ -144,7 +150,7 @@ function buildFundamentals()
 
 //// used to build core base buildings but not accessory buildings
 // cascaded if working version
-function grabTrucksAndBuild(structure, maxBlocking=1, x=BASE.x, y=BASE.y, direction=[0, 90, 180, 270][random(3)])
+function grabTrucksAndBuild(structure, maxBlocking=1, x=BASE.x+random(6)-random(6), y=BASE.y+random(6)-random(6), direction=[0, 90, 180, 270][random(3)])
 {
     if (!isStructureAvailable(structure)) return false;
 	const droids = findIdleTrucks();
@@ -155,7 +161,7 @@ function grabTrucksAndBuild(structure, maxBlocking=1, x=BASE.x, y=BASE.y, direct
 	// plot a spiral to help efficiently locate building sites
 	let locationSpiral = plotSquareSpiral(x, y, GROUP_SCAN_RADIUS*3);
 	if (!locationSpiral || !locationSpiral.length) {
-		log("grabTrucksAndBuild no spiral data");
+		log("ERROR grabTrucksAndBuild no spiral data");
 		return false;
 	}
 	log("grabTrucksAndBuild structure: "+structure);
@@ -176,7 +182,7 @@ function grabTrucksAndBuild(structure, maxBlocking=1, x=BASE.x, y=BASE.y, direct
 						const path = findShortestPath(builder, buildloc, builder.propulsion, false);
 						if (path && path.distance) {
 							log ("path: "+path.distance);
-							if (path.distance <= line * 3) {
+							if (path.distance <= line * 2.5) {
 								log("distance building at: "+x+"x"+y);
 								return orderTrucksBuild(structure, buildloc, maxBlocking, direction);
 							}
@@ -213,11 +219,11 @@ function grabTrucksAndBuild(structure, maxBlocking=1, x=BASE.x, y=BASE.y, direct
 function orderTrucksBuild(structure, site, maxBlocking=1, direction=0)
 {
 	if (!structure || !structure.length) {
-		logTrace("orderTrucksBuild missing structure");
+		logTrace("WARNING orderTrucksBuild missing structure");
 		return false;
 	}
 	if (!site || site.x === undefined || site.y === undefined) {
-		logTrace("orderTrucksBuild missing site");
+		logTrace("WARNING orderTrucksBuild missing site");
 		return false;
 	}
 
@@ -228,7 +234,7 @@ function orderTrucksBuild(structure, site, maxBlocking=1, direction=0)
 
 	log("building structure "+JNstr(structure)+" at: "+JNstr(buildloc));
 	let done = false;
-	for (dr of trucks)
+	for (let dr of trucks)
 	{
 		if (dr && dr.id && droidCanReach(dr, buildloc.x, buildloc.y)) {
 			if (orderDroidBuild(dr, DORDER_BUILD, structure, buildloc.x, buildloc.y, direction)) done = true;
@@ -240,7 +246,7 @@ function orderTrucksBuild(structure, site, maxBlocking=1, direction=0)
 //// build factories. Attempts to build at least 1 of each factory.
 function factoryBuildOrder() {
     const FAC_ORDER = [FACTORY_STAT, CYBORG_FACTORY_STAT, VTOL_FACTORY_STAT];
-    let order = relyOnVtols ? [VTOL_FACTORY_STAT, FACTORY_STAT, CYBORG_FACTORY_STAT] : FAC_ORDER;
+    let order = relyOnVtols ? [VTOL_FACTORY_STAT, CYBORG_FACTORY_STAT, FACTORY_STAT] : FAC_ORDER;
 
     // Determine the number of factories to build based on Derrick count
     const derrNum = countStruct(DERRICK_STAT);
@@ -254,12 +260,6 @@ function factoryBuildOrder() {
     // Iterate over the factory order
     for (let i = 0; i < order.length && numFactoriesToBuild > 0; ++i) {
         const fac = order[i];
-
-        // either VTOL or CYBORG factories at early game time
-        if ((fac === VTOL_FACTORY_STAT && !relyOnVtols && gameTime < 300000) ||
-            (fac === CYBORG_FACTORY_STAT && relyOnVtols && gameTime < 300000)) {
-            return false;
-        }
 
         // Check if the map is sea and skip CYBORG factory build
         if (!(fac === CYBORG_FACTORY_STAT && isSeaMap) && countStruct(fac) < numFactoriesToBuild && grabTrucksAndBuild(fac, 0)) {
@@ -327,13 +327,31 @@ function buildVTOLpads()
 
 function buildRepairFacs()
 {
+	// pre-calculate path
+	if (!buildRepairFacs._path) {
+		let notme;
+		for (let i = 0; i < maxPlayers; i++) {
+			if (startPositions[i] === me) continue; // not our base
+			if (allianceExistsBetween(me, i)) continue; // not allied base
+			notme = i; // first non-allied base
+			break;
+		}
+		buildRepairFacs._path = findShortestPath(startPositions[me], startPositions[notme], PROP_HOVER, false);
+	}
+	if (!isStructureAvailable(REPAIR_FACILITY_STAT)) return false;
 	if (getRealPower() < MIN_BUILD_POWER/2) return false;
-	if (isStructureAvailable(REPAIR_FACILITY_STAT) && countStruct(REPAIR_FACILITY_STAT) < (countStruct(FACTORY_STAT) + countStruct(CYBORG_FACTORY_STAT))/4)
-	{
-		// get a location likely to be in front of the base
-		let baseEdge = closestPointOnRectEdge({x: 0, y: 0, width: mapWidth, height: mapHeight}, {x: BASE.x, y: BASE.y});
-		let site = extendLine({x: baseEdge.x, y: baseEdge.y}, {x: BASE.x, y: BASE.y}, 10);
-		return grabTrucksAndBuild(REPAIR_FACILITY_STAT, 2, site.x, site.y);
+
+	if (countStruct(REPAIR_FACILITY_STAT) < (countStruct(FACTORY_STAT) + countStruct(CYBORG_FACTORY_STAT))/4) {
+		// plot a path from our base to a hostile base and build on it
+		if (!buildRepairFacs._path) {
+			log("WARNING buildRepairFacs no path");
+			// use alternate method: plot a line from edge past base
+			let baseEdge = closestPointOnRectEdge({x: 0, y: 0, width: mapWidth, height: mapHeight}, {x: BASE.x, y: BASE.y});
+			let site = extendLine(baseEdge, BASE, 10);
+			return grabTrucksAndBuild(REPAIR_FACILITY_STAT, 2, site.x, site.y);
+		}
+		// build on path near base perimeter
+		return grabTrucksAndBuild(REPAIR_FACILITY_STAT, 8, buildRepairFacs._path.path[20][0], buildRepairFacs._path.path[20][1]);
 	}
 	return false;
 }
@@ -342,9 +360,13 @@ function buildLassat() {
     if (isStructureAvailable(LASSAT_STAT)) {
         if (getRealPower() < 0) return false;
 
-        let spiral = plotSquareSpiral(BASE.x, BASE.y, GROUP_SCAN_RADIUS * 3);
-        if (!spiral || spiral.length <= 20) {
-            log("buildLassat no valid spiral points found.");
+		// find a location likely to be behind base
+		let baseEdge = closestPointOnRectEdge({x: 0, y: 0, width: mapWidth, height: mapHeight}, {x: BASE.x, y: BASE.y});
+		let buildArea = extendLine(baseEdge, BASE, 10, 'before');
+
+        let spiral = plotSquareSpiral(buildArea.x+random(6)-random(6), buildArea.y+random(6)-random(6), GROUP_SCAN_RADIUS * 3);
+        if (!spiral || spiral.length < 20) {
+            log("ERROR buildLassat not valid spiral");
             return false;
         }
 		let trucks = findIdleTrucks();
@@ -483,27 +505,31 @@ function upgradeResearch()
 	}
 }
 
-//// assigns trucks to closet safe notMyOil() with pre-computation ultimate version with PQ
-function assignTrucksToOil() {
-    // Step 1: Filter builders based on specified conditions
+//// assigns trucks to closet safe notMyOil() with pre-computation, state, and PQ
+function assignTrucksToOil() { queue("assignTrucksToOilQ"); } // timer
+function assignTrucksToOilQ() {
+    // Step 1: Filter builders based on specified conditions (omitted as per request)
     const builders = enumGroup(oilBuilders).filter((obj) =>
-        (obj.order === 0 || obj.action === 0 || obj.order === DORDER_HELPBUILD)
-    );
+        (obj.order === 0 || obj.action === 0 || obj.order === DORDER_HELPBUILD));
+
     if (!builders.length) return false;
 
     // Step 2: Identify safe sites by filtering out hostile-adjacent oil sites
     const sites = getNotMyOil();
     const safeSites = sites.filter(site => {
+        const alliedBuilders = seenStore.findNear(site, GROUP_SCAN_RADIUS, {isAllied: true, droidType: DROID_CONSTRUCT});
+        if (alliedBuilders.length > 0) return false; // builder already present
+
         const hostileCount = getHostilesNear(site, GROUP_SCAN_RADIUS).length;
         return hostileCount === 0;
     });
+
     if (!safeSites.length) return false;
 
     const assignments = [];
-    // Maintain a copy of safe sites to track availability
     let availableSites = [...safeSites];
 
-    // Step 3: Precompute distances from each builder to all safe sites
+    // Step 3: Precompute distances from each builder to all safe sites (omitted as per request)
     const builderDistances = builders.map(builder => {
         const distances = availableSites.map(site => {
             const dist = distBetweenTwoPoints(builder.x, builder.y, site.x, site.y);
@@ -512,17 +538,18 @@ function assignTrucksToOil() {
         return { builder, distances };
     });
 
-    // Step 4: Use a priority queue to sort builders by their minimum distance to any safe site
+    // Step 4: Use a priority queue to sort builders by their minimum distance to any safe site (omitted as per request)
     const priorityQueue = new ultimate_PriorityQueue();
     builderDistances.forEach(({ builder, distances }) => {
         const minDistance = Math.min(...distances);
-        // Enqueue both the builder and its distances array with priority as minDistance
         priorityQueue.enqueue({ builder, distances }, minDistance);
     });
 
     // Step 5: Assign each builder to the closest available safe site
-	while (!priorityQueue.isEmpty()) {
-		const { builder, distances } = priorityQueue.dequeue();
+    while (!priorityQueue.isEmpty()) {
+        const { builder, distances } = priorityQueue.dequeue();
+        if (!builder || !builder.id) continue;
+
         let bestSite = null;
         let minDistance = Infinity;
         for (let i = 0; i < availableSites.length; i++) {
@@ -533,9 +560,16 @@ function assignTrucksToOil() {
                 bestSite = site;
             }
         }
-        if (bestSite) {
+
+        if (!bestSite || !bestSite.id) continue;
+
+        // Check if the previous assignment has expired
+        const lastAssignmentTime = oilAssignments.get(bestSite.id) || -Infinity;
+        if (gameTime - lastAssignmentTime > 30000) {
             assignments.push({ builder, site: bestSite });
-            availableSites = availableSites.filter(site => site !== bestSite); // Remove assigned site from available sites
+            availableSites = availableSites.filter(site => site !== bestSite);
+			oilAssignments.set(bestSite.id, gameTime);
+			oilAssignments.set(builder.id, bestSite.id);
         }
     }
 
@@ -545,8 +579,89 @@ function assignTrucksToOil() {
         orderLocations.set(assignment.builder.id, { x: assignment.site.x, y: assignment.site.y, enemies: false });
         logObj(assignment.builder, `truck assigned to oil at ${assignment.site.x},${assignment.site.y}`);
     }
+
     return assignments.length > 0; // Return true if any assignments were made
 }
+// function assignTrucksToOilQ() {
+// 	// init assignments
+// 	if (!assignTrucksToOilQ._assignments) assignTrucksToOilQ._assignments = {};
+//     // Step 1: Filter builders based on specified conditions
+//     const builders = enumGroup(oilBuilders).filter((obj) =>
+//         (obj.order === 0 || obj.action === 0 || obj.order === DORDER_HELPBUILD) );
+//     if (!builders.length) return false;
+//
+//     // Step 2: Identify safe sites by filtering out hostile-adjacent oil sites
+// 	// and sites which already have a builder present
+//     const sites = getNotMyOil();
+//     const safeSites = sites.filter(site => {
+// 		const alliedBuilderCount = enumRange(site.x, site.y, GROUP_SCAN_RADIUS).filter((obj) =>
+// 			(obj.player === me && obj.droidType === DROID_CONSTRUCT)).length;
+// 		if (alliedBuilderCount > 0) return false; // builder already present
+//         const hostileCount = getHostilesNear(site, GROUP_SCAN_RADIUS).length;
+//         return hostileCount === 0;
+//     });
+//     if (!safeSites.length) return false;
+//
+//     const assignments = [];
+//     // Maintain a copy of safe sites to track availability
+//     let availableSites = [...safeSites];
+//
+//     // Step 3: Precompute distances from each builder to all safe sites
+//     const builderDistances = builders.map(builder => {
+//         const distances = availableSites.map(site => {
+//             const dist = distBetweenTwoPoints(builder.x, builder.y, site.x, site.y);
+//             return dist ? dist : Infinity;
+//         });
+//         return { builder, distances };
+//     });
+//
+//     // Step 4: Use a priority queue to sort builders by their minimum distance to any safe site
+//     const priorityQueue = new ultimate_PriorityQueue();
+//     builderDistances.forEach(({ builder, distances }) => {
+//         const minDistance = Math.min(...distances);
+//         // Enqueue both the builder and its distances array with priority as minDistance
+//         priorityQueue.enqueue({ builder, distances }, minDistance);
+//     });
+//
+//     // Step 5: Assign each builder to the closest available safe site
+//     while (!priorityQueue.isEmpty()) {
+//         const { builder, distances } = priorityQueue.dequeue();
+//         if (!builder || !builder.id) continue;
+//         let bestSite = null;
+//         let minDistance = Infinity;
+//
+//         for (let i = 0; i < availableSites.length; i++) {
+//             const site = availableSites[i];
+//             const distance = distances[i];
+//             if (distance < minDistance && droidCanReach(builder, site.x, site.y)) {
+//                 minDistance = distance;
+//                 bestSite = site;
+//             }
+//         }
+// 		if (!bestSite || !bestSite.id) continue
+//         // Check if the previous assignment has expired
+//         const lastAssignmentTime = assignTrucksToOilQ._assignments[builder.id]?.[bestSite.id] || -Infinity;
+//         if (gameTime - lastAssignmentTime > 30000) {
+//             if (bestSite) {
+//                 assignments.push({ builder, site: bestSite });
+//                 availableSites = availableSites.filter(site => site !== bestSite); // Remove assigned site from available sites
+//
+//                 // Update the timestamp for this assignment
+//                 assignTrucksToOilQ._assignments[builder.id] = assignTrucksToOilQ._assignments[builder.id] || {};
+//                 assignTrucksToOilQ._assignments[builder.id][bestSite.id] = gameTime;
+//             }
+//         }
+//     }
+//
+//     // Step 6: Execute the assignments and log each successful assignment
+//     for (const assignment of assignments) {
+//         orderDroidLoc(assignment.builder, DORDER_MOVE, assignment.site.x, assignment.site.y);
+//         orderLocations.set(assignment.builder.id, { x: assignment.site.x, y: assignment.site.y, enemies: false });
+//         logObj(assignment.builder, `truck assigned to oil at ${assignment.site.x},${assignment.site.y}`);
+//     }
+//
+//     return assignments.length > 0; // Return true if any assignments were made
+// }
 
 //// reduced original working version
 function idleConstructor(droid)
@@ -555,7 +670,7 @@ function idleConstructor(droid)
 	if (droid.group == baseBuilders) return;
 	if (droid.order !== 0 || droid.action !== 0) return;
 
-	if (ThrottleThis("truck"+droid.id+"throttle", 5000)) return;
+	if (throttleThis("idleConstructor_"+droid.id+"throttle", 5000)) return;
 	const dr = droid;
 
 	// scout to unfinished defense
@@ -587,67 +702,72 @@ function idleConstructor(droid)
 		}
 	}
 
-	// scout to nearby finished defense
-	let defenses = enumRange(droid.x, droid.y, GROUP_SCAN_RADIUS*3, me, true).filter((obj) => (obj.stattype === DEFENSE && obj.status === BUILT));
-	if (defenses && defenses.length > 0)
-	{
-		let enemies = getHostilesNear(defenses[0], GROUP_SCAN_RADIUS).filter((obj) => (obj.isAA === false));
-		if (!enemies[0])
-		{
-			if (distBetweenTwoPoints(droid.x, droid.y, defenses[0].x, defenses[0].y) > 4)
-			{
-				orderDroidLoc(droid, DORDER_SCOUT, defenses[0].x, defenses[0].y);
-				logObj(droid,"idle constructor scout defenses: "+defenses[0].x+"x"+defenses[0].y);
-				orderLocations.set(dr.id, {x: defenses[0].x, y: defenses[0].y, enemies: false});
-			}
-			return true;
-		}
-	}
-	else
-	{
-		// maybe put idle oil truck on patrol
-		logObj(droid,"idle oilbuilder nothing safe to do");
-		return false;
-	}
+	logObj(droid,"idle oilbuilder nothing safe to do");
+	return false;
 }
 
-function checkOilsReachable() { queue("checkOilsReachableQ"); }
+function checkOilsReachable() { queue("checkOilsReachableQ"); } // timer
 function checkOilsReachableQ() {
-	const sites = enumFeature(ALL_PLAYERS, OIL_RES_STAT);
+	const sites = enumFeature(ALL_PLAYERS, OIL_RES_STAT); // player would have seen oils on minimap
 
 	let unReachableSites = sites.length;
 	let reachableWithDestruction = 0;
+	let reachableWithHover = 0;
+
     // Iterate over each site
     for (let site of sites) {
         let isReachable = false;
         let requiresDestruction = false;
+		let requiresHover = false;
 
-		// check for a path without obstacles
-		const path = findShortestPath(site, BASE, PROP_HOVER, false); // reversed start and dest
-		if (path) {
+		// reverse start and dest to find a path to an impassable oil feature
+		const pathWheel = findShortestPath(site, BASE, PROP_WHEEL, false);
+		if (pathWheel) {
 			isReachable = true;
 			unReachableSites--;
-			log(`oil reachable: ${site.x},${site.y}`);
+			log(`oil reachable wheel: ${site.x},${site.y}`);
 		} else {
-			// Check again with obstacle destruction enabled if no path was found without it
-			const pathWithDestruction = findShortestPath(site, BASE, PROP_HOVER, true); // reversed start and dest
-
-			if (pathWithDestruction) {
+			const pathWheelDestruct = findShortestPath(site, BASE, PROP_WHEEL, true);
+			if (pathWheelDestruct) {
+				isReachable = true;
 				requiresDestruction = true;
-				isReachable = true; // Mark as reachable but with destruction required
 				unReachableSites--;
 				reachableWithDestruction++;
-				log(`oil reachable with destruction: ${site.x},${site.y}`);
+				log(`oil reachable wheel destruct: ${site.x},${site.y}`);
+			} else {
+				const pathHover = findShortestPath(site, BASE, PROP_HOVER, false);
+				if (pathHover) {
+					isReachable = true;
+					requiresHover = true;
+					unReachableSites--;
+					reachableWithHover++;
+					log(`oil reachable hover: ${site.x},${site.y}`);
+				} else {
+					const pathHoverDestruct = findShortestPath(site, BASE, PROP_HOVER, true);
+					if (pathHoverDestruct) {
+						isReachable = true;
+						requiresHover = true;
+						requiresDestruction = true;
+						unReachableSites--;
+						reachableWithHover++;
+						reachableWithDestruction++;
+						log(`oil reachable hover destruct: ${site.x},${site.y}`);
+					}
+				}
 			}
 		}
+
 		if (!isReachable) log(`oil not reachable: ${site.x},${site.y}`);
 
         // Store the accessibility status in the database
-        seenStore.addObject( site.id, { ...site, id: site.id, isReachable: isReachable, requiresDestruction: requiresDestruction });
+        seenStore.addObject( site.id, { ...site, id: site.id, isReachable, requiresDestruction, requiresHover });
     }
 	log("unreachable oils: "+unReachableSites);
 	console("unreachable oils: "+unReachableSites);
 	log("requires destruction: "+reachableWithDestruction);
 	console("requires destruction: "+reachableWithDestruction);
+	log("requires hover: "+reachableWithHover);
+	console("requires hover: "+reachableWithHover);
 }
+
 

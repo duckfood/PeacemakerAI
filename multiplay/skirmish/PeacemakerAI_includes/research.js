@@ -20,7 +20,7 @@ const VTOL_PADS_UPGRADES = [
 ];
 
 //// perform research in tiered stages unless flush
-function lookForResearch(tech, labParam) {
+function lookForResearch(tech, labParam) { // timer
     if (researchDone) return;
     if (baseUnderAttack > 2 && getRealPower() < 800) return; // produce instead
 
@@ -41,17 +41,17 @@ function lookForResearch(tech, labParam) {
         }
         // finish start tech first
         found = evalResearch(lab.id, Schemes[Scheme].START_TECH);
-        if (getRealPower() < 1000 && !isResearched(Schemes[Scheme].START_TECH)) continue;
+        if (getRealPower() < 1500 && !isResearched(Schemes[Scheme].START_TECH)) continue;
         // prioritize fundamentals
         if (!found) {
             found = evalResearch(lab.id, Schemes[Scheme].FUNDAMENTALS1);
-            if (getRealPower() < 1000 && !isResearched(Schemes[Scheme].FUNDAMENTALS1)) continue;
+            if (getRealPower() < 1500 && !isResearched(Schemes[Scheme].FUNDAMENTALS1)) continue;
             if (!found) found = evalResearch(lab.id, Schemes[Scheme].FUNDAMENTALS2);
-            if (getRealPower() < 1000 && !isResearched(Schemes[Scheme].FUNDAMENTALS2)) continue;
+            if (getRealPower() < 1500 && !isResearched(Schemes[Scheme].FUNDAMENTALS2)) continue;
             if (!found) found = evalResearch(lab.id, Schemes[Scheme].FUNDAMENTALS3);
-            if (getRealPower() < 1000 && !isResearched(Schemes[Scheme].FUNDAMENTALS3)) continue;
+            if (getRealPower() < 1500 && !isResearched(Schemes[Scheme].FUNDAMENTALS3)) continue;
             if (!found) found = evalResearch(lab.id, Schemes[Scheme].FUNDAMENTALS4);
-            if (getRealPower() < 1000 && !isResearched(Schemes[Scheme].FUNDAMENTALS4)) continue;
+            if (getRealPower() < 1500 && !isResearched(Schemes[Scheme].FUNDAMENTALS4)) continue;
         }
         // finish upgrades
         if (!found) {
@@ -64,7 +64,7 @@ function lookForResearch(tech, labParam) {
             if (!found) found = evalResearch(lab.id, STRUCTURE_DEFENSE_UPGRADES);
         }
         // randomly complete the rest if flush
-        if (!found && getRealPower() > 1000) {
+        if (!found && getRealPower() > 1500) {
             const reslist = enumResearch();
             if (reslist.length > 0) {
                 const idx = Math.floor(Math.random() * reslist.length);
@@ -75,7 +75,7 @@ function lookForResearch(tech, labParam) {
 }
 
 function isResearched(list) {
-    if (!list.length) return false; // nothing is not done
+    if (!list.length) return true; // empty so done
     for (let item of list) {
         let itemsLeft = findResearch(item, me).length;
         if (itemsLeft && itemsLeft.length) return false; // not done
