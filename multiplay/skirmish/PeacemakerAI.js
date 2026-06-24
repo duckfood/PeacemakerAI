@@ -143,7 +143,7 @@ function eventStartLevel()
 	setTimer("checkOrderLocations", 10000 + ((1 + random(4)) * random(10)));
 	setTimer("checkUnreachableOils", 60000 + ((1 + random(4)) * random(10)));
 
-	setTimer("showGameTime", 30000); // show gameTime in console
+	//setTimer("showGameTime", 30000); // show gameTime in console
 
 	// lassat api is packed with bugs such that it cannot be relied on, sometimes this even fires repeatedly!
 	setTimer("fireLassat", 10000 + ((1 + random(4)) * random(100)));
