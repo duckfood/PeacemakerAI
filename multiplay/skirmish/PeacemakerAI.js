@@ -1,11 +1,11 @@
-//// PeacemakerAI v0.8 24-6-2026 github.com/duckfood
+//// PeacemakerAI v0.8 25-6-2026 github.com/duckfood
 //// MIT license. No warranty whatsoever. Use this code at your own risk!
 
 // log messages to bot log file
-const DEBUG = true;
+const DEBUG = false;
 // log messages in-game
 const DEBUG_CONSOLE = false;
-const DEBUG_TRACE = true;
+const DEBUG_TRACE = false;
 
 // api definitions
 const OIL_RES_STAT = "OilResource";
