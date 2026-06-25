@@ -1042,24 +1042,6 @@ function checkOrderLocationsQ() {
     // Optional: log the current size of orderLocations for debugging
     log(`Current orderLocations size: ${orderLocations.size}`);
 }
-// function checkOrderLocationsQ()
-// {
-//     // Single pass: update orderLocations with threat info
-//     orderLocations.forEach(({ x, y, enemies: oldEnemies }, key) => {
-//         if (x == null || y == null) return;
-//
-//         // Check for current enemies
-//         const enemies = seenStore.findNear({ x: x, y: y }, GROUP_SCAN_RADIUS, { isAllied: false, isCombat: true })
-//             .filter(obj => obj.lastSeen > gameTime - 60000);
-//
-//         // Update in-place if threat status changed
-//         if (enemies.length > 0 && oldEnemies === false) {
-//             orderLocations.set(key, { x, y, enemies: true });
-//         } else if (enemies.length === 0 && oldEnemies !== false) {
-//             orderLocations.set(key, { x, y, enemies: false });
-//         }
-//     });
-// }
 
 function updateMapTilesFeatures() { queue("updateMapTilesFeaturesQ"); }
 function updateMapTilesFeaturesQ() {
@@ -1092,7 +1074,7 @@ function adjustSchemeAndStance()
 	let hostileTanks = seenStore.query({ isAllied: false, droidType: DROID_WEAPON, isVTOL: false });
 
 	// choose anti-tank or anti-cyborg
-	if (hostileCyborg.length + hostileTanks.length > 15 && !componentAvailable("Laser2PULSEMk1")) { // if already at pulse laser don't switch
+	if (hostileCyborg.length + hostileTanks.length > 15 && !componentAvailable("Laser3BEAMMk1")) { // if already at flashlight don't switch
 
 		if (hostileCyborg.length > hostileTanks.length && Scheme !== "MGLAS") {
 			Scheme = "MGLAS";
