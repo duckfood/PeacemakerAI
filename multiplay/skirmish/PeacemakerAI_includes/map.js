@@ -7,8 +7,8 @@ class SpatialDataStore {
   }
 
   addObject(id, obj) {
-    if (!id || !obj) log('WARNING Object and id must be defined');
-    if (obj.x === undefined || obj.y === undefined) log('WARNING Object must have x,y properties');
+    if (!id || !obj) return log('ERROR Object and id must be defined');
+    if (obj.x === undefined || obj.y === undefined) return log('ERROR Object must have x,y properties');
 
     this.objects.set(id, obj);
 
@@ -123,7 +123,7 @@ class SpatialDataStore {
 
   findNear(position, radius, conditions = {}) {
     if (!position || position.x === undefined || position.y === undefined) {
-      log('WARNING findNear must have x,y properties');
+      return log('ERROR findNear must have x,y properties');
     }
 
     const { x, y } = position;

@@ -13,7 +13,7 @@ const STRUCTURE_DEFENSE_UPGRADES = [
 ];
 const POWER_AND_RESEARCH_UPGRADES = [
 	"R-Struc-Power-Upgrade03a", // final power upgrade
-	"R-Struc-Research-Upgrade07", // final research upgrade
+	"R-Struc-Research-Upgrade09", // final research upgrade
 ];
 const VTOL_PADS_UPGRADES = [
 	"R-Struc-VTOLPad-Upgrade06", // final pad upgrade

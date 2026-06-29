@@ -53,7 +53,6 @@ const Schemes = {
             "R-Sys-Sensor-Upgrade03",
         ],
         FUNDAMENTALS4: [
-            "R-Defense-WallUpgrade03",
             "R-Vehicle-Body09", // tiger
             "R-Wpn-ParticleGun",
             "R-Defense-MortarPit-Incendiary",
@@ -62,9 +61,11 @@ const Schemes = {
             "R-Wpn-Mortar-Acc03",
             "R-Wpn-Mortar-Damage06",
             "R-Vehicle-Body10", // vengence
-            "R-Struc-Research-Upgrade09",
             "R-Sys-Resistance-Circuits",
             "R-Defense-Howitzer-Incendiary",
+            "R-Wpn-Missile2A-T", // scourge
+            "R-Wpn-Missile-Damage03",
+            "R-Wpn-Missile-ROF03",
             "R-Vehicle-Body14", // dragon body
             "R-Wpn-LasSat",
         ],
@@ -202,9 +203,11 @@ const Schemes = {
             "R-Wpn-Mortar-Acc03",
             "R-Wpn-Mortar-Damage06",
             "R-Vehicle-Body10", // vengence
-            "R-Struc-Research-Upgrade09",
             "R-Sys-Resistance-Circuits",
             "R-Defense-Howitzer-Incendiary",
+            "R-Wpn-Missile2A-T", // scourge
+            "R-Wpn-Missile-Damage03",
+            "R-Wpn-Missile-ROF03",
             "R-Vehicle-Body14", // dragon body
             "R-Wpn-LasSat",
         ],
