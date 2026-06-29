@@ -63,11 +63,11 @@ const Schemes = {
             "R-Vehicle-Body10", // vengence
             "R-Sys-Resistance-Circuits",
             "R-Defense-Howitzer-Incendiary",
+            "R-Vehicle-Body14", // dragon body
+            "R-Wpn-LasSat",
             "R-Wpn-Missile2A-T", // scourge
             "R-Wpn-Missile-Damage03",
             "R-Wpn-Missile-ROF03",
-            "R-Vehicle-Body14", // dragon body
-            "R-Wpn-LasSat",
         ],
         ADVANCED_TECH: [
             "R-Wpn-Energy-Accuracy01",
@@ -205,11 +205,11 @@ const Schemes = {
             "R-Vehicle-Body10", // vengence
             "R-Sys-Resistance-Circuits",
             "R-Defense-Howitzer-Incendiary",
+            "R-Vehicle-Body14", // dragon body
+            "R-Wpn-LasSat",
             "R-Wpn-Missile2A-T", // scourge
             "R-Wpn-Missile-Damage03",
             "R-Wpn-Missile-ROF03",
-            "R-Vehicle-Body14", // dragon body
-            "R-Wpn-LasSat",
         ],
         ADVANCED_TECH: [
             "R-Wpn-Energy-Accuracy01",
