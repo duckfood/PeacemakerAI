@@ -50,5 +50,3 @@ For more information and screenshots see [duckfood.github.io/PeacemakerAI](https
 
 ***Basebuilding***
 ![Basebuilding1](https://duckfood.github.io/PeacemakerAI/media/basebuilding-screenshot1.jpg)
-
-[![Hits](https://hits.sh/duckfood.github.io/PeacemakerAI/hits.svg)](https://hits.sh/duckfood.github.io/PeacemakerAI)
