@@ -105,17 +105,14 @@ function evalResearch(labID, list) {
 }
 
 function checkResearchCompletion() {
-    // Enumerate all available research topics
     const resList = enumResearch();
 
     // Check if the Dragon body is obtained and there are no more research topics left
     if (componentAvailable("Body14SUP") && !resList.length) {
         researchDone = true; // Mark that all research is completed
 
-        // Enumerate all labs in the current base
         const labList = enumStruct(me, RES_LAB_STAT);
 
-        // Iterate through each lab and attempt to demolish it if it's idle
         for (let i = 0, l = labList.length; i < l; ++i) {
             const lab = labList[i];
             if (!structureIdle(lab)) continue; // Skip non-idle labs

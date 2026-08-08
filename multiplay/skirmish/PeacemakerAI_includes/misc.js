@@ -99,70 +99,8 @@ function throttleThis(throttleId, time = 2000) {
 
     if (gameTime - lastTime < time) return true; // Throttled
 
-    // Update the last execution time and allow execution
     throttleThis.throttleTimesMap.set(throttleId, gameTime);
     return false;
-}
-
-function estimateMemoryCapacity() {
-  const maxTestSizeMB = 1024; // 1 GB as an initial maximum test
-  const stepMultiplier = 2; // exponential growth
-  let currentSizeMB = 1; // start at 1MB
-  let maxWorkingSizeMB = 0;
-
-  // Function to create a Map with approximate size in MB
-  function createMapEntries(count) {
-    const map = new Map();
-    for (let i = 0; i < count; i++) {
-      // Insert varied data: number, string, object
-      map.set(i, {
-        num: i,
-        str: "data" + i,
-        obj: { nested: true, index: i }
-      });
-    }
-    return map;
-  }
-
-  const approximateBytesPerEntry = 200;
-
-  while (currentSizeMB <= maxTestSizeMB) {
-    const numEntries = Math.floor((currentSizeMB * 1024 * 1024) / approximateBytesPerEntry);
-    log(`Trying ${currentSizeMB}MB (~${numEntries} entries)...`);
-
-    try {
-      const startTime = Date.now();
-      const map = createMapEntries(numEntries);
-      const duration = Date.now() - startTime;
-      log(`Success at ${currentSizeMB}MB in ${duration}ms`);
-      maxWorkingSizeMB = currentSizeMB;
-      // Increase size exponentially
-      currentSizeMB *= stepMultiplier;
-    } catch (e) {
-      log(`Failed at ${currentSizeMB}MB: ${e}`);
-      break; // Stop on failure
-    }
-  }
-
-  log(`Estimated maximum memory capacity: ${maxWorkingSizeMB}MB`);
-}
-
-function dumpGlobals()
-{
-	let global = globalThis;
-	let globals = {};
-
-	for (let key of Object.getOwnPropertyNames(global)) {
-		try {
-			let value = global[key];
-			// Convert the value to a string description
-			globals[key] = typeof value + ": " + String(value);
-		} catch (e) {
-			globals[key] = "[unaccessible]";
-		}
-	}
-
-	log(JSON.stringify(globals, null, 2));
 }
 
 function JNstr(obj){
@@ -181,3 +119,12 @@ function sortByDistToLoc(loc, list) {
 }
 
 function showGameTime() { console("gameTime: "+gameTime/1000+" seconds"); } // timer
+
+function randomBetween(min, max) {
+  // If min is greater than max, swap them
+  if (min > max) [min, max] = [max, min];
+
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}

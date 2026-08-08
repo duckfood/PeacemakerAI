@@ -83,12 +83,11 @@ const MIX_CYBORG = [
 
 const HOVER_CHANCE = 8;
 const ARTILLERY_CHANCE = 32;
+const REPAIR_CHANCE = 68;
 const AA_CHANCE = 8;
 
-// build tank attackers and cyborgs
 function buildAttacker(fac)
 {
-	// build cyborgs
 	if (fac.stattype === CYBORG_FACTORY)
 	{
 		if (relyOnCyborgs) return buildCyborg(fac);
@@ -97,14 +96,13 @@ function buildAttacker(fac)
 
 	if (fac.stattype !== FACTORY) return false;
 
-	// if factory module and medium body are available, but factory is not upgraded do not build anything else
 	if (fac.modules < 1 && isStructureAvailable("A0FacMod1") && (componentAvailable("Body5REC") || componentAvailable("Body8MBT")) ) return false;
 
 	let prop = TANK_PROP_LIST;
 	if ((isSeaMap || (random(100) < HOVER_CHANCE)) && componentAvailable("hover01")) prop = ["hover01"];
 
 	// build repair tanks based on combat droid count and autorepair
-	if (componentAvailable("HeavyRepair") || componentAvailable("LightRepair1") && random(100) < 80)
+	if (componentAvailable("HeavyRepair") || componentAvailable("LightRepair1") && random(100) < REPAIR_CHANCE)
 	{
 		let div = 4;
 		if (componentAvailable("AutoRepair")) { div = 8; }
@@ -131,7 +129,10 @@ function buildAttacker(fac)
 	}
 
 	//build mobile artillery
-	if (componentAvailable("Mortar-Incendiary") && random(100) < ARTILLERY_CHANCE) return buildMobileArtillery(fac);
+	if (componentAvailable("Mortar-Incendiary")) {
+		if (seenStore.query({player: me, type: DROID, hasIndirect: true}).length === 0) return buildMobileArtillery(fac); // build one
+		if (random(100) < ARTILLERY_CHANCE) return buildMobileArtillery(fac); // maybe build more
+	}
 
 	// build AA tanks based on combat droid count
 	if (enemyHasVtol && componentAvailable("QuadMg1AAGun"))
@@ -380,21 +381,25 @@ function produceDroidsQ()
 				// build ground units
 				if (FAC_LIST[i] === FACTORY_STAT || FAC_LIST[i] === CYBORG_FACTORY_STAT)
 				{
-					// check to see if trucks could be built
-					if (countDroid(DROID_CONSTRUCT) + virtualTrucks < getDroidLimit(me, DROID_CONSTRUCT) -2)
+					// check to see if trucks can be built // minus 2 via testing
+					if (baseUnderAttack < 3 && random(100) > 50 && enumDroid(DROID_CONSTRUCT) < 5 || countDroid(DROID_CONSTRUCT) + virtualTrucks < getDroidLimit(me, DROID_CONSTRUCT) -2)
 					{
-						// cheaty knows free oils without having seen them
-						let freeoils = enumFeature(ALL_PLAYERS, OIL_RES_STAT).length;
-						// build early trucks but only if oil is available
-						if (gameTime < 180000 && groupSize(oilBuilders) < MAX_OIL_TRUCKS && freeoils > 20) { buildTruck(fc); continue; }
-						// build trucks as needed half the time, but not if under heavy attack
-						if (baseUnderAttack < 3 && random(100) > 50 && countDroid(DROID_CONSTRUCT) + virtualTrucks < MIN_BASE_TRUCKS + MIN_OIL_TRUCKS)
-							{ buildTruck(fc); continue; }
-						// build extra trucks if lots of bare oil wells, but only if plenty of attackers
-						if (freeoils > 12 && groupSize(oilBuilders < MAX_OIL_TRUCKS) && random(100) > 50 &&
-							groupSize(attackGroup)+groupSize(vtolGroup) > MIN_ATTACK_GSIZE*3) { buildTruck(fc); continue; }
+						// build min base trucks
+						if (groupSize(baseBuilders < MIN_BASE_TRUCKS)) return buildTruck(fc);
+						// build min oil trucks
+						if (groupSize(oilBuilders) < MIN_OIL_TRUCKS) return buildTruck(fc);
+
+						let freeoils = seenStore.query({type: FEATURE, stattype: OIL_RESOURCE}).filter((obj) => (obj.lastSeen > gameTime - 300000)).length;
+						let totaloils = oilResourceStore.query({isReachable: true}).length;
+
+						// build early trucks if high oil
+						if (gameTime < 180000 && groupSize(oilBuilders) < MAX_OIL_TRUCKS && totaloils > 30) return buildTruck(fc);
+
+						// build extra trucks if lots of free oil wells, but only if plenty of attackers
+						if (freeoils > 8 && groupSize(oilBuilders < MAX_OIL_TRUCKS) && groupSize(attackGroup) > MIN_ATTACK_GSIZE*2) return buildTruck(fc);
+
 						// ensure that baseBuilders has 3 trucks
-						if (groupSize(baseBuilders) === MIN_BASE_TRUCKS && random(100) > 50) { buildTruck(fc); continue; }
+						if (groupSize(baseBuilders) === MIN_BASE_TRUCKS) return buildTruck(fc);
 					}
 
 					// build attackers

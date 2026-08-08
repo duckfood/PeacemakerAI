@@ -82,7 +82,6 @@ function droidAwareAA()
 		if (!(dr.canHitGround === false && dr.canHitAir === true)) { continue; }
 		if (dr.order === DORDER_RTR || dr.order === DORDER_RTB) { continue; }
 
-		// rtb if on tileIsBurning
 		moveFromBurningTile(dr);
 
 		if (dr.health < 80 && dr.order !== DORDER_RTR)
@@ -98,7 +97,7 @@ function droidAwareAA()
 			let new_escort = findMostExpDroid();
 			if (new_escort && new_escort.id)
 			{
-				orderDroidObj(dr, 25, new_escort); // defend
+				orderDroidLoc(dr, DORDER_SCOUT, new_escort.x, new_escort.y);
 				logObj(dr, "sensor ordered to escort: "+new_escort.id);
 			}
 		}
@@ -349,7 +348,7 @@ function droidAwareTruckQ()
 					orderDroidBuild(dr, DORDER_BUILD, DERRICK_STAT, oil.x, oil.y);
 					logObj(dr, "droidAware truck building on adjacent oil");
 					orderLocations.set(dr.id, {x: oil.x, y: oil.y, enemies: false});
-					seenStore.addObject( oil.id, { ...oil, id: oil.id, isReachable: true, requiresDestruction: false });
+					oilResourceStore.addObject( oil.id, { ...oil, id: oil.id, isReachable: true, requiresDestruction: false });
 					continue;
 				}
 
@@ -359,7 +358,7 @@ function droidAwareTruckQ()
 					oilAssignments.delete(oilAssignments.get(dr.id)); // delete old oil assignment for this truck
 
 					// check is accessible
-					if (seenStore.query({isReachable: true, requiresDestruction: false, x: oil.x, y: oil.y}).length && droidCanReach(dr, oil.x, oil.y)) {
+					if (oilResourceStore.query({isReachable: true, requiresDestruction: false, x: oil.x, y: oil.y}).length && droidCanReach(dr, oil.x, oil.y)) {
 						let enemies = getHostilesNear(oil, GROUP_SCAN_RADIUS).filter((obj) => (obj.isAA === false));
 						if (enemies.length === 0)
 						{
@@ -379,7 +378,7 @@ function droidAwareTruckQ()
 			oils = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS, ENEMIES, true).filter((obj) => (obj.type === STRUCTURE && obj.stattype === RESOURCE_EXTRACTOR));
 			oils = sortByDistToLoc(dr, oils);
 
-			if (oils && oils.length > 0 && seenStore.query({isReachable: true, requiresDestruction: false, x:oils[0].x, y:oils[0].y}).length && droidCanReach(dr, oils[0].x, oils[0].y)) {
+			if (oils && oils.length > 0 && oilResourceStore.query({isReachable: true, requiresDestruction: false, x:oils[0].x, y:oils[0].y}).length && droidCanReach(dr, oils[0].x, oils[0].y)) {
 				let oil = oils[0];
 				// if allied combat droids or defenses are present do not liberate
 				let mydefenses = enumRange(oil.x, oil.y, GROUP_SCAN_RADIUS, ALLIES, true).filter((obj) =>
@@ -470,6 +469,7 @@ function collectArtifacts(dr)
 	return false;
 }
 
+let lastDemoOrderTime = 0;
 function droidAwareObstacles() { queue("droidAwareObstaclesQ"); }
 function droidAwareObstaclesQ() {
     // Get demolish droid or grab weakest combat unit
@@ -490,6 +490,12 @@ function droidAwareObstaclesQ() {
 		orderDroid(dr, DORDER_RTR);
 		logObj(dr, "RTR");
 		return;
+	}
+
+	if (dr.order === DORDER_ATTACK && lastDemoOrderTime < gameTime - 30000) {
+		orderDroidLoc(dr, DORDER_SCOUT, dr.x+randomBetween(-3, 3), dr.y+randomBetween(-3, 3));
+		logObj(dr, `demolish droid relocating`);
+		lastDemoOrderTime = gameTime;
 	}
 
     // if attacking or scouting and not idle return
@@ -516,6 +522,7 @@ function droidAwareObstaclesQ() {
         if (baseObstacles && baseObstacles.length) {
             orderDroidObj(dr, DORDER_ATTACK, baseObstacles[0]);
             logObj( dr, `droidAware demolishing base feature ${baseObstacles[0].name} at ${baseObstacles[0].x},${baseObstacles[0].y}` );
+			lastDemoOrderTime = gameTime;
             return;
         }
     }
@@ -523,7 +530,7 @@ function droidAwareObstaclesQ() {
     droidAwareObstaclesQ._clearedBaseObstacles = true;
 
     // Demolish paths to blocked oil
-    let blockedOils = seenStore.query({isReachable: true, requiresDestruction: true });
+    let blockedOils = oilResourceStore.query({isReachable: true, requiresDestruction: true });
 
     if (!blockedOils || !blockedOils.length) {
         removeTimer("droidAwareObstacles");
@@ -546,7 +553,7 @@ function droidAwareObstaclesQ() {
         }
     }
 
-    if (update) blockedOils = seenStore.query({ isReachable: true, requiresDestruction: true });
+    if (update) blockedOils = oilResourceStore.query({ isReachable: true, requiresDestruction: true });
 
     if (blockedOils && blockedOils.length) {
         const blockedOil = blockedOils[0];
@@ -557,16 +564,20 @@ function droidAwareObstaclesQ() {
 			logObj(dr, `clearing path to: ${blockedOil.x},${blockedOil.y}`);
             // Start unblocking the path if safe
             const oilObstacles = blockedPath.destructionList.reverse();
-            const hostilesOil = getHostilesNear(oilObstacles[0], GROUP_SCAN_RADIUS).length > 0;
-            if (!hostilesOil) {
-				logObj(dr, `demolishing obstacle: ${oilObstacles[0].x},${oilObstacles[0].y}`);
-				let obstacleObject = getObject(oilObstacles[0].x, oilObstacles[0].y);
+			if (oilObstacles.length) {
+				let obstacleObject = getObject(oilObstacles[0].x, oilObstacles[0].y); // fetch by location since no id
 				if (obstacleObject && obstacleObject.id) {
-					orderDroidObj(dr, DORDER_ATTACK, obstacleObject);
-					logObj(dr, `droidAware demolishing path obstacle: `+JNstr(oilObstacles[0]));
-					return;
+					const hostilesOil = getHostilesNear(oilObstacles[0], GROUP_SCAN_RADIUS).length > 0;
+					if (!hostilesOil) {
+						if (obstacleObject && obstacleObject.id) {
+							orderDroidObj(dr, DORDER_ATTACK, obstacleObject);
+							logObj(dr, `droidAware demolishing path obstacle: `+JNstr(oilObstacles[0]));
+							lastDemoOrderTime = gameTime;
+							return;
+						}
+					}
 				}
-            }
+			}
         }
     }
 }
@@ -764,7 +775,6 @@ function baseAware()
 
 function balanceGroups()
 {
-	//log("AAseenStore: "+JNstr(AAseenStore.query({})));
 	//log("seenStore: "+JNstr(seenStore.query({})));
 
 	if (getResearch("R-Sys-Sensor-Upgrade01").done) GROUP_SCAN_RADIUS = 11;
@@ -806,7 +816,7 @@ function balanceGroups()
 			}
 		}
 	}
-	// decide when to recycle obsolete droids
+
 	// if python is available and groups are large enough recycle vipers with experience
 	if (componentAvailable("Body11ABT"))
 	{
@@ -931,6 +941,7 @@ function updateSeenStoreQ()
         }
         pidx++;
     }
+    objects = objects.concat(enumFeature(me, OIL_RESOURCE)); // add seen oil resources
 
     // Process each object once with optimized checks
 	for (let obj of objects) {
@@ -977,6 +988,14 @@ function pruneSeenStoreQ() {
         if (obj.id && !seenNow.has(obj.id)) {
             seenStore.deleteKey(obj.id);
             AAseenStore.deleteKey(obj.id);
+        }
+    }
+    // now remove oil resources
+    seenNow.clear();
+    enumFeature(me, OIL_RESOURCE).forEach(obj => obj.id && seenNow.set(obj.id, true));
+    for (let obj of seenStore.query({ type: FEATURE, stattype: OIL_RESOURCE})) {
+        if (obj.id && !seenNow.has(obj.id)) {
+            seenStore.deleteKey(obj.id);
         }
     }
 }
@@ -1050,20 +1069,18 @@ function updateMapTilesFeaturesQ() {
 
 function checkUnreachableOils() { queue("checkUnreachableOilsQ"); }
 function checkUnreachableOilsQ() {
-	let reachableWithDestruction = seenStore.query({ type: FEATURE, stattype: OIL_RESOURCE, isReachable: true, requiresDestruction: true });
+	let reachableWithDestruction = oilResourceStore.query({ type: FEATURE, stattype: OIL_RESOURCE, isReachable: true, requiresDestruction: true });
 	if (!reachableWithDestruction || !reachableWithDestruction.length) {
 		removeTimer("checkUnreachableOils");
 		return;
 	}
 
 	for (let oil of reachableWithDestruction) {
-		// check for path without destruction
 		let pathWithoutDestruction = findShortestPath(oil, BASE, PROP_HOVER, false);
 
 		if (!pathWithoutDestruction) continue;
-		// update seenStore
-		seenStore.deleteKey(oil.id);
-		seenStore.addObject(oil.id, { ...oil, isReachable: true, requiresDestruction: false});
+		oilResourceStore.deleteKey(oil.id);
+		oilResourceStore.addObject(oil.id, { ...oil, isReachable: true, requiresDestruction: false});
 	}
 }
 
@@ -1085,8 +1102,4 @@ function adjustSchemeAndStance()
 			log("switching scheme to CNLAS");
 		}
 	}
-
-	// adjust stance based on losses and hostile composition
-	// vtol
-	// cyborgs
 }

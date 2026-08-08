@@ -133,7 +133,7 @@ function getRandomScoutLoc(dr)
 }
 
 function getNotMyOil(){
-	const oilResources = seenStore.query({ type: FEATURE, stattype: OIL_RESOURCE, isReachable: true, requiresDestruction: false });
+	const oilResources = oilResourceStore.query({ isReachable: true, requiresDestruction: false });
 	if (!oilResources || !oilResources.length) log("WARNING no oil resources");
 	const alliedObjects = new Set();
 
@@ -442,15 +442,13 @@ function getStrongestRepairDroids() {
         enumGroup(supportGroup)
     ).filter(droid => droid.droidType === DROID_REPAIR);
 
-
-    // Sort droids by descending strength (cost * (bodySize + 1))
+    // Sort droids by descending strength
     const sortedDroids = allDroids.sort((a, b) => {
-        const strengthA = a.cost * (a.bodySize + 1); // TODO should include turret size
+        const strengthA = a.cost * (a.bodySize + 1);
         const strengthB = b.cost * (b.bodySize + 1);
         return strengthB - strengthA; // Descending order
     });
 
-    // Return sorted array of droid objects
     return sortedDroids;
 }
 

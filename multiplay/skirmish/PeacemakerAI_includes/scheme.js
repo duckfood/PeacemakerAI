@@ -56,18 +56,18 @@ const Schemes = {
             "R-Vehicle-Body09", // tiger
             "R-Wpn-ParticleGun",
             "R-Defense-MortarPit-Incendiary",
+            "R-Cyborg-Hvywpn-A-T",  // scourge
             "R-Struc-Factory-Upgrade04",
             "R-Wpn-Bomb05", // plasmite bomb
             "R-Wpn-Mortar-Acc03",
             "R-Wpn-Mortar-Damage06",
+            "R-Wpn-Missile-Damage03",
+            "R-Wpn-Missile-ROF03",
             "R-Vehicle-Body10", // vengence
             "R-Sys-Resistance-Circuits",
             "R-Defense-Howitzer-Incendiary",
             "R-Vehicle-Body14", // dragon body
             "R-Wpn-LasSat",
-            "R-Wpn-Missile2A-T", // scourge
-            "R-Wpn-Missile-Damage03",
-            "R-Wpn-Missile-ROF03",
         ],
         ADVANCED_TECH: [
             "R-Wpn-Energy-Accuracy01",
@@ -177,7 +177,7 @@ const Schemes = {
             "R-Struc-RprFac-Upgrade04",
         	"R-Vehicle-Prop-Tracks",
         ],
-        FUNDAMENTALS3: [ // Motar
+        FUNDAMENTALS3: [
             "R-Vehicle-Body12", // mantis
             "R-Struc-RprFac-Upgrade06",
             "R-Wpn-Cannon-Damage07",
@@ -198,18 +198,17 @@ const Schemes = {
             "R-Vehicle-Body09", // tiger
             "R-Wpn-ParticleGun",
             "R-Defense-MortarPit-Incendiary",
+            "R-Cyborg-Hvywpn-A-T",  // scourge
             "R-Struc-Factory-Upgrade04",
             "R-Wpn-Bomb05", // plasmite bomb
             "R-Wpn-Mortar-Acc03",
             "R-Wpn-Mortar-Damage06",
-            "R-Vehicle-Body10", // vengence
-            "R-Sys-Resistance-Circuits",
-            "R-Defense-Howitzer-Incendiary",
-            "R-Vehicle-Body14", // dragon body
-            "R-Wpn-LasSat",
-            "R-Wpn-Missile2A-T", // scourge
             "R-Wpn-Missile-Damage03",
             "R-Wpn-Missile-ROF03",
+            "R-Sys-Resistance-Circuits",
+            "R-Defense-Howitzer-Incendiary",
+            "R-Wpn-LasSat",
+            "R-Vehicle-Body14", // dragon body
         ],
         ADVANCED_TECH: [
             "R-Wpn-Energy-Accuracy01",
@@ -251,6 +250,7 @@ const Schemes = {
             "CyborgChaingun",
         ],
         CYBORG_ADVANCED_LIST: [
+            "Cyb-Hvywpn-A-T",
             "Cyb-Hvywpn-TK",
             "Cyb-Hvywpn-HPV",
         ],

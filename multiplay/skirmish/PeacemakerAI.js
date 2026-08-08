@@ -1,4 +1,4 @@
-//// PeacemakerAI v0.8 25-6-2026 github.com/duckfood
+//// PeacemakerAI v0.9 2026-8-8 github.com/duckfood
 //// MIT license. No warranty whatsoever. Use this code at your own risk!
 
 // log messages to bot log file
@@ -33,7 +33,7 @@ const STRUCTURE_TYPES = [HQ, FACTORY, POWER_GEN, RESOURCE_EXTRACTOR, LASSAT,
 // global config
 const MIN_BASE_TRUCKS = 2;
 const MAX_BASE_TRUCKS = 4;
-const MIN_OIL_TRUCKS = 3;
+const MIN_OIL_TRUCKS = 2;
 const MAX_OIL_TRUCKS = 6;
 const MIN_BUILD_POWER = 100;
 const MIN_RESEARCH_POWER = 20;
@@ -145,15 +145,13 @@ function eventStartLevel()
 
 	//setTimer("showGameTime", 30000); // show gameTime in console
 
-	// lassat api is packed with bugs such that it cannot be relied on, sometimes this even fires repeatedly!
+	// lassat api cannot be relied on, sometimes this even fires repeatedly!
 	setTimer("fireLassat", 10000 + ((1 + random(4)) * random(100)));
 
 	// handle starting droids
 	for (let dr of startDroids) { eventDroidBuilt(dr); }
 
-	//testPathfinding();
-
-	// add oil wells to seenStore, as players would have seen them on the minimap
+	// add oils player has seen on minimap
 	checkOilsReachable();
 	markTiles(seenStore.query({type: FEATURE, stattype: OIL_RESOURCE, isReachable: true, requiresDestruction: true }));
 
@@ -188,9 +186,6 @@ const seenStore = new SpatialDataStore({
 	canHitGround: new Map(),
 	hasIndirect: new Map(),
 	isAA: new Map(),
-	isReachable: new Map(),
-	requiresDestruction: new Map(),
-	requiresHover: new Map(),
 });
 
 // initialize AAseenStore for faster AA queries
@@ -199,6 +194,11 @@ const AAseenStore = new SpatialDataStore({
 	isVTOL: new Map(),
 	canHitAir: new Map(),
 	canHitGround: new Map(),
+});
+const oilResourceStore = new SpatialDataStore({
+	isReachable: new Map(),
+	requiresDestruction: new Map(),
+	requiresHover: new Map(),
 });
 
 // used for naming droids
@@ -216,67 +216,3 @@ include("/multiplay/skirmish/PeacemakerAI_includes/events.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/research.js");
 
 log("VTOL_DEFEND_TIME: "+VTOL_DEFEND_TIME);
-
-// pathfinding test routine for Roughness blocked oils
-function testPathfinding() {
-	// coordinates of 3 unreachable oils in 2 player map Roughness
-	let left = {x: 27, y:55}; // adjacent to left unreachable oil
-	let center = {x:67, y:37}; // adjacent to center unreachable oil
-	let right = {x:89, y:40}; // adjacent to right oil only reachable with destruction
-	let reference = {x:65, y:80}; // second base
-	// get trucks
-	let trucks = findIdleTrucks();
-	// test droidCanReach
-	log("testing droidCanReach:");
-	if (droidCanReach(trucks[0], reference.x, reference.y)) log("droidCanReach reference: true");
-	if (droidCanReach(trucks[0], left.x, left.y)) log("droidCanReach left: true");
-	if (droidCanReach(trucks[0], center.x, center.y)) log("droidCanReach center: true");
-	if (droidCanReach(trucks[0], right.x, right.y)) log("droidCanReach right: true");
-	// test propCanReach
-	log("testing propulsionCanReach:");
-	if (propulsionCanReach(PROP_WHEEL, BASE.x, BASE.y, reference.x, reference.y)) log("propulsionCanReach reference: true");
-	if (propulsionCanReach(PROP_WHEEL, BASE.x, BASE.y, left.x, left.y)) log("propulsionCanReach left: true");
-	if (propulsionCanReach(PROP_WHEEL, BASE.x, BASE.y, center.x, center.y)) log("propulsionCanReach center: true");
-	if (propulsionCanReach(PROP_WHEEL, BASE.x, BASE.y, right.x, right.y)) log("propulsionCanReach right: true");
-	// test findShortestPath without destruction
-	log("testing findShortestPath:");
-	if (findShortestPath(BASE, reference, PROP_WHEEL, false)) log("findShortestPath without destruction reference: true");
-	if (findShortestPath(BASE, left, PROP_WHEEL, false)) log("findShortestPath without destruction left: true");
-	if (findShortestPath(BASE, center, PROP_WHEEL, false)) log("findShortestPath without destruction center: true");
-	if (findShortestPath(BASE, right, PROP_WHEEL, false)) log("findShortestPath without destruction right: true");
-	// test findShortestPath with destruction
-	log("testing findShortestPath with destruction:");
-	if (findShortestPath(BASE, reference, PROP_WHEEL, true)) log("findShortestPath with destruction reference: true");
-	if (findShortestPath(BASE, left, PROP_WHEEL, true)) log("findShortestPath with destruction left: true");
-	if (findShortestPath(BASE, center, PROP_WHEEL, true)) log("findShortestPath with destruction center: true");
-	if (findShortestPath(BASE, right, PROP_WHEEL, true)) log("findShortestPath with destruction right: true");
-}
-
-//// performance testing
-// let start = {x: 10, y: 90}; // highground
-// let dest = {x:35 ,y:10};
-// let start = {x: 20, y: 5}; // great rift
-// let dest = {x:20 ,y: 185};
-// let start = {x: 33, y: 33}; // thales
-// let dest = {x:181 ,y: 148};
-// let start = {x: 4, y: 170}; // dried ocean
-// let dest = {x:5 ,y: 8};
-// startTime = new Date().getTime();
-// let path = findShortestPath(start, dest);
-// endTime = new Date().getTime();
-// totaltime = endTime - startTime;
-// log("findShortestPath_granite: "+totaltime);
-// markTiles(path.path);
-// log("path: "+JNstr(path));
-// markCliffTiles(MapTilesFeatures);
-// let startTime = new Date().getTime();
-//let path = findShortestPath(BASE, {x:65, y:80}, PROP_HOVER, true); // {x:87, y:41} roughness blocked oil requiresDestruction
-// getPerimeterPath(32, 10);// = findShortestPath(BASE, {x:65, y:80}, PROP_WHEEL, true); // roughness blocked oil {x:27, y:57 }
-// let endTime = new Date().getTime();
-// let totaltime = endTime - startTime;
-// log("findShortestPath: "+totaltime);
-//markTiles(path.path);
-//log(JNstr(path));
-//let testvar = findPassableTileInPerimeter(BASE.x, BASE.y);
-//log(JNstr(testvar));
-//markTiles([[testvar]]);

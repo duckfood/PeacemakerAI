@@ -514,12 +514,12 @@ function plotSquareSpiral(xCenter, yCenter, maxRadius = 20, expansionRate = 3) {
     let x = xCenter;
     let y = yCenter;
     const path = [[x, y]];
-    const dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]]; // Directions for movement: right, up, left, down
-    let stepsPerLoop = 1; // Initial number of steps per loop
-    let currentDirIndex = 0; // Start with the first direction in dirs array
+    const dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+    let stepsPerLoop = 1;
+    let currentDirIndex = 0;
 
     while (true) {
-        for (let i = 0; i < 2; i++) { // Two times for each direction to complete a "loop" in all directions
+        for (let i = 0; i < 2; i++) {
             const dir = dirs[currentDirIndex];
             for (let j = 0; j < stepsPerLoop; j++) {
                 x += dir[0];
@@ -529,9 +529,9 @@ function plotSquareSpiral(xCenter, yCenter, maxRadius = 20, expansionRate = 3) {
                     return path.filter((obj) => obj[0] >= 0 && obj[1] >= 0 && obj[0] < mapWidth && obj[1] < mapHeight);
                 }
             }
-            currentDirIndex = (currentDirIndex + 1) % 4; // Cycle through the directions
+            currentDirIndex = (currentDirIndex + 1) % 4;
         }
-        stepsPerLoop += expansionRate; // Increase steps after completing one full set of loops in all directions
+        stepsPerLoop += expansionRate;
     }
 }
 

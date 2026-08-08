@@ -58,7 +58,7 @@ function buildBasicBase()
 		if ((isSeaMap || !isStructureAvailable(CYBORG_FACTORY_STAT)) && countStruct(FACTORY_STAT) < 2 && grabTrucksAndBuild(FACTORY_STAT, 1)) return true;
 
 		// build another factory if cyborgs are not available and oil rich map
-		let oils = seenStore.query({isReachable: true}).length;
+		let oils = oilResourceStore.query({isReachable: true}).length;
 		if ((isSeaMap || !isStructureAvailable(CYBORG_FACTORY_STAT)) && oils > 40 && countStruct(FACTORY_STAT) < 3 && grabTrucksAndBuild(FACTORY_STAT, 1)) return true;
 
 		// build two labs early if no tech
@@ -66,34 +66,22 @@ function buildBasicBase()
 
 		// build cyborg factory early at start
 		if (!isSeaMap && countStruct(CYBORG_FACTORY_STAT) < 1 && grabTrucksAndBuild(CYBORG_FACTORY_STAT, 1)) return true;
-
-		// build a repair facility early
-		if (buildRepairFacs()) return true;
-
-		// build one base artillery defense
-		if (buildBaseArtillery(1)) return true;
 	}
 
 	// build a power generator and upgrade
 	if (countStruct(POW_GEN_STAT) < 1 && grabTrucksAndBuild(POW_GEN_STAT, 1)) return true;
 
-	// build hq early because player designs can't be made without it
-	if (countStruct(PLAYER_HQ_STAT) === 0 && grabTrucksAndBuild(PLAYER_HQ_STAT, 1))	return true;
-
 	// make sure generators get upgraded asap
 	if (upgradeGenerators()) return true;
+
+	// build hq early because player designs can't be made without it
+	if (countStruct(PLAYER_HQ_STAT) === 0 && grabTrucksAndBuild(PLAYER_HQ_STAT, 1))	return true;
 
 	// build another power generator
 	if (countStruct(POW_GEN_STAT) < 2 && grabTrucksAndBuild(POW_GEN_STAT, 1)) return true;
 
-	// build vtol pads early when relying on vtol
-	if (relyOnVtols && buildVTOLpads()) return true;
-
 	/// build one lab
 	if (!researchDone && countStruct(RES_LAB_STAT) === 0 && grabTrucksAndBuild(RES_LAB_STAT, 1)) return true;
-
-	// if excess derricks build more generators
-	if (countStruct(DERRICK_STAT)/4 > countStruct(POW_GEN_STAT) && grabTrucksAndBuild(POW_GEN_STAT, 1))	return true;
 
 	return false;
 }
@@ -101,29 +89,24 @@ function buildBasicBase()
 function buildFundamentals() { queue("buildFundamentalsQ"); } // timer
 function buildFundamentalsQ()
 {
-	if (checkLocalJobs()) return true;
-	if (buildBasicBase()) return true;
-	if (buildRepairFacs()) return true;
-	if (buildVTOLpads()) return true;
+	if (checkLocalJobs()) return true; // help finish jobs
+	if (buildBasicBase()) return true; // only the basics
+	if (upgradeFactories(FACTORY)) return true;
 
-	if (relyOnVtols) {
-		if (upgradeFactories(VTOL_FACTORY)) return true;
-		if (upgradeFactories(FACTORY)) return true;
-	} else {
-		if (upgradeFactories(FACTORY)) return true;
-		if (upgradeFactories(VTOL_FACTORY)) return true;
-	}
+	if (countStruct(DERRICK_STAT)/4 > countStruct(POW_GEN_STAT) && grabTrucksAndBuild(POW_GEN_STAT, 1))	return true;
 
 	if (enemyHasVtol && buildAntiAir(1)) return true;
+	if (buildVTOLpads()) return true; // build vtol pads before upgrading vtol facs
+	if (upgradeFactories(VTOL_FACTORY)) return true;
 
 	if (upgradeResearch()) return true;
 	if (factoryBuildOrder()) return true;
 	if (buildResearchLabs()) return true;
+	if (buildRepairFacs()) return true;
 
 	if (getRealPower() > MIN_BUILD_POWER*3) {
 		if (buildLassat()) return true;
 		if (enemyHasVtol && buildAntiAir(2)) return true;
-		if (buildBaseArtillery(2)) return true;
 	}
 
 	if (getRealPower() > MIN_BUILD_POWER*7) {
@@ -131,6 +114,7 @@ function buildFundamentalsQ()
 		if (countStruct(UPLINK_STAT) === 0 && grabTrucksAndBuild(UPLINK_STAT, 1)) return true;
 	}
 
+	// build with excess power
 	if (getRealPower() > MIN_BUILD_POWER*15) {
 		if (enemyHasVtol && buildAntiAir(4)) return true;
 		if (buildBaseOilDefenses(1)) return true;
@@ -262,9 +246,9 @@ function factoryBuildOrder() {
         const fac = order[i];
 
         // Check if the map is sea and skip CYBORG factory build
-        if (!(fac === CYBORG_FACTORY_STAT && isSeaMap) && countStruct(fac) < numFactoriesToBuild && grabTrucksAndBuild(fac, 0)) {
-            --numFactoriesToBuild;
-        }
+        if (!(fac === CYBORG_FACTORY_STAT && isSeaMap) &&
+			!(fac === VTOL_FACTORY_STAT && groupSize(attackGroup) < MIN_ATTACK_GSIZE * 3) &&
+			countStruct(fac) < numFactoriesToBuild && grabTrucksAndBuild(fac, 0)) --numFactoriesToBuild;
     }
 
     // Return true if all required factories were successfully built, otherwise false
@@ -307,6 +291,7 @@ function buildVTOLpads()
 {
 	if (getRealPower() < MIN_BUILD_POWER/2) return false;
 	if (!isStructureAvailable(VTOL_PAD_STAT)) return false;
+	if (!countStruct(VTOL_FACTORY_STAT)) return false;
 
 	let Labs = enumStruct(me, RES_LAB_STAT);
 	let baseoils = enumStruct(me, RESOURCE_EXTRACTOR).filter((obj) => (distBetweenTwoPoints(obj.x, obj.y, BASE.x, BASE.y) < AVG_BASE_RADIUS));
@@ -351,7 +336,8 @@ function buildRepairFacs()
 			return grabTrucksAndBuild(REPAIR_FACILITY_STAT, 2, site.x, site.y);
 		}
 		// build on path near base perimeter
-		return grabTrucksAndBuild(REPAIR_FACILITY_STAT, 8, buildRepairFacs._path.path[20][0], buildRepairFacs._path.path[20][1]);
+		let randomPathStep = randomBetween(10, 20);
+		return grabTrucksAndBuild(REPAIR_FACILITY_STAT, 8, buildRepairFacs._path.path[randomPathStep][0], buildRepairFacs._path.path[randomPathStep][1]);
 	}
 	return false;
 }
@@ -580,88 +566,8 @@ function assignTrucksToOilQ() {
         logObj(assignment.builder, `truck assigned to oil at ${assignment.site.x},${assignment.site.y}`);
     }
 
-    return assignments.length > 0; // Return true if any assignments were made
+    return assignments.length > 0;
 }
-// function assignTrucksToOilQ() {
-// 	// init assignments
-// 	if (!assignTrucksToOilQ._assignments) assignTrucksToOilQ._assignments = {};
-//     // Step 1: Filter builders based on specified conditions
-//     const builders = enumGroup(oilBuilders).filter((obj) =>
-//         (obj.order === 0 || obj.action === 0 || obj.order === DORDER_HELPBUILD) );
-//     if (!builders.length) return false;
-//
-//     // Step 2: Identify safe sites by filtering out hostile-adjacent oil sites
-// 	// and sites which already have a builder present
-//     const sites = getNotMyOil();
-//     const safeSites = sites.filter(site => {
-// 		const alliedBuilderCount = enumRange(site.x, site.y, GROUP_SCAN_RADIUS).filter((obj) =>
-// 			(obj.player === me && obj.droidType === DROID_CONSTRUCT)).length;
-// 		if (alliedBuilderCount > 0) return false; // builder already present
-//         const hostileCount = getHostilesNear(site, GROUP_SCAN_RADIUS).length;
-//         return hostileCount === 0;
-//     });
-//     if (!safeSites.length) return false;
-//
-//     const assignments = [];
-//     // Maintain a copy of safe sites to track availability
-//     let availableSites = [...safeSites];
-//
-//     // Step 3: Precompute distances from each builder to all safe sites
-//     const builderDistances = builders.map(builder => {
-//         const distances = availableSites.map(site => {
-//             const dist = distBetweenTwoPoints(builder.x, builder.y, site.x, site.y);
-//             return dist ? dist : Infinity;
-//         });
-//         return { builder, distances };
-//     });
-//
-//     // Step 4: Use a priority queue to sort builders by their minimum distance to any safe site
-//     const priorityQueue = new ultimate_PriorityQueue();
-//     builderDistances.forEach(({ builder, distances }) => {
-//         const minDistance = Math.min(...distances);
-//         // Enqueue both the builder and its distances array with priority as minDistance
-//         priorityQueue.enqueue({ builder, distances }, minDistance);
-//     });
-//
-//     // Step 5: Assign each builder to the closest available safe site
-//     while (!priorityQueue.isEmpty()) {
-//         const { builder, distances } = priorityQueue.dequeue();
-//         if (!builder || !builder.id) continue;
-//         let bestSite = null;
-//         let minDistance = Infinity;
-//
-//         for (let i = 0; i < availableSites.length; i++) {
-//             const site = availableSites[i];
-//             const distance = distances[i];
-//             if (distance < minDistance && droidCanReach(builder, site.x, site.y)) {
-//                 minDistance = distance;
-//                 bestSite = site;
-//             }
-//         }
-// 		if (!bestSite || !bestSite.id) continue
-//         // Check if the previous assignment has expired
-//         const lastAssignmentTime = assignTrucksToOilQ._assignments[builder.id]?.[bestSite.id] || -Infinity;
-//         if (gameTime - lastAssignmentTime > 30000) {
-//             if (bestSite) {
-//                 assignments.push({ builder, site: bestSite });
-//                 availableSites = availableSites.filter(site => site !== bestSite); // Remove assigned site from available sites
-//
-//                 // Update the timestamp for this assignment
-//                 assignTrucksToOilQ._assignments[builder.id] = assignTrucksToOilQ._assignments[builder.id] || {};
-//                 assignTrucksToOilQ._assignments[builder.id][bestSite.id] = gameTime;
-//             }
-//         }
-//     }
-//
-//     // Step 6: Execute the assignments and log each successful assignment
-//     for (const assignment of assignments) {
-//         orderDroidLoc(assignment.builder, DORDER_MOVE, assignment.site.x, assignment.site.y);
-//         orderLocations.set(assignment.builder.id, { x: assignment.site.x, y: assignment.site.y, enemies: false });
-//         logObj(assignment.builder, `truck assigned to oil at ${assignment.site.x},${assignment.site.y}`);
-//     }
-//
-//     return assignments.length > 0; // Return true if any assignments were made
-// }
 
 //// reduced original working version
 function idleConstructor(droid)
@@ -706,15 +612,14 @@ function idleConstructor(droid)
 	return false;
 }
 
-function checkOilsReachable() { queue("checkOilsReachableQ"); } // timer
+function checkOilsReachable() { queue("checkOilsReachableQ"); }
 function checkOilsReachableQ() {
-	const sites = enumFeature(ALL_PLAYERS, OIL_RES_STAT); // player would have seen oils on minimap
+	const sites = enumFeature(ALL_PLAYERS, OIL_RES_STAT); // player sees oils on minimap
 
 	let unReachableSites = sites.length;
 	let reachableWithDestruction = 0;
 	let reachableWithHover = 0;
 
-    // Iterate over each site
     for (let site of sites) {
         let isReachable = false;
         let requiresDestruction = false;
@@ -759,8 +664,7 @@ function checkOilsReachableQ() {
 
 		if (!isReachable) log(`oil not reachable: ${site.x},${site.y}`);
 
-        // Store the accessibility status in the database
-        seenStore.addObject( site.id, { ...site, id: site.id, isReachable, requiresDestruction, requiresHover });
+        oilResourceStore.addObject( site.id, { ...site, id: site.id, isReachable, requiresDestruction, requiresHover });
     }
 	log("unreachable oils: "+unReachableSites);
 	console("unreachable oils: "+unReachableSites);
@@ -769,5 +673,3 @@ function checkOilsReachableQ() {
 	log("requires hover: "+reachableWithHover);
 	console("requires hover: "+reachableWithHover);
 }
-
-

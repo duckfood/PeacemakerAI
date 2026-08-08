@@ -39,12 +39,12 @@ function eventDroidBuilt(droid, struct)
 		let baseCount = enumGroup(baseBuilders).length;
 		let oilCount = enumGroup(oilBuilders).length;
 
-		if (baseCount < MIN_BASE_TRUCKS) { groupAdd(baseBuilders, droid); logObj(droid, "added to baseBuilders"); } // Add a truck to baseBuilders if there are fewer than 2 trucks
-		else if (oilCount < MIN_OIL_TRUCKS) { groupAdd(oilBuilders, droid); logObj(droid, "added to oilBuilders"); } // Add a truck to oilBuilders if there are fewer than 3 trucks
-		else if (baseCount === MIN_BASE_TRUCKS) { groupAdd(baseBuilders, droid); logObj(droid, "added to baseBuilders"); } // If baseBuilders has exactly 2 trucks, add another
-		else if (oilCount < MAX_OIL_TRUCKS - 1) { groupAdd(oilBuilders, droid); logObj(droid, "added to oilBuilders"); } // If oilBuilders is nearly full, add a truck to baseBuilders
-		else if (baseCount < MAX_BASE_TRUCKS) { groupAdd(baseBuilders, droid); logObj(droid, "added to baseBuilders"); } // Add a truck to baseBuilders if it's not at maximum capacity
-		else { groupAdd(oilBuilders, droid); logObj(droid, "added to oilBuilders"); } // If none of the above conditions are met, add a truck to oilBuilders
+		if (baseCount < MIN_BASE_TRUCKS) { groupAdd(baseBuilders, droid); logObj(droid, "added to baseBuilders"); }
+		else if (oilCount < MIN_OIL_TRUCKS) { groupAdd(oilBuilders, droid); logObj(droid, "added to oilBuilders"); }
+		else if (baseCount === MIN_BASE_TRUCKS) { groupAdd(baseBuilders, droid); logObj(droid, "added to baseBuilders"); }
+		else if (oilCount < MAX_OIL_TRUCKS - 1) { groupAdd(oilBuilders, droid); logObj(droid, "added to oilBuilders"); }
+		else if (baseCount < MAX_BASE_TRUCKS) { groupAdd(baseBuilders, droid); logObj(droid, "added to baseBuilders"); }
+		else { groupAdd(oilBuilders, droid); logObj(droid, "added to oilBuilders"); }
 	}
 	else if (droid.droidType === DROID_REPAIR)
 	{
@@ -171,7 +171,7 @@ function eventAttacked(victim, attacker) {
     }
 	// order vtols scout to attacker if safe
     const vtols = enumGroup(vtolGroup);
-    if (vtols.length > MIN_VTOL_UNITS) {
+    if (vtols.length > MIN_VTOL_UNITS * 2) {
         for (let vt of vtols) {
             if (throttleThis("eventAttacked_throttle_Vtol_" + vt.id, VTOL_DEFEND_TIME)) continue;
             let AA = getAAthreats(loc);
@@ -239,10 +239,11 @@ function eventDestroyed(object)
 	if (!object || !object.id) return;
 	logObj(object, "destroyed");
 
-	if (object.type === FEATURE) MapTilesFeatures[object.x][object.y].destroyed = true;
+	if (object.type === FEATURE && object.stattype !== OIL_RESOURCE) MapTilesFeatures[object.x][object.y].destroyed = true;
 
 	if (object.canHitGround === false && object.canHitAir === true) AAseenStore.deleteObjects({ id: object.id });
-	if ((object.type === FEATURE && object.stattype === OIL_RESOURCE) === false) seenStore.deleteObjects({ id: object.id });
+
+	seenStore.deleteKey(object.id);
 
 	if (object.player !== me) return;
 
@@ -276,7 +277,7 @@ function eventStructureBuilt(structure, droid)
 		if (oils && oils.length) {
 			oils = sortByDistToLoc(droid, oils);
 			for (let oil of oils) {
-				if (!tileIsBurning(oil.x, oil.y) && droidCanReach(droid, oil.x, oil.y) && seenStore.query({ isReachable: true, requiresDestruction: false, x:oil.x, y:oil.y })) {
+				if (!tileIsBurning(oil.x, oil.y) && droidCanReach(droid, oil.x, oil.y) && oilResourceStore.query({ isReachable: true, requiresDestruction: false, x:oil.x, y:oil.y })) {
 					orderDroidBuild(droid, DORDER_BUILD, DERRICK_STAT, oil.x, oil.y);
 					logObj(droid, "eventStructureBuilt building on nearby oil");
 					oilAssignments.set(oil.id, gameTime);
@@ -295,9 +296,4 @@ function eventPickup(feature, droid)
 		collectArtifacts._assignments.delete(feature.id);
 		if (collectArtifacts(droid)) return;
 	}
-}
-
-function eventDroidRankGained(droid, rankNum)
-{
-
 }
