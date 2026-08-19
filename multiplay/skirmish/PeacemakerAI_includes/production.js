@@ -81,10 +81,10 @@ const MIX_CYBORG = [
 	"Cyb-Hvywpn-RailGunner",
 ];
 
-const HOVER_CHANCE = 8;
-const ARTILLERY_CHANCE = 32;
+const HOVER_CHANCE = 6;
+const ARTILLERY_CHANCE = 50;
 const REPAIR_CHANCE = 68;
-const AA_CHANCE = 8;
+const AA_CHANCE = 9;
 
 function buildAttacker(fac)
 {
@@ -104,8 +104,8 @@ function buildAttacker(fac)
 	// build repair tanks based on combat droid count and autorepair
 	if (componentAvailable("HeavyRepair") || componentAvailable("LightRepair1") && random(100) < REPAIR_CHANCE)
 	{
-		let div = 4;
-		if (componentAvailable("AutoRepair")) { div = 8; }
+		let div = 5;
+		if (componentAvailable("AutoRepair")) { div = 10; }
 		
 		let repair = [];
 		let combat = [];
@@ -138,7 +138,7 @@ function buildAttacker(fac)
 	if (enemyHasVtol && componentAvailable("QuadMg1AAGun"))
 	{
 		let div = 10;
-		if (componentAvailable("AAGunLaser")) { div = 20; }
+		if (componentAvailable("AAGunLaser")) { div = 15; }
 
 		let AA = enumDroid(me, DROID_WEAPON).filter((obj) => (obj.canHitAir === true && obj.canHitGround === false) );
 		let combat = enumDroid(me, DROID_WEAPON).filter((dr) => (dr.isVTOL === false)).concat(enumDroid(me, DROID_CYBORG));

@@ -165,11 +165,20 @@ function returnTarget(dr, randomtarget=false, droidAge=120000, structAge=600000)
 			{
 				if (lassat.x === undefined || lassat.y === undefined) continue;
 				let target_AA = getAAthreats(lassat);
-				if (!target_AA || target_AA.length < 3)
+				if (!target_AA || target_AA.length < 2)
 				{
 					logObj(dr, "getVTOLtarget returning lassat target");
 					return lassat;
 				}
+			}
+		}
+		// send vtols to attack oil if there's any to take
+		targets = getNotMyOil();
+		if (targets && targets.length) {
+			let notmyoils = shuffleArray(targets);
+			for (let notmyoil of notmyoils) {
+				let oilaa = getAAthreats(notmyoil);
+				if (oilaa && oilaa.length < 2) return notmyoil;
 			}
 		}
 	}
@@ -220,7 +229,7 @@ function returnTarget(dr, randomtarget=false, droidAge=120000, structAge=600000)
 				// if vtol check aa
 				if (dr.isVTOL == true) {
 					let t_aa = getAAthreats(t);
-					if (t_aa && t_aa.length > 2) {
+					if (t_aa && t_aa.length > 1) {
 						log("returnTarget "+t_aa.length+" AA near target - next target");
 						continue;
 					}
@@ -260,7 +269,7 @@ function getVTOLtarget(vtol, randomize = false) {
     let AAthreats = getAAthreats(vtol);
 
     // Target AA if not too many
-    if (AAthreats.length && AAthreats.length < 3) {
+    if (AAthreats.length && AAthreats.length < 2) {
         if (randomize) {
             logObj(vtol, "getVTOLtarget returning random nearby AA target");
             return returnRandInFirstFew(AAthreats);
@@ -403,17 +412,12 @@ function idleRepair(dr)
 	else {log("droidAware repair droid "+dr.id+" nowhere to scout");}
 }
 
+let lassatFired = false;
 function fireLassat()
 {
-	let my_lassat = [];
-	my_lassat = enumStruct(me, LASSAT_STAT);
-	if (my_lassat.length === 0) return false;
-
-	// no way to know if charged so just attempt to fire it
-	const satellite = my_lassat[0];
-
-	const target = returnTarget(satellite);
-	return activateStructure(satellite, target);
+	let my_lassat = enumStruct(me, LASSAT_STAT);
+	if (!my_lassat.length) return false;
+	if (lassatFired == false) lassatFired = activateStructure(my_lassat[0], returnTarget(my_lassat[0]));
 }
 
 function getStrongestAttackDroids() {

@@ -125,16 +125,16 @@ function droidAwareVtolQ()
 		{
 			let threats = [];
 			threats = getAAthreats(dr);
-			if (threats && threats.length > 3) // mass AA
+			if (threats && threats.length > 2) // mass AA
 			{
 				orderDroid(dr, DORDER_RTB);
 				logObj(dr, "droidAware scouting vtol spotted mass AA:"+threats.length);
 				continue;
 			}
-			else if (threats && threats.length > 0 && dr.weapons[0].armed > 0 && dr.health > 65)
+			else if (groupSize(vtolGroup) > MIN_VTOL_UNITS * 2 && threats && threats.length > 0 && dr.weapons[0].armed > 0 && dr.health > 65)
 			{
 				let threats_aa = getAAthreats(threats[0]);
-				if (threats_aa && threats_aa.length < 3)
+				if (threats_aa && threats_aa.length < 2)
 				{
 					orderDroidObj(dr, DORDER_ATTACK, threats[0]);
 					logObj(dr, "droidAware scouting vtol ordered to attack AA - call in support");

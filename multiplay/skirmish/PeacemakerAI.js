@@ -1,5 +1,6 @@
-//// PeacemakerAI v0.9 2026-8-8 github.com/duckfood
+//// PeacemakerAI v0.10 2026-8-20 http://github.com/duckfood
 //// MIT license. No warranty whatsoever. Use this code at your own risk!
+//// Include this notice in any substantial reproductions.
 
 // log messages to bot log file
 const DEBUG = false;
@@ -142,18 +143,15 @@ function eventStartLevel()
 	setTimer("handlePileups", 30000 + ((1 + random(4)) * random(30)));
 	setTimer("checkOrderLocations", 10000 + ((1 + random(4)) * random(10)));
 	setTimer("checkUnreachableOils", 60000 + ((1 + random(4)) * random(10)));
-
-	//setTimer("showGameTime", 30000); // show gameTime in console
-
-	// lassat api cannot be relied on, sometimes this even fires repeatedly!
 	setTimer("fireLassat", 10000 + ((1 + random(4)) * random(100)));
+	//setTimer("showGameTime", 30000); // show gameTime in console
 
 	// handle starting droids
 	for (let dr of startDroids) { eventDroidBuilt(dr); }
 
 	// add oils player has seen on minimap
 	checkOilsReachable();
-	markTiles(seenStore.query({type: FEATURE, stattype: OIL_RESOURCE, isReachable: true, requiresDestruction: true }));
+	//markTiles(seenStore.query({type: FEATURE, stattype: OIL_RESOURCE, isReachable: true, requiresDestruction: true }));
 
 	// don't rely on vtols if advanced AA is available
 	if (componentAvailable("AAGunLaser") ||
@@ -195,6 +193,8 @@ const AAseenStore = new SpatialDataStore({
 	canHitAir: new Map(),
 	canHitGround: new Map(),
 });
+
+// initialize oil resource store
 const oilResourceStore = new SpatialDataStore({
 	isReachable: new Map(),
 	requiresDestruction: new Map(),

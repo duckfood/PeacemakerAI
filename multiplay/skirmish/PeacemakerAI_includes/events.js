@@ -189,8 +189,11 @@ function eventAttacked(victim, attacker) {
 
 function eventStructureReady(structure)
 {
-	// done with a timer too
-	if (structure.stattype === LASSAT) fireLassat(structure);
+	// uses a timer too
+	if (structure.stattype === LASSAT) {
+		lassatFired = false;
+		fireLassat(structure);
+	}
 }
 
 function eventDroidIdle(droid)
