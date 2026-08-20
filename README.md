@@ -62,3 +62,37 @@ For more information and screenshots see [duckfood.github.io/PeacemakerAI](https
 ![Basebuilding1](https://duckfood.github.io/PeacemakerAI/media/basebuilding_screenshot1.jpg)
 
 ![Basebuilding2](https://duckfood.github.io/PeacemakerAI/media/basebuilding_screenshot2.jpg)
+
+/* Light mode (default) */
+:root {
+  --bg-color: #ffffff;
+  --text-color: #2c3e50;
+  --heading-color: #1a202c;
+  --link-color: #3498db;
+  --border-color: #eaecef;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #1a202c;
+    --text-color: #e2e8f0;
+    --heading-color: #f7fafc;
+    --link-color: #63b3ed;
+    --border-color: #4a5568;
+  }
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+h1, h2, h3 {
+  color: var(--heading-color);
+  border-bottom-color: var(--border-color);
+}
+
+a {
+  color: var(--link-color);
+}
