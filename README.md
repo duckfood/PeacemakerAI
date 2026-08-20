@@ -26,7 +26,9 @@ To reveal the location of your wz2100 configuration directory go to options menu
 PeacemakerAI grew out of a project to explore advanced JavaScript while leveraging large language models for coding assistance.
 
 ---
+
 For the latest updates and screenshots visit [duckfood.github.io/PeacemakerAI](https://duckfood.github.io/PeacemakerAI)
+
 ---
 
 ### Dispatching rivals
