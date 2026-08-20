@@ -31,7 +31,7 @@ For more information and screenshots see [duckfood.github.io/PeacemakerAI](https
 
 ### Screenshots dispatching rivals
 ***Pacifying the Cobra***
-![Cobra1](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot1.jpg)
+[![Cobra1](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot1.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot1.jpg)
 
 ![Cobra2](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot2.jpg)
 
