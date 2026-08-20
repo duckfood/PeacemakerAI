@@ -1,5 +1,10 @@
 TODO and done for PeacemakerAI
 
+check if any opponent bases cannot be reached by hover
+go full vtol if none can be reached, if some are unreachable limit ground production
+
+check once or twice if oils marked unreachable are reachable by nearby truck just to be sure
+
 -expire order locations
 
 -improve early game no tech high oil efficiency
@@ -7,9 +12,9 @@ TODO and done for PeacemakerAI
 routine to help prevent damaged droids from getting stuck on each other
 option to include local player built blockades in pathfinding
 
-if opponents go rocket build cyborgs not tanks
+if opponents go rocket build cyborgs not tanks maybe
 
-eliminate production unseen free oil check
+-eliminate production unseen free oil check
 
 -trucks seem to be getting assigned all to one oil sometimes
 -repairfac should use grabtrucks not ordertrucks
@@ -17,7 +22,7 @@ eliminate production unseen free oil check
 -increase mass cash spending threshold
 -repairs are hanging around the base vtols maybe?
 
-some oils which are accessible not getting claimed on Strikeout
+some oils which are accessible not getting claimed on Strikeout and others
 
 -try to collect artifacts and oil drums, but only a few times, maybe try again later
 
@@ -41,7 +46,7 @@ trucks are moving to owned oil maybe stop scouting if now owned
 handle objects where the location is unknown eg. old mobile threats
 
 -maybe use findpath for blocked oil
-maybe build a third factory at start if oil rich map
+-maybe build a third factory at start if oil rich map
 -trucks are attempting to build on inaccessible oil in roughness despite checks
 
 -only return accessible oil targets
@@ -115,7 +120,7 @@ lassat only fires when selected for player, but works for non-player
 
 -particle gun
 
-find a way to spend mass excess cash
+-find a way to spend mass excess cash
 -limit building excess oil trucks
 
 -repair units are not repairing the most damaged unit
@@ -152,7 +157,7 @@ retreat from ultimate scavs maybe
 order units to stop before reaching rally point
 
 -when starting with all tech rely on vtols less
-maybe vtols should run from one high tech aa unit
+-maybe vtols should run from one high tech aa unit
 -re-enable double tanks
 
 -retreating vtols should attack random derrick after a few secs
@@ -207,7 +212,7 @@ relocate rally points
 -if dorder guard and daction none for attackers
 -vtols should track down trucks
 
-if many opponents build fortress near base
+if many opponents build fortress near base maybe
 build and defend wall trucks
 
 -if truck is repairing
