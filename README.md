@@ -1,4 +1,4 @@
-**PeacemakerAI** is a fair-play skirmish AI bot for **Warzone2100**, crafted in modern JavaScript with assistance from advanced large language models to ensure fair, strategic gameplay. Surpasses NullBot, Cobra, and BoneCrusher with fair-play tactics by leveraging spatial data stores and enhanced droid awareness. PeacemakerAI is unrivaled any tech any map.
+**PeacemakerAI** is a fair-play skirmish AI bot for **Warzone2100**, crafted in modern JavaScript with assistance from advanced large language models to ensure fair, strategic gameplay. Surpasses NullBot, Cobra, and BoneCrusher with fair-play tactics by leveraging spatial data stores and enhanced droid awareness. PeacemakerAI is unrivaled any start any map. [proof](#dispatching-would-be-rivals)
 
 PeacemakerAI is released under the MIT license, so there are no warranties or limitations whatsoever. Run this code at your own risk as it may absorb your system, your life, or invoke a new world order!
 
