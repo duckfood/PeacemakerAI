@@ -1,4 +1,4 @@
-**PeacemakerAI** is a fair-play skirmish AI bot for **Warzone2100**, crafted in modern JavaScript with assistance from advanced large language models to ensure fair, strategic gameplay. Surpasses NullBot, Cobra, and BoneCrusher with fair-play tactics by leveraging spatial data stores and enhanced droid awareness. PeacemakerAI is unrivaled any tech level any map.
+**PeacemakerAI** is a fair-play skirmish AI bot for **Warzone2100**, crafted in modern JavaScript with assistance from advanced large language models to ensure fair, strategic gameplay. Surpasses NullBot, Cobra, and BoneCrusher with fair-play tactics by leveraging spatial data stores and enhanced droid awareness. PeacemakerAI is unrivaled any tech any map.
 
 PeacemakerAI is released under the MIT license, so there are no warranties or limitations whatsoever. Run this code at your own risk as it may absorb your system, your life, or invoke a new world order!
 
@@ -17,10 +17,10 @@ To reveal the location of your wz2100 configuration directory go to options menu
 - **Lightweight Spatial Data Store**: Leverages persistent data stores for observed objects and spatial queries. Enhanced decision-making without knowledge of unseen droids and structures.
 - **Human-like Operational Constraints**: Operates with the knowledge and constraints of a human player for fair play. Knows what a player would have the opportunity to know.
 - **Enhanced Droid Intelligence**: Utilizes queued timers to enhance droid awareness while maintaining smooth performance. Droids operate efficiently and purposefully, with self preservation top priority.
-- **Outperforms Nullbot, Cobra, Bonecrusher, SemperFi, and FishBot**: Bests existing bots despite their knowledge of unseen objects. Efficiently pacifies multiple opponents in free for all for total world peace!
+- **Outperforms NullBot, Cobra, Bonecrusher, SemperFi, and FishBot**: Bests existing bots despite their knowledge of unseen objects. Efficiently pacifies multiple opponents in free for all for total world peace!
 
 ### Attribution
-**Inspired by the prototypical SemperFi from the base Warzone 2100**. Although they share similar naming conventions, PeacemakerAI has undergone significant revisions and enhancements thanks to assistance from qwen3, granite4, deepseek-coder-v2, and gpt4 large language models. Special thanks to GitHub Copilot and Claude Haiku 4.5 for assistance solving the toughest bugs.
+**Inspired by the prototypical SemperFi from the base Warzone 2100**. Although they share similar naming conventions and structure, PeacemakerAI has undergone significant revisions and enhancements thanks to assistance from qwen3, granite4, deepseek-coder-v2, and gpt4 large language models. Special thanks to GitHub Copilot and Claude Haiku 4.5 for assistance solving the toughest bugs.
 
 ### Motivation
 PeacemakerAI grew out of a project to explore advanced JavaScript while leveraging large language models for coding assistance.
