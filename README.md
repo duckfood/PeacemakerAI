@@ -31,7 +31,7 @@ For the latest updates and screenshots visit [duckfood.github.io/PeacemakerAI](h
 
 ---
 
-### Dispatching rivals
+### Dispatching would-be rivals
 ***Cobra, charmed***
 [![Cobra1](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot1.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot1.jpg)
 
