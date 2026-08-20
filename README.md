@@ -26,33 +26,33 @@ To reveal the location of your wz2100 configuration directory go to options menu
 PeacemakerAI grew out of a project to explore advanced JavaScript while leveraging large language models for coding assistance.
 
 ---
-
 For the latest updates and screenshots visit [duckfood.github.io/PeacemakerAI](https://duckfood.github.io/PeacemakerAI)
+---
 
 ### Dispatching rivals
-***Cobra charmed***
+***Cobra, charmed***
 [![Cobra1](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot1.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot1.jpg)
 
 [![Cobra2](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot2.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot2.jpg)
 
 [![Cobra3](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot3.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot3.jpg)
 
-***FishBot and chips***
+***FishBot, and chips***
 [![FishBot1](https://duckfood.github.io/PeacemakerAI/media/bested-fishbot_screenshot1.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-fishbot_screenshot1.jpg)
 
 [![FishBot2](https://duckfood.github.io/PeacemakerAI/media/bested-fishbot_screenshot2.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-fishbot_screenshot2.jpg)
 
 [![FishBot3](https://duckfood.github.io/PeacemakerAI/media/bested-fishbot_screenshot3.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-fishbot_screenshot3.jpg)
 
-***BoneCrusher crushed***
+***BoneCrusher, crushed***
 [![BoneCrusher1](https://duckfood.github.io/PeacemakerAI/media/bested-bonecrusher_screenshot1.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-bonecrusher_screenshot1.jpg)
 
 [![BoneCrusher2](https://duckfood.github.io/PeacemakerAI/media/bested-bonecrusher_screenshot2.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-bonecrusher_screenshot2.jpg)
 
-***SemperFi comply***
+***SemperFi, comply***
 [![SemperFi1](https://duckfood.github.io/PeacemakerAI/media/bested-semperfi_screenshot1.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-semperfi_screenshot1.jpg)
 
-***NullBot nullified***
+***NullBot, nullified***
 [![NullBot1](https://duckfood.github.io/PeacemakerAI/media/bested-nullbot_screenshot1.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-nullbot_screenshot1.jpg)
 
 ***Neighborhood recycling initiative***
