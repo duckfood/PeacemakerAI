@@ -23,7 +23,7 @@ To reveal the location of your wz2100 configuration directory go to options menu
 **Inspired by the prototypical SemperFi from the base Warzone 2100**. Although they share similar naming conventions and structure, PeacemakerAI has undergone significant revisions and enhancements thanks to assistance from qwen3, granite4, deepseek-coder-v2, and gpt4 large language models. Special thanks to GitHub Copilot and Claude Haiku 4.5 for assistance solving the toughest bugs.
 
 ### Motivation
-PeacemakerAI grew out of a project to explore advanced JavaScript while leveraging large language models for coding assistance.
+PeacemakerAI grew out of a project to explore advanced JavaScript while leveraging large language models for coding assistance. It does not cheat in any known way. If you see it doing the impossible, open an issue with screenshots. If you find a crack in it's strategy open an issue.
 
 ---
 
