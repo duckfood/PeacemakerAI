@@ -42,6 +42,9 @@ For the latest updates and screenshots visit [duckfood.github.io/PeacemakerAI](h
 [![Cobra3](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot3.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot3.jpg)
 *T2 start*
 
+[![Cobra4](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot4.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot4.jpg)
+*T1 start seamap*
+
 ---
 
 ***FishBot, and chips***
@@ -81,6 +84,9 @@ For the latest updates and screenshots visit [duckfood.github.io/PeacemakerAI](h
 [![Neighborhood1](https://duckfood.github.io/PeacemakerAI/media/neighborhood_screenshot1.jpg)](https://duckfood.github.io/PeacemakerAI/media/neighborhood_screenshot1.jpg)
 *T2 start*
 
+[![Neighborhood2](https://duckfood.github.io/PeacemakerAI/media/neighborhood_screenshot2.jpg)](https://duckfood.github.io/PeacemakerAI/media/neighborhood_screenshot2.jpg)
+*T2 start seamap*
+
 ---
 
 ***Basebuilding for success***
@@ -88,6 +94,3 @@ For the latest updates and screenshots visit [duckfood.github.io/PeacemakerAI](h
 
 [![Basebuilding2](https://duckfood.github.io/PeacemakerAI/media/basebuilding_screenshot2.jpg)](https://duckfood.github.io/PeacemakerAI/media/basebuilding_screenshot2.jpg)
 
----
-
-[github.com/duckfood/PeacemakerAI/releases](https://github.com/duckfood/PeacemakerAI/releases)
