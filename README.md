@@ -34,31 +34,60 @@ For the latest updates and screenshots visit [duckfood.github.io/PeacemakerAI](h
 ### Dispatching would-be rivals
 ***Cobra, charmed***
 [![Cobra1](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot1.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot1.jpg)
+*T1 start*
 
 [![Cobra2](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot2.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot2.jpg)
+*T4 start*
 
 [![Cobra3](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot3.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot3.jpg)
+*T2 start*
+
+[![Cobra4](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot4.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-cobra_screenshot4.jpg)
+*T1 start seamap*
+
+---
 
 ***FishBot, and chips***
 [![FishBot1](https://duckfood.github.io/PeacemakerAI/media/bested-fishbot_screenshot1.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-fishbot_screenshot1.jpg)
+*T2 start*
 
 [![FishBot2](https://duckfood.github.io/PeacemakerAI/media/bested-fishbot_screenshot2.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-fishbot_screenshot2.jpg)
+*T2 start*
 
 [![FishBot3](https://duckfood.github.io/PeacemakerAI/media/bested-fishbot_screenshot3.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-fishbot_screenshot3.jpg)
+*T4 start*
+
+---
 
 ***BoneCrusher, crushed***
 [![BoneCrusher1](https://duckfood.github.io/PeacemakerAI/media/bested-bonecrusher_screenshot1.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-bonecrusher_screenshot1.jpg)
+*T1 start*
 
 [![BoneCrusher2](https://duckfood.github.io/PeacemakerAI/media/bested-bonecrusher_screenshot2.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-bonecrusher_screenshot2.jpg)
+*T3 start*
+
+---
 
 ***SemperFi, comply***
 [![SemperFi1](https://duckfood.github.io/PeacemakerAI/media/bested-semperfi_screenshot1.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-semperfi_screenshot1.jpg)
+*T1 start*
+
+---
 
 ***NullBot, nullified***
 [![NullBot1](https://duckfood.github.io/PeacemakerAI/media/bested-nullbot_screenshot1.jpg)](https://duckfood.github.io/PeacemakerAI/media/bested-nullbot_screenshot1.jpg)
+*T4 start*
+
+---
 
 ***Neighborhood recycling initiative***
 [![Neighborhood1](https://duckfood.github.io/PeacemakerAI/media/neighborhood_screenshot1.jpg)](https://duckfood.github.io/PeacemakerAI/media/neighborhood_screenshot1.jpg)
+*T2 start*
+
+[![Neighborhood2](https://duckfood.github.io/PeacemakerAI/media/neighborhood_screenshot2.jpg)](https://duckfood.github.io/PeacemakerAI/media/neighborhood_screenshot2.jpg)
+*T2 start seamap*
+
+---
 
 ***Basebuilding for success***
 [![Basebuilding1](https://duckfood.github.io/PeacemakerAI/media/basebuilding_screenshot1.jpg)](https://duckfood.github.io/PeacemakerAI/media/basebuilding_screenshot1.jpg)
