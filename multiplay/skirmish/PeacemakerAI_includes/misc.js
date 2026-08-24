@@ -13,7 +13,7 @@ function logObj(obj, message)
 
 function logTrace(message) {
     let caller = debugGetCallerFuncName();
-    log(`${message} ${JSstr(caller)}`);
+    log(`${message} ${JNstr(caller)}`);
 }
 
 function getRealPower()

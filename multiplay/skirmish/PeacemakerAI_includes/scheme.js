@@ -117,6 +117,7 @@ const Schemes = {
             "Cannon4AUTO-VTOL",
             "Laser3BEAM-VTOL", // flashlight
             "MG4ROTARY-VTOL",
+            "Cannon1-VTOL",
         ],
         STANDARD_DEFENSES: [
             "GuardTower-BeamLas",
@@ -149,7 +150,6 @@ const Schemes = {
             "R-Vehicle-Prop-Halftracks",
             "R-Wpn-MG-Damage01",
             "R-Vehicle-Engine03",
-            "R-Wpn-Mortar01Lt",
             "R-Vehicle-Body05", // cobra
             "R-Wpn-Cannon2Mk1", // medium
         ],
@@ -168,7 +168,6 @@ const Schemes = {
         	"R-Sys-Sensor-Upgrade01",
         ],
         FUNDAMENTALS2: [
-            "R-Wpn-Mortar-ROF01",
             "R-Wpn-Cannon4AMk1",
             "R-Cyborg-Hvywpn-HPV",
             "R-Vehicle-Body11", // python
@@ -259,6 +258,7 @@ const Schemes = {
             "ParticleGun-VTOL",
             "Laser2PULSE-VTOL", // pulse
             "Cannon4AUTO-VTOL",
+            "Cannon1-VTOL",
         ],
         STANDARD_DEFENSES: [
             "GuardTower-BeamLas",

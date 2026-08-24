@@ -1,19 +1,23 @@
 TODO and done for PeacemakerAI
 
-check if any opponent bases cannot be reached by hover
-go full vtol if none can be reached, if some are unreachable limit ground production
+-air map mode
+-sea map mode
+
+if extra labs are available and needed build more
 
 check once or twice if oils marked unreachable are reachable by nearby truck just to be sure
-
--expire order locations
-
--improve early game no tech high oil efficiency
 
 routine to help prevent damaged droids from getting stuck on each other
 option to include local player built blockades in pathfinding
 
 if opponents go rocket build cyborgs not tanks maybe
 
+-if vtols in area outnumber aa 5 to 1 don't retreat
+-when plasmite bomb is available switch to mixed vtol
+-build aa vtols if there are many hostile vtols
+
+-expire order locations
+-improve early game no tech high oil efficiency
 -eliminate production unseen free oil check
 
 -trucks seem to be getting assigned all to one oil sometimes

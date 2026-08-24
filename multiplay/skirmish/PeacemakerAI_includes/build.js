@@ -20,7 +20,7 @@ function demolishThis(object)
 }
 
 // Help finish building some object that is close to base.
-function checkLocalJobs()
+function finishLocalJobs()
 {
 	let trucks = findIdleTrucks();
 	let freeTrucks = trucks.length;
@@ -47,41 +47,84 @@ function checkLocalJobs()
 	return success;
 }
 
+function buildEarlyBase()
+{
+	let HIGH_OIL = 45;
+
+	// build first factory
+	if (countStruct(FACTORY_STAT) === 0 && grabTrucksAndBuild(FACTORY_STAT, 1)) return true;
+
+	let oils = oilResourceStore.query({isReachable: true}).length;
+
+	if (!componentAvailable("LightRepair1")) { // is low tech
+		// build first lab early if no tech
+		if (countStruct(RES_LAB_STAT) < 1 && grabTrucksAndBuild(RES_LAB_STAT, 1)) return true;
+
+		if (isSeaMap) {
+			// build second lab seamap low tech
+			if (countStruct(RES_LAB_STAT) < 2 && grabTrucksAndBuild(RES_LAB_STAT, 1)) return true;
+		} else if (isAirMap) {
+			// build second and third lab airmap low tech
+			if (countStruct(RES_LAB_STAT) < 3 && grabTrucksAndBuild(RES_LAB_STAT, 1)) return true;
+		} else { // standard land map low tech
+
+			// build a second factory standard low tech
+			if (countStruct(FACTORY_STAT) < 2 && grabTrucksAndBuild(FACTORY_STAT, 1)) return true;
+			// build second lab standard low tech
+			if (countStruct(RES_LAB_STAT) < 2 && grabTrucksAndBuild(RES_LAB_STAT, 1)) return true;
+			// build a third factory if standard high oil map low tech
+			if (oils > HIGH_OIL && countStruct(FACTORY_STAT) < 3 && grabTrucksAndBuild(FACTORY_STAT, 1)) return true;
+		}
+
+	} else { // is high tech
+
+		if (isSeaMap) {
+			// build a second factory seamap high tech
+			if (countStruct(FACTORY_STAT) < 2 && grabTrucksAndBuild(FACTORY_STAT, 1)) return true;
+			// build third factory seamap high tech high oil
+			if (oils > HIGH_OIL && countStruct(FACTORY_STAT) < 3 && grabTrucksAndBuild(FACTORY_STAT, 1)) return true;
+
+		} else if (isAirMap) {
+			// build first air factory
+			if (countStruct(VTOL_FACTORY_STAT) < 1 && grabTrucksAndBuild(VTOL_FACTORY_STAT, 1)) return true;
+			// build second air factory if high oil
+			if (oils > HIGH_OIL && countStruct(VTOL_FACTORY_STAT) < 2 && grabTrucksAndBuild(VTOL_FACTORY_STAT, 1)) return true;
+
+		} else { // standard land map high tech
+
+			if (isStructureAvailable(CYBORG_FACTORY_STAT)) { // cyborgs
+
+				if (countStruct(CYBORG_FACTORY_STAT) < 1 && grabTrucksAndBuild(CYBORG_FACTORY_STAT, 1)) return true;
+				// build a second factory if cyborgs are available and high oil map
+				if (oils > HIGH_OIL && countStruct(FACTORY_STAT) < 2 && grabTrucksAndBuild(FACTORY_STAT, 1)) return true;
+
+			} else { // no cyborgs high tech
+
+				// build second factory if cyborgs are not available
+				if (countStruct(FACTORY_STAT) < 2 && grabTrucksAndBuild(FACTORY_STAT, 1)) return true;
+				// build a third factory if cyborgs are not available and high oil map
+				if (oils > HIGH_OIL && countStruct(FACTORY_STAT) < 3 && grabTrucksAndBuild(FACTORY_STAT, 1)) return true;
+			}
+		}
+		if (buildOneIncendiaryMortar()) return true;
+	}
+	return false;
+}
+
 // standard base build scheme
 function buildBasicBase()
 {
-	// build a factory
-	if (countStruct(FACTORY_STAT) === 0 && grabTrucksAndBuild(FACTORY_STAT, 1)) return true;
+	// build first power generator
+	if (countStruct(POW_GEN_STAT) === 0 && grabTrucksAndBuild(POW_GEN_STAT, 1)) return true;
 
-	if (gameTime < 240000) {
-		// build another factory if cyborgs are not available
-		if ((isSeaMap || !isStructureAvailable(CYBORG_FACTORY_STAT)) && countStruct(FACTORY_STAT) < 2 && grabTrucksAndBuild(FACTORY_STAT, 1)) return true;
-
-		// build another factory if cyborgs are not available and oil rich map
-		let oils = oilResourceStore.query({isReachable: true}).length;
-		if ((isSeaMap || !isStructureAvailable(CYBORG_FACTORY_STAT)) && oils > 40 && countStruct(FACTORY_STAT) < 3 && grabTrucksAndBuild(FACTORY_STAT, 1)) return true;
-
-		// build two labs early if no tech
-		if (!researchDone && !componentAvailable("MG1Mk1") && countStruct(RES_LAB_STAT) < 2 && grabTrucksAndBuild(RES_LAB_STAT, 1)) return true;
-
-		// build cyborg factory early at start
-		if (!isSeaMap && countStruct(CYBORG_FACTORY_STAT) < 1 && grabTrucksAndBuild(CYBORG_FACTORY_STAT, 1)) return true;
-	}
-
-	// build a power generator and upgrade
-	if (countStruct(POW_GEN_STAT) < 1 && grabTrucksAndBuild(POW_GEN_STAT, 1)) return true;
-
-	// make sure generators get upgraded asap
-	if (upgradeGenerators()) return true;
-
-	// build hq early because player designs can't be made without it
+	// build hq before production of combat droids
 	if (countStruct(PLAYER_HQ_STAT) === 0 && grabTrucksAndBuild(PLAYER_HQ_STAT, 1))	return true;
 
-	// build another power generator
-	if (countStruct(POW_GEN_STAT) < 2 && grabTrucksAndBuild(POW_GEN_STAT, 1)) return true;
+	// build one factory
+	if (countStruct(FACTORY_STAT) === 0 && grabTrucksAndBuild(FACTORY_STAT, 1)) return true;
 
-	/// build one lab
-	if (!researchDone && countStruct(RES_LAB_STAT) === 0 && grabTrucksAndBuild(RES_LAB_STAT, 1)) return true;
+	// build one cyborg factory if standard map
+	if (!isSeaMap && !isAirMap && countStruct(CYBORG_FACTORY_STAT) === 0 && grabTrucksAndBuild(CYBORG_FACTORY_STAT, 1)) return true;
 
 	return false;
 }
@@ -89,24 +132,38 @@ function buildBasicBase()
 function buildFundamentals() { queue("buildFundamentalsQ"); } // timer
 function buildFundamentalsQ()
 {
-	if (checkLocalJobs()) return true; // help finish jobs
-	if (buildBasicBase()) return true; // only the basics
+	if (finishLocalJobs()) return true;
+	if (gameTime < 240000 && buildEarlyBase()) return true;
+	if (buildBasicBase()) return true;
+
+	// make sure generators get upgraded asap
+	if (upgradeGenerators()) return true;
+
+	// build second generator if needed
+	if (countStruct(DERRICK_STAT) > 4 && countStruct(POW_GEN_STAT) < 2 && grabTrucksAndBuild(POW_GEN_STAT, 1)) return true;
+
 	if (upgradeFactories(FACTORY)) return true;
 
+	// build more generators as needed
 	if (countStruct(DERRICK_STAT)/4 > countStruct(POW_GEN_STAT) && grabTrucksAndBuild(POW_GEN_STAT, 1))	return true;
 
 	if (enemyHasVtol && buildAntiAir(1)) return true;
-	if (buildVTOLpads()) return true; // build vtol pads before upgrading vtol facs
+	if (buildVTOLpads()) return true;
 	if (upgradeFactories(VTOL_FACTORY)) return true;
 
 	if (upgradeResearch()) return true;
 	if (factoryBuildOrder()) return true;
-	if (buildResearchLabs()) return true;
+
+	// if high tech delay building extra research labs for 6 minutes
+	if (componentAvailable("LightRepair1") && gameTime > 360000 && buildResearchLabs()) return true;
+	if (!componentAvailable("LightRepair1") && buildResearchLabs()) return true;
+
 	if (buildRepairFacs()) return true;
 
 	if (getRealPower() > MIN_BUILD_POWER*3) {
 		if (buildLassat()) return true;
-		if (enemyHasVtol && buildAntiAir(2)) return true;
+		if (buildAntiAir(2)) return true;
+		if (isAirMap && buildAntiAir(6)) return true;
 	}
 
 	if (getRealPower() > MIN_BUILD_POWER*7) {
@@ -116,24 +173,27 @@ function buildFundamentalsQ()
 
 	// build with excess power
 	if (getRealPower() > MIN_BUILD_POWER*15) {
-		if (enemyHasVtol && buildAntiAir(4)) return true;
+		if (buildAntiAir(4)) return true;
+		if (isAirMap && buildAntiAir(8)) return true;
 		if (buildBaseOilDefenses(1)) return true;
 	}
 
 	if (getRealPower() > MIN_BUILD_POWER*50) {
-		if (enemyHasVtol && buildAntiAir(6)) return true;
+		if (buildAntiAir(6)) return true;
 		if (buildBaseArtillery(6)) return true;
-		if (enemyHasVtol && buildAntiAir(8)) return true;
-		if (buildBaseArtillery(8)) return true;
-		if (enemyHasVtol && buildAntiAir(12)) return true;
-		if (buildBaseArtillery(12)) return true;
+		if (buildAntiAir(8)) return true;
+		if (!isAirMap && buildBaseArtillery(8)) return true;
+		if (buildAntiAir(12)) return true;
+		if (!isAirMap && buildBaseArtillery(12)) return true;
 	}
-
+	if (getRealPower() > MIN_BUILD_POWER*100) {
+		if (buildAntiAir(24)) return true;
+		if (!isAirMap && buildBaseArtillery(24)) return true;
+	}
 	checkResearchCompletion();
 }
 
 //// used to build core base buildings but not accessory buildings
-// cascaded if working version
 function grabTrucksAndBuild(structure, maxBlocking=1, x=BASE.x+random(6)-random(6), y=BASE.y+random(6)-random(6), direction=[0, 90, 180, 270][random(3)])
 {
     if (!isStructureAvailable(structure)) return false;
@@ -192,27 +252,25 @@ function grabTrucksAndBuild(structure, maxBlocking=1, x=BASE.x+random(6)-random(
 		let spiry = spirloc[1];
 
 		buildloc = pickStructLocation(builder, structure, spirx, spiry, maxBlocking);
-		log("buildloc spir: "+spirx+","+spiry+JSON.stringify(buildloc));
+		log("buildloc spiral: "+spirx+","+spiry+JSON.stringify(buildloc));
     }
     log("default building at: "+x+"x"+y);
     buildloc = pickStructLocation(builder, structure, x, y, maxBlocking);
 	return orderTrucksBuild(droids, structure, buildloc, direction);
 }
 
-//// used to build accessory buildings and used by grabTrucksAndBuild
+//// used to build accessory buildings and by grabTrucksAndBuild()
 function orderTrucksBuild(structure, site, maxBlocking=1, direction=0)
 {
 	if (!structure || !structure.length) {
-		logTrace("WARNING orderTrucksBuild missing structure");
-		return false;
-	}
-	if (!site || site.x === undefined || site.y === undefined) {
-		logTrace("WARNING orderTrucksBuild missing site");
+		logTrace("ERROR orderTrucksBuild missing structure");
 		return false;
 	}
 
 	let trucks = findIdleTrucks();
 	if (!trucks || !trucks.length || !trucks[0].id) return false;
+	if (!site || site.x === undefined || site.y === undefined) site = trucks[0];
+
 	let buildloc = pickStructLocation(trucks[0], structure, site.x, site.y, maxBlocking);
 	if (!buildloc || buildloc.x == undefined || buildloc.y == undefined) return false;
 
@@ -232,7 +290,7 @@ function factoryBuildOrder() {
     const FAC_ORDER = [FACTORY_STAT, CYBORG_FACTORY_STAT, VTOL_FACTORY_STAT];
     let order = relyOnVtols ? [VTOL_FACTORY_STAT, CYBORG_FACTORY_STAT, FACTORY_STAT] : FAC_ORDER;
 
-    // Determine the number of factories to build based on Derrick count
+    // Determine the number of factories to build based on derrick count
     const derrNum = countStruct(DERRICK_STAT);
     let numFactoriesToBuild = 1;
     if (derrNum >= 40) {
@@ -245,10 +303,18 @@ function factoryBuildOrder() {
     for (let i = 0; i < order.length && numFactoriesToBuild > 0; ++i) {
         const fac = order[i];
 
-        // Check if the map is sea and skip CYBORG factory build
-        if (!(fac === CYBORG_FACTORY_STAT && isSeaMap) &&
-			!(fac === VTOL_FACTORY_STAT && groupSize(attackGroup) < MIN_ATTACK_GSIZE * 3) &&
-			countStruct(fac) < numFactoriesToBuild && grabTrucksAndBuild(fac, 0)) --numFactoriesToBuild;
+		// skip unused factories for sea and air maps
+		if (isSeaMap) {
+			if (fac === CYBORG_FACTORY_STAT) continue;
+			if (fac === VTOL_FACTORY_STAT && groupSize(attackGroup) < MIN_ATTACK_GSIZE * 3) continue;
+		} else if (isAirMap) {
+			if (fac === CYBORG_FACTORY_STAT) continue;
+			if (fac === FACTORY_STAT) continue;
+		} else {
+			if (fac === VTOL_FACTORY_STAT && groupSize(attackGroup) < MIN_ATTACK_GSIZE * 3) continue;
+		}
+
+		if (countStruct(fac) < numFactoriesToBuild && grabTrucksAndBuild(fac, 0)) --numFactoriesToBuild;
     }
 
     // Return true if all required factories were successfully built, otherwise false
@@ -373,11 +439,19 @@ function buildLassat() {
                 return orderTrucksBuild(LASSAT_STAT, buildloc);
             }
         }
-        log("buildLassat no suitable place to build found.");
+        log("WARNING buildLassat no suitable place to build found.");
 		buildloc = pickStructLocation(trucks[0], LASSAT_STAT, BASE.x, BASE.y);
 		return orderTrucksBuild(LASSAT_STAT, buildloc); // just build it wherever
     }
     return false;
+}
+
+function buildOneIncendiaryMortar() {
+	if (!isStructureAvailable("Emplacement-MortarPit-Incendiary")) return false;
+	let base_artillery = seenStore.query({ player: me, hasIndirect: true, type: STRUCTURE });
+
+	if (!base_artillery.length && orderTrucksBuild("Emplacement-MortarPit-Incendiary")) return true;
+	return false;
 }
 
 function buildBaseArtillery(max=1)
@@ -444,7 +518,7 @@ function buildAntiAir(max=1)
 {
 	let antiAirs = seenStore.query({ player: me, type: STRUCTURE, isAA: true });
 
-	if (max > antiAirs) {
+	if (max > antiAirs.length) {
 		for (let j = 0, s = Schemes[Scheme].AA_SITES.length; j < s; ++j)
 		{
 			if (grabTrucksAndBuild(Schemes[Scheme].AA_SITES[j], 1)) return true;
@@ -453,8 +527,8 @@ function buildAntiAir(max=1)
 	return false;
 }
 
-//// separate upgrade functions for build flexibility
-function upgradeFactories(type)
+//// structure upgrade functions
+function upgradeFactories(type, buildmod=2)
 {
 	if (!type) return false;
 	if (!isStructureAvailable(FAC_MODULE_STAT)) return false;
@@ -462,7 +536,7 @@ function upgradeFactories(type)
 
 	let facs = seenStore.query({ player: me, type: STRUCTURE, stattype: type });
 	for (let struct of facs) {
-		if (struct.modules < 2) {
+		if (struct.modules < buildmod) {
 			return orderTrucksBuild(FAC_MODULE_STAT, struct);
 		}
 	}
@@ -672,4 +746,11 @@ function checkOilsReachableQ() {
 	console("requires destruction: "+reachableWithDestruction);
 	log("requires hover: "+reachableWithHover);
 	console("requires hover: "+reachableWithHover);
+
+	// mark unreachableoils
+	let unreachableoils = oilResourceStore.query({ isReachable: false });
+	if (unreachableoils && unreachableoils.length) {
+		markTiles(unreachableoils);
+	}
+
 }

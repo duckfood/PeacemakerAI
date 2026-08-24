@@ -173,7 +173,7 @@ function eventAttacked(victim, attacker) {
     const vtols = enumGroup(vtolGroup);
     if (vtols.length > MIN_VTOL_UNITS * 2) {
         for (let vt of vtols) {
-            if (throttleThis("eventAttacked_throttle_Vtol_" + vt.id, VTOL_DEFEND_TIME)) continue;
+            if (throttleThis("eventAttacked_throttle_Vtol_" + vt.id, VTOL_DEFEND_TIME * 3)) continue;
             let AA = getAAthreats(loc);
             if (AA && AA.length > 2) {
                 logObj(vt, "vtol not sent on defend mission AA: "+AA.length);
@@ -254,8 +254,8 @@ function eventDestroyed(object)
 	if (object.type === DROID) orderTargets.delete(object.id);
 	if (object.isVTOL) {
 		totalVtolsLost ++;
-		if (totalVtolsBuilt > 12 && totalVtolsBuilt < totalVtolsLost*3) relyOnVtols = false;
-		if (totalVtolsBuilt > 12 && totalVtolsBuilt > totalVtolsLost*3) relyOnVtols = true;
+		if (!isAirMap && totalVtolsBuilt > 12 && totalVtolsBuilt < totalVtolsLost*3) relyOnVtols = false;
+		if (!isAirMap && totalVtolsBuilt > 12 && totalVtolsBuilt > totalVtolsLost*3) relyOnVtols = true;
 	}
 	if (object.droidType === DROID_CYBORG) {
 		totalCyborgLost ++;

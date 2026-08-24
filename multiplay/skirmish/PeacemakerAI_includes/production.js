@@ -7,13 +7,16 @@ const TANK_BODY_LIST = [
 	"Body11ABT", // python
 	"Body8MBT", // scorpion
 	"Body5REC", // cobra
+	"Body3MBT", // retaliation
+	"Body2SUP", // leopard
 	"Body4ABT", // bug
 	"Body1REC", // viper
 ];
 const VTOL_BODY_LIST = [
 	"Body14SUP", // dragon
+	"Body10MBT", // vengeance
 	"Body7ABT", // retribution
-	"Body3MBT", // retaliation
+	"Body9REC", // tiger
 	"Body6SUPP", // panther
 	"Body8MBT", // scorpion
 	"Body5REC", // cobra
@@ -84,22 +87,22 @@ const MIX_CYBORG = [
 const HOVER_CHANCE = 6;
 const ARTILLERY_CHANCE = 50;
 const REPAIR_CHANCE = 68;
-const AA_CHANCE = 9;
+const AA_CHANCE = 10;
 
 function buildAttacker(fac)
 {
-	if (fac.stattype === CYBORG_FACTORY)
+	if (fac.stattype === CYBORG_FACTORY && !isSeaMap && !isAirMap)
 	{
 		if (relyOnCyborgs) return buildCyborg(fac);
 		if (!relyOnCyborgs && random(100) < 50) return buildCyborg(fac);
 	}
 
-	if (fac.stattype !== FACTORY) return false;
-
-	if (fac.modules < 1 && isStructureAvailable("A0FacMod1") && (componentAvailable("Body5REC") || componentAvailable("Body8MBT")) ) return false;
+	if (fac.stattype !== FACTORY || isAirMap) return false;
 
 	let prop = TANK_PROP_LIST;
 	if ((isSeaMap || (random(100) < HOVER_CHANCE)) && componentAvailable("hover01")) prop = ["hover01"];
+
+	if (fac.modules < 1 && isStructureAvailable("A0FacMod1") && (componentAvailable("Body5REC") || componentAvailable("Body8MBT")) ) return false;
 
 	// build repair tanks based on combat droid count and autorepair
 	if (componentAvailable("HeavyRepair") || componentAvailable("LightRepair1") && random(100) < REPAIR_CHANCE)
@@ -186,6 +189,17 @@ function buildTank(fac, prop)
 	if (!fac) return false;
 	prop ??= isSeaMap ? SYSTEM_PROP_LIST : TANK_PROP_LIST;
 	let propName = StatsMap.get(firstAvailableComponent(prop)).Name;
+
+	// limit building early wheeled attack droids on sea map
+	if (isSeaMap && !componentAvailable("hover01") && !scavengers) {
+		let wheeled = enumDroid(me, DROID_WEAPON).filter((obj) => (obj.propulsion === "wheeled01")).length;
+		let facs = enumStruct(me, FACTORY);
+		for (let fac of facs) {
+			let vdr = getDroidProduction(fac);
+			if (vdr && vdr.propulsion === "wheeled01") wheeled++;
+		}
+		if (wheeled > 0) return false;
+	}
 
 	// build dragon multi turret tanks
 	if (componentAvailable("Body14SUP"))
@@ -320,10 +334,10 @@ function buildCyborg(fac)
 
 function buildVTOL(fac)
 {
-	if (fac == undefined) return;
+	if (fac == undefined) return false;
 	let prop = "V-Tol";
 	let weapon;
-	if (componentAvailable("Body14SUP")) {
+	if (componentAvailable("Bomb5-VTOL-Plasmite")) {
 		weapon = shuffleArray(MIX_VTOL_WEAPONS);
 	} else {
 		weapon = Schemes[Scheme].VTOL_WEAPONS;
@@ -334,9 +348,25 @@ function buildVTOL(fac)
 	return buildDroid(fac, weaponName+" "+bodyName, VTOL_BODY_LIST, prop, "", "", weapon, weapon);
 }
 
+function buildAAVTOL(fac)
+{
+	if (fac == undefined) return false;
+	let prop = "V-Tol";
+	if (componentAvailable("Rocket-VTOL-Sunburst")) {
+		let bodyName = StatsMap.get(firstAvailableComponent(VTOL_BODY_LIST)).Name;
+		return buildDroid(fac, "VTOL Sunburst"+" "+bodyName, VTOL_BODY_LIST, prop, "", "", "Rocket-VTOL-Sunburst", "Rocket-VTOL-Sunburst");
+	}
+}
+
+function buildTransport(fac)
+{
+	if (fac == undefined) return false;
+	return buildDroid(fac, "Cyborg Transport", "TransporterBody", "V-Tol");
+}
+
 function buildTruck(fac)
 {
-	if (!fac || !fac.stattype) { return false; }
+	if (!fac || !fac.stattype) return false;
 	if (fac.stattype === FACTORY) {
 		let propName = StatsMap.get(firstAvailableComponent(SYSTEM_PROP_LIST)).Name;
 		let bodyName = StatsMap.get(firstAvailableComponent(SYSTEM_BODY_LIST)).Name;
@@ -382,7 +412,7 @@ function produceDroidsQ()
 				if (FAC_LIST[i] === FACTORY_STAT || FAC_LIST[i] === CYBORG_FACTORY_STAT)
 				{
 					// check to see if trucks can be built // minus 2 via testing
-					if (baseUnderAttack < 3 && random(100) > 50 && enumDroid(DROID_CONSTRUCT) < 5 || countDroid(DROID_CONSTRUCT) + virtualTrucks < getDroidLimit(me, DROID_CONSTRUCT) -2)
+					if (random(100) > 50 && countDroid(DROID_CONSTRUCT) + virtualTrucks < getDroidLimit(me, DROID_CONSTRUCT) -2)
 					{
 						// build min base trucks
 						if (groupSize(baseBuilders < MIN_BASE_TRUCKS)) return buildTruck(fc);
@@ -392,18 +422,18 @@ function produceDroidsQ()
 						let freeoils = seenStore.query({type: FEATURE, stattype: OIL_RESOURCE}).filter((obj) => (obj.lastSeen > gameTime - 300000)).length;
 						let totaloils = oilResourceStore.query({isReachable: true}).length;
 
-						// build early trucks if high oil
-						if (gameTime < 180000 && groupSize(oilBuilders) < MAX_OIL_TRUCKS && totaloils > 30) return buildTruck(fc);
+						// build early trucks if high oil, but not sea map
+						if (!isSeaMap && gameTime < 120000 && groupSize(oilBuilders) < MAX_OIL_TRUCKS && totaloils > 40) return buildTruck(fc);
 
 						// build extra trucks if lots of free oil wells, but only if plenty of attackers
-						if (freeoils > 8 && groupSize(oilBuilders < MAX_OIL_TRUCKS) && groupSize(attackGroup) > MIN_ATTACK_GSIZE*2) return buildTruck(fc);
+						if (freeoils > 6 && groupSize(oilBuilders < MAX_OIL_TRUCKS) && groupSize(attackGroup) > MIN_ATTACK_GSIZE*2) return buildTruck(fc);
 
 						// ensure that baseBuilders has 3 trucks
 						if (groupSize(baseBuilders) === MIN_BASE_TRUCKS) return buildTruck(fc);
 					}
 
 					// build attackers
-					if (countStruct(POW_GEN_STAT) !== 0 || getRealPower() > 1000)
+					if (countStruct(POW_GEN_STAT) !== 0 || getRealPower() > 500)
 					{
 						if (random(100) < 70) { buildAttacker(fc); continue; }
 					}
@@ -412,8 +442,13 @@ function produceDroidsQ()
 				// build vtols
 				if (FAC_LIST[i] === VTOL_FACTORY_STAT && (countStruct(POW_GEN_STAT) != 0 || getRealPower() > 1000))
 				{
+					// build AA vtols if available 1 per 10
+					let build_aa_vtol = enemyHasVtol && groupSize(vtolGroup) / 10 > seenStore.query({player: me, isAA: true, isVTOL: true}).length + 1;
+					if (componentAvailable("Rocket-VTOL-Sunburst") && build_aa_vtol && random(100) > 50) { buildAAVTOL(fc); continue; }
+
+					// build normal vtols
 					if (relyOnVtols) { buildVTOL(fc); continue; }
-					else if (groupSize(attackGroup) > MIN_ATTACK_GSIZE && random(100) < 50) { buildVTOL(fc); continue; }
+					else if (groupSize(attackGroup) > MIN_ATTACK_GSIZE * 3 && random(100) < 50) { buildVTOL(fc); continue; }
 				}
 			}
 		}

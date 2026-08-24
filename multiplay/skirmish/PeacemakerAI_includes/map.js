@@ -327,6 +327,15 @@ function isHoverMap() {
     }
     return false;
 }
+//// determines if a map requires vtol to access any start position from ours
+function isVtolMap() {
+    for (let i = 0; i < maxPlayers; i++) {
+        if (!propulsionCanReach(PROP_HOVER, BASE.x, BASE.y, startPositions[i].x, startPositions[i].y)) {
+            return true;
+        }
+    }
+    return false;
+}
 
 //// Extends a line segment from point1 to point2 by distance `d` in the specified direction.
 function extendLine(point1, point2, d, direction = 'beyond') {
@@ -424,11 +433,11 @@ class ultimate_PriorityQueue {
 }
 
 //// ultimate version A* pathfinding with options
-// 4-way only as diagonal movement is not possible for droids
+// 4-way only as diagonal movement is not possible for droids apparently
 // droidCanReach returns incorrect results involving diagonal movement eg. Roughness blocked oils
 // map bounds clipped to avoid pathfinding off map as game map is inaccessible around the edge
 // considers start tile to be accessible if adjacent tile is
-// allows a path to an inaccessible tile can be formed by reversing start and dest
+// allows a path to an inaccessible tile can be formed by swapping start and dest
 function findShortestPath(start, dest, propulsion = PROP_WHEEL, allowDestruction = false, maxPathLength = Infinity) {
     if (!start || start.x === undefined || start.y === undefined) {
         log("WARNING findShortestPath no or invalid start for path");

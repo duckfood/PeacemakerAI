@@ -110,7 +110,7 @@ function droidAwareVtolQ()
 	let droidAware = enumGroup(vtolGroup);
 	for (let dr of droidAware)
 	{
-		if (!dr.isVTOL) { continue; }
+		if (!dr.isVTOL) continue;
 
 		if (dr.health < 65 && dr.order === DORDER_SCOUT && enumStruct(me, VTOL_PAD_STAT))
 		{
@@ -120,13 +120,40 @@ function droidAwareVtolQ()
 			logObj(dr, "droidAware found scouting vtol in need of repair:");
 			continue;
 		}
-		// if scouting vtol spots mass AA retreat, otherwise attack the AA
+
 		if (dr.order === DORDER_SCOUT || dr.order === DORDER_ATTACK)
 		{
-			let threats = [];
-			threats = getAAthreats(dr);
-			if (threats && threats.length > 2) // mass AA
+			let threats = getAAthreats(dr);
+			if (threats && threats.length)
 			{
+				// check to see if nearby vtols vastly outnumber aa
+				let allied_vtols = seenStore.findNear(dr, GROUP_SCAN_RADIUS *3, { isAllied: true, isVTOL: true });
+				let hostile_aa = seenStore.findNear(dr, GROUP_SCAN_RADIUS *3, { isAllied: false, isAA: true });
+
+				if (allied_vtols.length / 6 > hostile_aa.length)
+				{
+					orderDroidObj(dr, DORDER_ATTACK, threats[0]);
+					logObj(dr, "droidAware scouting mass of vtol ordered to attack AA");
+
+					// call in air support from nearby vtols
+					let my_vtols = allied_vtols.filter((obj) => (obj.player === me));
+					for (let vt of my_vtols)
+					{
+						if (vt.health === 100 && vt.weapons[0].armed === 100 && vt.id != dr.id &&
+								!throttleThis("droidAwareVtol_throttle_AAairSupport_"+vt.id, VTOL_DEFEND_TIME))
+						{
+							let aathreat = returnRandInFirstFew(hostile_aa);
+							let vt_object = getObject(vt.type, vt.player, vt.id);
+							if (vt_object && vt_object.id && vt_object.isVTOL) {
+								orderDroidObj(vt_object, DORDER_ATTACK, aathreat);
+								logObj(vt, "droidAware vtol called in for AA support");
+							}
+						}
+					}
+					continue;
+				}
+
+				// otherwise retreat
 				orderDroid(dr, DORDER_RTB);
 				logObj(dr, "droidAware scouting vtol spotted mass AA:"+threats.length);
 				continue;
@@ -163,7 +190,7 @@ function droidAwareVtolQ()
 				continue;
 			}
 		}
-		// make sure vtol on scout does not go home with ammo if it sees ememies or there is a derrick to blast
+		// make sure vtol on scout does not go home with ammo if it sees enemies or there is a derrick to blast
 		if (dr.order === DORDER_SCOUT && dr.weapons[0].armed > 0 && dr.health > 65 &&
 		   (dr.action === 32 || dr.action === 33 || dr.action === 34 || dr.action === 38))
 		{
@@ -189,14 +216,15 @@ function droidAwareVtolQ()
 				orderDroid(dr, DORDER_REARM);
 				logObj(dr, "droidAware circling vtol ordered to REARM");
 				continue;
-
 			}
-			let target = getVTOLtarget(dr);
-			if (target && dr.health === 100 && dr.weapons[0].armed === 100 && target.x && target.y)
-			{
-				orderDroidLoc(dr, DORDER_SCOUT, target.x, target.y);
-				logObj(dr, "droidAware circling vtol ordered to scout to target:"+target.x+"x"+target.y);
-				continue;
+			if (random(100) > 85) { // remove some from circle
+				let target = getVTOLtarget(dr);
+				if (target && dr.health === 100 && dr.weapons[0].armed === 100 && target.x && target.y)
+				{
+					orderDroidLoc(dr, DORDER_SCOUT, target.x, target.y);
+					logObj(dr, "droidAware circling vtol ordered to scout to target:"+target.x+"x"+target.y);
+					continue;
+				}
 			}
 		}
 		// idle vtol
@@ -486,9 +514,17 @@ function droidAwareObstaclesQ() {
     if (!dr || !dr.id) return;
 
 	// check if healthy
-	if (dr.health < 75 && dr.order !== DORDER_RTR) {
+	if (dr.health < 85 && dr.order !== DORDER_RTR) {
 		orderDroid(dr, DORDER_RTR);
 		logObj(dr, "RTR");
+		return;
+	}
+
+	// scout to nearby hostiles instead
+	let hostiles = getHostilesNear(dr, GROUP_SCAN_RADIUS*2);
+	if (hostiles && hostiles.length && dr.order !== DORDER_SCOUT) {
+		orderDroidLoc(dr, DORDER_SCOUT, hostiles[0].x, hostiles[0].y);
+		logObj(dr, `demolish droid scouting to nearby hostile`);
 		return;
 	}
 
@@ -500,13 +536,6 @@ function droidAwareObstaclesQ() {
 
     // if attacking or scouting and not idle return
     if (( dr.order === DORDER_ATTACK || dr.order === DORDER_RTR || dr.order === DORDER_RECOVER ) && dr.action !== 0) return;
-
-	// scout to nearby hostiles instead
-	let hostiles = getHostilesNear(dr, GROUP_SCAN_RADIUS);
-	if (hostiles && hostiles.length && dr.order !== DORDER_SCOUT) {
-		orderDroidLoc(dr, DORDER_SCOUT, hostiles[0].x, hostiles[0].y);
-		logObj(dr, `demolish droid scouting to nearby hostile`);
-	}
 
 	// try to collect artifacts
 	if (collectArtifacts(dr)) return;
@@ -776,6 +805,7 @@ function baseAware()
 function balanceGroups()
 {
 	//log("seenStore: "+JNstr(seenStore.query({})));
+	if (isAirMap) relyOnVtols = true;
 
 	if (getResearch("R-Sys-Sensor-Upgrade01").done) GROUP_SCAN_RADIUS = 11;
 	if (getResearch("R-Sys-Sensor-Upgrade02").done) GROUP_SCAN_RADIUS = 13;
@@ -1103,3 +1133,78 @@ function adjustSchemeAndStance()
 		}
 	}
 }
+
+//let transporterSites = new Map();
+function claimOilWithTransport()
+{
+	// retreat transport if damaged
+	let transports = enumDroid(me, DROID_TRANSPORTER);
+	for (let tr of transports) {
+		if (tr.health < 70 && tr.order !== DORDER_REARM) {
+			orderDroid(tr, DORDER_REARM);
+			logObj(tr, "transporter ordered to rearm");
+		}
+	}
+	let transport = transports[0];
+	// retreat if AA
+	let hostileNearbyAA = AAseenStore.findNear();
+
+	// pick another oil if combat units present at site
+
+
+	// get unreachable oils
+	let notmyoils = new Map();
+	for (oil of oilResourceStore.query({ isReachable: false })) {
+		notmyoils.set(`${oil.x},${oil.y}`, oil);
+	}
+	// filter out owned oils by x,y
+	let ownedOils = seenStore.query({ player:me, type: STRUCTURE, stattype: RESOURCE_EXTRACTOR });
+	for (let oil of ownedOils) {
+		if (notmyoils.has(`${oil.x},${oil.y}`)) notmyoils.delete(`${oil.x},${oil.y}`);
+	}
+	// convert Map to array
+	let oils = [...notmyoils].map((e) => e);
+
+	// if enough unowned transporter only oils
+	if (oils.length > 4)  {
+		// if no transporter build one if enough combat vtols
+		if (!transports || !transports.length) {
+			if (groupSize(vtolGroup) > MIN_VTOL_UNITS * 3) {
+				let facs = enumStruct(me, VTOL_FACTORY);
+				// check production for transports
+				let vt = 0;
+				for (let fac of facs)
+				{
+					let vdr = getDroidProduction(fac);
+					if (vdr && vdr.droidType === DROID_TRANSPORTER) ++vt;
+				}
+				// build one transport
+				if (vt < 1) return buildTransport(fac);
+				return;
+			} else { return; }
+		}
+
+		// enum transport group cyborg trucks
+		let trucks = enumGroup(transportGroup);
+		if (!trucks || !trucks.length) {
+			// if cyborg truck is available reassign
+			// if no truck build a cyborg truck unless already producing one
+			// if no cyborg fac build one
+			// if no truck yet return
+		}
+
+		// sort oils by dist to transporter
+		oils = sortByDistToLoc(transporter, oils);
+
+		// if transporter has no truck find one to load up
+			// move transporter to cyborg truck if no hostile combat units
+			// load cyborg truck
+		// move transporter to closest oil if no hostile combat units
+		// unload cyborg truck
+		// build until no oil can be reached
+		// consider building 1 AA per 2 oil if airmap
+		// if transport reachable by truck load up or call transport
+
+	}
+}
+

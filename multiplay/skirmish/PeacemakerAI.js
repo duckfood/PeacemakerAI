@@ -3,7 +3,7 @@
 //// Include this notice in any substantial reproductions.
 
 // log messages to bot log file
-const DEBUG = false;
+const DEBUG = true;
 // log messages in-game
 const DEBUG_CONSOLE = false;
 const DEBUG_TRACE = false;
@@ -46,7 +46,6 @@ const HELP_CONSTRUCT_AREA = 20;
 const MIN_GROUND_UNITS = 5;
 const MIN_VTOL_UNITS = 4;
 const AVG_BASE_RADIUS = 20;
-const ENEMY_DERRICK_SCAN_RANGE = 20;
 let GROUP_SCAN_RADIUS = 9; // adjusted later for tech
 
 // constants
@@ -54,10 +53,11 @@ const TERRAIN_WATER = 7; // somehow TER_WATER is undefined and defined
 const TERRAIN_CLIFF = 8; // maybe TER_CLIFFFACE too
 const PROP_HOVER = "hover01";
 const PROP_WHEEL = "wheeled01";
-const truckStarts = enumDroid(me, DROID_CONSTRUCT);
-const startDroids = enumDroid(me);
 // approx time it would take for a fast vtol to fly from one corner of the map half way to the opposing corner
-const VTOL_DEFEND_TIME = distBetweenTwoPoints(1, 1, mapWidth-2, mapHeight-2) / 22 * 1000;
+let VTOL_DEFEND_TIME = 0;
+
+let truckStarts = [];
+let startDroids = [];
 
 // group definitions
 let attackGroup;
@@ -66,21 +66,18 @@ let vtolGroup;
 let vtolRepairGroup;
 let aaGroup;
 let demolishGroup;
-
 let baseBuilders;
 let oilBuilders;
 let sensorGroup;
 
-let researchDone;
-let truckRoleSwapped;
-let isSeaMap;
-let currentEnemy;
-let currentEnemyTick;
-let enemyHasVtol;
+let researchDone = false;
+let isSeaMap = false;
+let isAirMap = false;
+let enemyHasVtol = false;
 
 // variables
 let BASE = startPositions[me];
-let relyOnVtols = true;
+let relyOnVtols = false;
 let totalVtolsBuilt = 0;
 let totalVtolsLost = 0;
 let relyOnCyborgs = true;
@@ -90,7 +87,7 @@ let totalCyborgLost = 0;
 let baseUnderAttack = 0;
 let baseUnderAttackLoc = [];
 
-let lastBuildLoc = {x: truckStarts[0].x, y: truckStarts[0].y};
+let lastBuildLoc;
 
 let orderTargets = new Map();
 let orderLocations = new Map();
@@ -111,56 +108,65 @@ function eventStartLevel()
 	demolishGroup = newGroup();
 
 	isSeaMap = isHoverMap();
+	isAirMap = isVtolMap();
 	log("isSeaMap:"+isSeaMap);
+	log("isAirMap:"+isAirMap);
+
 	researchDone = false;
 	enemyHasVtol = false;
+	VTOL_DEFEND_TIME = distBetweenTwoPoints(1, 1, mapWidth-2, mapHeight-2) / 22 * 1000;
+	log("VTOL_DEFEND_TIME: "+VTOL_DEFEND_TIME);
 
-	setTimer("updateSeenStore", 500 + ((1 + random(4)) * random(10)));
-	setTimer("pruneSeenStore", 1000 + ((1 + random(4)) * random(10)));
+	setTimer("updateSeenStore", 500 + (randomBetween(-10, 10)));
+	setTimer("pruneSeenStore", 1000 + (randomBetween(-10, 10)));
 
-	setTimer("produceDroids", 2000 + ((1 + random(4)) * random(10)));
-	setTimer("lookForResearch", 2000 + ((1 + random(4)) * random(10)));
-	setTimer("buildFundamentals", 2000 + ((1 + random(3)) * random(10)));
-	setTimer("assignTrucksToOil", 2000 + ((1 + random(4)) * random(10)));
+	setTimer("produceDroids", 2000 + (randomBetween(-10, 10)));
+	setTimer("lookForResearch", 2000 + (randomBetween(-10, 10)));
+	setTimer("buildFundamentals", 2000 + (randomBetween(-10, 10)));
+	setTimer("assignTrucksToOil", 2000 + (randomBetween(-10, 10)));
+	setTimer("droidAwareRepair", 1000 + (randomBetween(-10, 10)));
+	setTimer("baseAware", 5000 + (randomBetween(-10, 10)));
+	setTimer("droidAwareAttacker", 1000 + (randomBetween(-10, 10)));
+	setTimer("droidAwareTruck", 1000 + (randomBetween(-10, 10)));
+	setTimer("droidAwareObstacles", 2000 + (randomBetween(-10, 10)));
+	setTimer("droidAwareVtol", 1000 + (randomBetween(-10, 10)));
+	setTimer("droidAwareSensor", 5000 + (randomBetween(-10, 10)));
+	setTimer("droidAwareScout", 5000 + (randomBetween(-10, 10)));
+	setTimer("droidAwareAA", 5000 + (randomBetween(-10, 10)));
+	setTimer("droidAwareRTB", 10000 + (randomBetween(-50, 50)));
 
-	setTimer("baseAware", 5000 + ((1 + random(4)) * random(10)));
-	setTimer("droidAwareAttacker", 1000 + ((1 + random(4)) * random(10)));
-	setTimer("droidAwareTruck", 1000 + ((1 + random(4)) * random(10)));
-	setTimer("droidAwareObstacles", 2000 + ((1 + random(4)) * random(10)));
-	setTimer("droidAwareRTB", 10000 + ((1 + random(4)) * random(100)));
-	setTimer("droidAwareRepair", 1000 + ((1 + random(4)) * random(10)));
-	setTimer("droidAwareVtol", 1000 + ((1 + random(4)) * random(10)));
-	setTimer("droidAwareSensor", 5000 + ((1 + random(4)) * random(10)));
-	setTimer("droidAwareScout", 5000 + ((1 + random(4)) * random(10)));
-	setTimer("droidAwareAA", 5000 + ((1 + random(4)) * random(10)));
+	setTimer("checkVtolAlphaStrike", VTOL_DEFEND_TIME*3 + (randomBetween(-50, 50)));
+	setTimer("recycleDroidsForHover", 10000 + (randomBetween(-50, 50)));
+	setTimer("scanForVTOLs", 10000 + (randomBetween(-50, 50)));
+	setTimer("balanceGroups", 10000 + (randomBetween(-50, 50)));
+	setTimer("adjustSchemeAndStance", 60000 + (randomBetween(-50, 50)));
+	setTimer("updateMapTilesFeatures", 60000 + (randomBetween(-50, 50)));
+	setTimer("handlePileups", 30000 + (randomBetween(-50, 50)));
+	setTimer("checkOrderLocations", 10000 + (randomBetween(-50, 50)));
+	setTimer("checkUnreachableOils", 60000 + (randomBetween(-50, 50)));
+	setTimer("fireLassat", 10000 + (randomBetween(-50, 50)));
 
-	setTimer("checkVtolAlphaStrike", VTOL_DEFEND_TIME*3 + ((1 + random(4)) * random(10)));
-	setTimer("recycleDroidsForHover", 300000 + ((1 + random(4)) * random(100)));
-	setTimer("scanForVTOLs", 10000 + ((1 + random(5)) * random(60)));
-	setTimer("balanceGroups", 10000 + ((1 + random(4)) * random(30)));
-	setTimer("adjustSchemeAndStance", 60000 + ((1 + random(4)) * random(30)));
-	setTimer("updateMapTilesFeatures", 60000 + ((1 + random(4)) * random(30)));
-	setTimer("handlePileups", 30000 + ((1 + random(4)) * random(30)));
-	setTimer("checkOrderLocations", 10000 + ((1 + random(4)) * random(10)));
-	setTimer("checkUnreachableOils", 60000 + ((1 + random(4)) * random(10)));
-	setTimer("fireLassat", 10000 + ((1 + random(4)) * random(100)));
-	//setTimer("showGameTime", 30000); // show gameTime in console
+	setTimer("showGameTime", 30000 + (randomBetween(-10, 10)));
 
+	// enumerate starting droids
+	truckStarts = enumDroid(me, DROID_CONSTRUCT);
+	lastBuildLoc = {x: truckStarts[0].x, y: truckStarts[0].y};
+
+	startDroids = enumDroid(me);
 	// handle starting droids
 	for (let dr of startDroids) { eventDroidBuilt(dr); }
 
-	// add oils player has seen on minimap
-	checkOilsReachable();
-	//markTiles(seenStore.query({type: FEATURE, stattype: OIL_RESOURCE, isReachable: true, requiresDestruction: true }));
-
-	// don't rely on vtols if advanced AA is available
-	if (componentAvailable("AAGunLaser") ||
-		componentAvailable("Missile-HvySAM") ||
-		componentAvailable("AAGun2Mk1Quad")) relyOnVtols = false;
+	// // don't rely on vtols if high tech and not airmap
+	// if (componentAvailable("AAGunLaser") ||
+	// 	componentAvailable("Missile-HvySAM") ||
+	// 	componentAvailable("AAGun2Mk1Quad")) relyOnVtols = false;
 
 	// check if any research is available
 	const reslist = enumResearch();
     if (!reslist.length) researchDone = true;
+
+	// check oil resources accessibility and store
+	checkOilsReachable();
 
 	buildFundamentals();
 }
@@ -215,4 +221,5 @@ include("/multiplay/skirmish/PeacemakerAI_includes/tactics.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/events.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/research.js");
 
-log("VTOL_DEFEND_TIME: "+VTOL_DEFEND_TIME);
+
+

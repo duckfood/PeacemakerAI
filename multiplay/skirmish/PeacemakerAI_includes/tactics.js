@@ -94,12 +94,6 @@ function scanForVTOLs()
 		removeTimer("scanForVTOLs");
 		return;
 	}
-
-	// bandit pads
-	if (countStruct("A0BaBaVtolPad", ENEMIES))
-	{
-		enemyHasVtol = true;
-	}
 }
 
 function getRandomScoutLoc(dr)
@@ -523,3 +517,4 @@ function fleeFromHostiles(dr)
 	}
 	return false;
 }
+

@@ -19,6 +19,29 @@ const VTOL_PADS_UPGRADES = [
 	"R-Struc-VTOLPad-Upgrade06", // final pad upgrade
 ];
 
+// non standard start tech
+const HOVER_START_TECH = [
+    "R-Wpn-MG1Mk1",
+    "R-Vehicle-Engine02",
+    "R-Struc-PowerModuleMk1",
+    "R-Struc-Factory-Module",
+    "R-Vehicle-Body05", // cobra
+    "R-Vehicle-Prop-Hover",
+    "R-Sys-MobileRepairTurret01",
+    "R-Wpn-Cannon2Mk1",
+    "R-Vehicle-Body11", // python
+];
+const AIR_START_TECH = [
+    "R-Struc-PowerModuleMk1",
+    "R-Struc-Factory-Module",
+    "R-Wpn-Cannon1Mk1",
+    "R-Struc-VTOLFactory",
+    "R-Vehicle-Prop-VTOL",
+    "R-Struc-VTOLPad",
+    "R-Struc-VTOLPad-Upgrade03",
+    "R-Cyborg-Transport",
+];
+
 //// perform research in tiered stages unless flush
 function lookForResearch(tech, labParam) { // timer
     if (researchDone) return;
@@ -31,18 +54,25 @@ function lookForResearch(tech, labParam) { // timer
 		if (getRealPower() < MIN_RESEARCH_POWER) return; // avoid deficit spending
         let found = false;
 
+        // hover first if seamap
+        if (isSeaMap && !found) {
+            found = evalResearch(lab.id, HOVER_START_TECH);
+            if (getRealPower() < 1500 && !isResearched(HOVER_START_TECH)) continue;
+        }
+        // vtol first if airmap
+        if (isAirMap && !found) {
+            found = evalResearch(lab.id, AIR_START_TECH);
+            if (getRealPower() < 1500 && !isResearched(AIR_START_TECH)) continue;
+        }
+
+        // finish start tech
+        if (!found) found = evalResearch(lab.id, Schemes[Scheme].START_TECH);
+        if (getRealPower() < 1500 && !isResearched(Schemes[Scheme].START_TECH)) continue;
         // if hostiles have been spotted push for AA
         if (enemyHasVtol && !found) {
             found = evalResearch(lab.id, Schemes[Scheme].ANTI_AIR_TECH);
         }
-        // prioritize hover if needed
-        if (isSeaMap && !found) {
-            found = pursueResearch(lab, "R-Vehicle-Prop-Hover");
-        }
-        // finish start tech first
-        found = evalResearch(lab.id, Schemes[Scheme].START_TECH);
-        if (getRealPower() < 1500 && !isResearched(Schemes[Scheme].START_TECH)) continue;
-        // prioritize fundamentals
+        // staged fundamentals
         if (!found) {
             found = evalResearch(lab.id, Schemes[Scheme].FUNDAMENTALS1);
             if (getRealPower() < 1500 && !isResearched(Schemes[Scheme].FUNDAMENTALS1)) continue;
@@ -94,11 +124,18 @@ function evalResearch(labID, list) {
     }
 
     for (const item of list) {
-        if (isSeaMap && (item === "R-Vehicle-Prop-Halftracks" || item === "R-Vehicle-Prop-Tracks")) continue;
+        if (isSeaMap || isAirMap) {
+            // don't research unused propulsion tech
+            if (item === "R-Vehicle-Prop-Halftracks" || item === "R-Vehicle-Prop-Tracks") continue;
+            // don't research cyborg related tech
+            if (item.includes("Cyborg")) continue;
+        }
+
         const research = getResearch(item);
         if (research && !research.done && pursueResearch(lab, item)) {
             return true;
         }
+
     }
 
     return false;
