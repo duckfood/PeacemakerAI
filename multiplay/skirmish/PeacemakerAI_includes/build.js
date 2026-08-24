@@ -57,20 +57,18 @@ function buildEarlyBase()
 	let oils = oilResourceStore.query({isReachable: true}).length;
 
 	if (!componentAvailable("LightRepair1")) { // is low tech
-		// build first lab early if no tech
-		if (countStruct(RES_LAB_STAT) < 1 && grabTrucksAndBuild(RES_LAB_STAT, 1)) return true;
-
 		if (isSeaMap) {
-			// build second lab seamap low tech
+			// build first and second lab seamap low tech
 			if (countStruct(RES_LAB_STAT) < 2 && grabTrucksAndBuild(RES_LAB_STAT, 1)) return true;
 		} else if (isAirMap) {
-			// build second and third lab airmap low tech
-			if (countStruct(RES_LAB_STAT) < 3 && grabTrucksAndBuild(RES_LAB_STAT, 1)) return true;
+
+			// build 4 labs airmap low tech
+			if (countStruct(RES_LAB_STAT) < 4 && grabTrucksAndBuild(RES_LAB_STAT, 1)) return true;
 		} else { // standard land map low tech
 
 			// build a second factory standard low tech
 			if (countStruct(FACTORY_STAT) < 2 && grabTrucksAndBuild(FACTORY_STAT, 1)) return true;
-			// build second lab standard low tech
+			// build first and second lab standard low tech
 			if (countStruct(RES_LAB_STAT) < 2 && grabTrucksAndBuild(RES_LAB_STAT, 1)) return true;
 			// build a third factory if standard high oil map low tech
 			if (oils > HIGH_OIL && countStruct(FACTORY_STAT) < 3 && grabTrucksAndBuild(FACTORY_STAT, 1)) return true;
@@ -114,7 +112,7 @@ function buildEarlyBase()
 // standard base build scheme
 function buildBasicBase()
 {
-	// build first power generator
+	// build one power generator
 	if (countStruct(POW_GEN_STAT) === 0 && grabTrucksAndBuild(POW_GEN_STAT, 1)) return true;
 
 	// build hq before production of combat droids

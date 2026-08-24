@@ -522,20 +522,19 @@ function droidAwareObstaclesQ() {
 
 	// scout to nearby hostiles instead
 	let hostiles = getHostilesNear(dr, GROUP_SCAN_RADIUS*2);
-	if (hostiles && hostiles.length && dr.order !== DORDER_SCOUT) {
+	if (hostiles && hostiles.length && dr.order !== DORDER_SCOUT && dr.order === DORDER_RTR) {
 		orderDroidLoc(dr, DORDER_SCOUT, hostiles[0].x, hostiles[0].y);
 		logObj(dr, `demolish droid scouting to nearby hostile`);
 		return;
 	}
 
 	if (dr.order === DORDER_ATTACK && lastDemoOrderTime < gameTime - 30000) {
-		orderDroidLoc(dr, DORDER_SCOUT, dr.x+randomBetween(-3, 3), dr.y+randomBetween(-3, 3));
-		logObj(dr, `demolish droid relocating`);
-		lastDemoOrderTime = gameTime;
+		orderDroidLoc(dr, DORDER_MOVE, dr.x+randomBetween(-3, 3), dr.y+randomBetween(-3, 3));
+		logObj(dr, `demolish droid move to new location`);
 	}
 
     // if attacking or scouting and not idle return
-    if (( dr.order === DORDER_ATTACK || dr.order === DORDER_RTR || dr.order === DORDER_RECOVER ) && dr.action !== 0) return;
+    if ((dr.order === DORDER_SCOUT || dr.order === DORDER_ATTACK || dr.order === DORDER_RTR || dr.order === DORDER_RECOVER ) && dr.action !== 0) return;
 
 	// try to collect artifacts
 	if (collectArtifacts(dr)) return;

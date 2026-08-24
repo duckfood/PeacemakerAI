@@ -412,7 +412,7 @@ function produceDroidsQ()
 				if (FAC_LIST[i] === FACTORY_STAT || FAC_LIST[i] === CYBORG_FACTORY_STAT)
 				{
 					// check to see if trucks can be built // minus 2 via testing
-					if (random(100) > 50 && countDroid(DROID_CONSTRUCT) + virtualTrucks < getDroidLimit(me, DROID_CONSTRUCT) -2)
+					if (countDroid(DROID_CONSTRUCT) + virtualTrucks < getDroidLimit(me, DROID_CONSTRUCT) -2)
 					{
 						// build min base trucks
 						if (groupSize(baseBuilders < MIN_BASE_TRUCKS)) return buildTruck(fc);
@@ -422,8 +422,11 @@ function produceDroidsQ()
 						let freeoils = seenStore.query({type: FEATURE, stattype: OIL_RESOURCE}).filter((obj) => (obj.lastSeen > gameTime - 300000)).length;
 						let totaloils = oilResourceStore.query({isReachable: true}).length;
 
+						// if start of standard game make sure we have max oil trucks unless very low oil
+						if (totaloils > 20 && !isSeaMap && !isAirMap && gameTime < 180000 && groupSize(oilBuilders) < MAX_OIL_TRUCKS) return buildTruck(fc);
+
 						// build early trucks if high oil, but not sea map
-						if (!isSeaMap && gameTime < 120000 && groupSize(oilBuilders) < MAX_OIL_TRUCKS && totaloils > 40) return buildTruck(fc);
+						if (!isSeaMap && gameTime < 180000 && groupSize(oilBuilders) < MAX_OIL_TRUCKS && totaloils > 40) return buildTruck(fc);
 
 						// build extra trucks if lots of free oil wells, but only if plenty of attackers
 						if (freeoils > 6 && groupSize(oilBuilders < MAX_OIL_TRUCKS) && groupSize(attackGroup) > MIN_ATTACK_GSIZE*2) return buildTruck(fc);
@@ -440,7 +443,7 @@ function produceDroidsQ()
 				}
 
 				// build vtols
-				if (FAC_LIST[i] === VTOL_FACTORY_STAT && (countStruct(POW_GEN_STAT) != 0 || getRealPower() > 1000))
+				if (FAC_LIST[i] === VTOL_FACTORY_STAT && (countStruct(POW_GEN_STAT) !== 0 || getRealPower() > 1000))
 				{
 					// build AA vtols if available 1 per 10
 					let build_aa_vtol = enemyHasVtol && groupSize(vtolGroup) / 10 > seenStore.query({player: me, isAA: true, isVTOL: true}).length + 1;
