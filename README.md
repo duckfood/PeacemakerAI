@@ -94,3 +94,4 @@ For the latest updates and screenshots visit [duckfood.github.io/PeacemakerAI](h
 
 [![Basebuilding2](https://duckfood.github.io/PeacemakerAI/media/basebuilding_screenshot2.jpg)](https://duckfood.github.io/PeacemakerAI/media/basebuilding_screenshot2.jpg)
 
+[github.com/duckfood/PeacemakerAI/releases](https://github.com/duckfood/PeacemakerAI/releases)
