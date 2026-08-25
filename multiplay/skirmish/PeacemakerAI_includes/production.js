@@ -423,7 +423,7 @@ function produceDroidsQ()
 						let totaloils = oilResourceStore.query({isReachable: true}).length;
 
 						// if start of standard game make sure we have max oil trucks unless very low oil
-						if (totaloils > 20 && !isSeaMap && !isAirMap && gameTime < 180000 && groupSize(oilBuilders) < MAX_OIL_TRUCKS) return buildTruck(fc);
+						if (totaloils > 30 && !isSeaMap && !isAirMap && gameTime < 180000 && groupSize(oilBuilders) < MAX_OIL_TRUCKS) return buildTruck(fc);
 
 						// build early trucks if high oil, but not sea map
 						if (!isSeaMap && gameTime < 180000 && groupSize(oilBuilders) < MAX_OIL_TRUCKS && totaloils > 40) return buildTruck(fc);

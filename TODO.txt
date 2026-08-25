@@ -1,5 +1,7 @@
 TODO and done for PeacemakerAI
 
+units not retreating correctly when no repiarfac
+
 -air map mode
 -sea map mode
 
