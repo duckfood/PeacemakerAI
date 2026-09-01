@@ -1,4 +1,4 @@
-**PeacemakerAI** is a fair-play skirmish AI bot for **Warzone2100**, crafted in modern JavaScript with assistance from advanced large language models to ensure fair, strategic gameplay. Surpasses NullBot, Cobra, and BoneCrusher with fair-play tactics by leveraging spatial data stores and enhanced droid awareness. 
+**PeacemakerAI** is a fair-play skirmish AI bot for **Warzone2100**, crafted in modern JavaScript with assistance from advanced large language models to ensure fair, strategic gameplay. Surpasses NullBot, Cobra, and BoneCrusher with fair-play tactics by leveraging spatial data stores and enhanced droid awareness. [Screenshots](#dispatching-would-be-rivals)
 
 PeacemakerAI is released under the MIT license, so there are no warranties or limitations whatsoever. Run this code at your own risk as it may absorb your system, your life, or invoke a new world order!
 
@@ -7,7 +7,7 @@ PeacemakerAI is released under the MIT license, so there are no warranties or li
 ### Installation
 Download the mod package or source archive from [github.com/duckfood/PeacemakerAI/releases](https://github.com/duckfood/PeacemakerAI/releases)
 
-To install the pre-built mod package place PeacemakerAI.wz in the autoload folder for your version of Warzone-2100 (eg.`data/warzone2100/mods/4.7.0/autoload`)
+To install the pre-built mod package place PeacemakerAI.wz in the autoload folder for your version of Warzone-2100 (eg. `data/warzone2100/mods/4.7.0/autoload`)
 
 To install from source `unzip` or `git clone` into the mods folder for your version of Warzone-2100 (eg. `data/warzone2100/mods/4.7.0`), then run `make.bat` or `make.sh` to install the mod package.
 
@@ -20,7 +20,7 @@ To reveal the location of your wz2100 configuration directory go to options menu
 - **Outperforms NullBot, Cobra, Bonecrusher, SemperFi, and FishBot**: Bests existing bots despite their knowledge of unseen objects. Efficiently pacifies multiple opponents in free for all for total world peace!
 
 ### Attribution
-**Inspired by the prototypical SemperFi from the base Warzone 2100**. Although they share similar naming conventions and structure, PeacemakerAI has undergone significant revisions and enhancements thanks to assistance from qwen3, granite4, deepseek-coder-v2, and gpt4 large language models. Special thanks to GitHub Copilot and Claude Haiku 4.5 for assistance solving the toughest bugs.
+**Inspired by the prototypical SemperFi from the base Warzone 2100**. Although they share similar naming conventions and structure, PeacemakerAI has undergone significant revisions and enhancements thanks to assistance from gemma4, qwen3, granite4, deepseek-coder-v2, and gpt4 large language models. Special thanks to GitHub Copilot and Claude Haiku 4.5 for assistance solving the toughest bugs.
 
 ### Motivation
 PeacemakerAI grew out of a project to explore advanced JavaScript while leveraging large language models for coding assistance. It does not cheat in any known way. If you see it doing the impossible, open an issue with screenshots. If you find a crack in it's strategy open an issue.
@@ -94,4 +94,4 @@ For the latest updates and screenshots visit [duckfood.github.io/PeacemakerAI](h
 
 [![Basebuilding2](https://duckfood.github.io/PeacemakerAI/media/basebuilding_screenshot2.jpg)](https://duckfood.github.io/PeacemakerAI/media/basebuilding_screenshot2.jpg)
 
-[github.com/duckfood/PeacemakerAI/releases](https://github.com/duckfood/PeacemakerAI/releases)
+[Download](https://github.com/duckfood/PeacemakerAI/releases)
