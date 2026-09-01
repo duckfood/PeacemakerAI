@@ -144,7 +144,7 @@ function getNotMyOil(){
 	return unalliedOilResources;
 }
 
-function returnTarget(dr, randomtarget=false, droidAge=120000, structAge=600000)
+function returnTarget(dr, randomtarget=false, droidAge=TWO_MINUTE, structAge=TEN_MINUTE)
 {
 	if (!dr || !dr.id) return false;
 	let targets = [];
@@ -152,7 +152,7 @@ function returnTarget(dr, randomtarget=false, droidAge=120000, structAge=600000)
 	// send vtols lightly defended lassat targets
 	if (dr.isVTOL)
 	{
-		targets = seenStore.query({ isAllied: false, type: STRUCTURE, stattype: LASSAT }).filter((obj) => (obj.lastSeen > gameTime - 1200000));
+		targets = seenStore.query({ isAllied: false, type: STRUCTURE, stattype: LASSAT }).filter((obj) => (obj.lastSeen > gameTime - TEN_MINUTE*2));
 		if (targets && targets.length)
 		{
 			for (let lassat of targets)
@@ -166,20 +166,22 @@ function returnTarget(dr, randomtarget=false, droidAge=120000, structAge=600000)
 				}
 			}
 		}
-		// send vtols to attack oil if there's any to take
-		targets = getNotMyOil();
-		if (targets && targets.length) {
-			let notmyoils = shuffleArray(targets);
-			for (let notmyoil of notmyoils) {
-				let oilaa = getAAthreats(notmyoil);
-				if (oilaa && oilaa.length < 2) return notmyoil;
+		// send vtols to attack oil if there's any to take and not maxed out on power plants
+		if (isStructureAvailable(POW_GEN_STAT)) {
+			targets = getNotMyOil();
+			if (targets && targets.length) {
+				let notmyoils = shuffleArray(targets);
+				for (let notmyoil of notmyoils) {
+					let oilaa = getAAthreats(notmyoil);
+					if (oilaa && oilaa.length < 1) return notmyoil;
+				}
 			}
 		}
 	}
 
 	targets = seenStore.query({ isAllied: false, type: DROID, isVTOL: false }).filter((obj) => (obj.lastSeen > gameTime - droidAge));
 	targets = targets.concat(seenStore.query({ isAllied: false, type: STRUCTURE}).filter((obj) => (obj.lastSeen > gameTime - structAge)));
-	targets = targets.concat(getNotMyOil());
+	if (isStructureAvailable(POW_GEN_STAT)) targets = targets.concat(getNotMyOil());
 
 	// if no targets return a random location
 	if (!targets.length || !targets[0].id) return getRandomScoutLoc(dr);
@@ -242,8 +244,8 @@ function returnTarget(dr, randomtarget=false, droidAge=120000, structAge=600000)
 function getHostilesNear(loc, range=GROUP_SCAN_RADIUS)
 {
 	if (!loc) return false;
-	const buildingAge = 600000;
-	const droidAge = 60000;
+	const buildingAge = TEN_MINUTE;
+	const droidAge = ONE_MINUTE;
 
 	let hostiles = seenStore.findNear(loc, range, { isAllied: false, type: DROID, isVTOL: false, isCombat: true })
 		.filter((obj) => (obj.lastSeen > gameTime - droidAge) );
@@ -286,9 +288,15 @@ function getVTOLtarget(vtol, randomize = false) {
 	}
 }
 
-function getAttackerTarget(dr, randomize=true)
+function getAttackerTarget(dr, randomize=false)
 {
 	if (!dr || !dr.id || dr.isVTOL) { logTrace("WARNING getAttackerTarget invalid droid: "+JNstr(dr)); return; }
+
+	if (dr.group === oilAttackers) {
+		let oils = sortByDistToLoc(dr, getNotMyOil());
+		logObj(dr, "getAttackerTarget returning random nearest notmyoil");
+		return returnRandInFirstFew(oils);
+	}
 
 	// target nearby enemies if seen
 	const enemies = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*3, ENEMIES, true);
@@ -377,8 +385,7 @@ function idleAttacker(dr)
 	if (groupSize(attackGroup) >= MIN_GROUND_UNITS || componentAvailable("HeavyRepair"))
 	{
 		let target = getAttackerTarget(dr);
-		if (target && target.x && target.y)
-		{
+		if (target && target.x && target.y) {
 			orderDroidLoc(dr, DORDER_SCOUT, target.x, target.y);
 			logObj(dr, "attacker scouting: "+target.x+"x"+target.y);
 			if (target.id !== undefined) orderLocations.set(dr.id, {x: target.x, y: target.y, enemies: true});
@@ -468,7 +475,6 @@ function findMostExpDroid()
 	return most_exp_droid;
 }
 
-//// might not be working
 function moveFromBurningTile(dr){
 	if (tileIsBurning(dr.x, dr.y)) {
 		let spiral = plotSquareSpiral(dr.x, dr.y, 10, 2);
@@ -479,12 +485,14 @@ function moveFromBurningTile(dr){
 				orderDroidLoc(dr, DORDER_MOVE, x, y);
 				orderLocations.delete(dr.id);
 				logObj(dr, "moving from burning area");
-				return;
+				return true;
 			}
 		}
 		orderDroid(dr, DORDER_RTR);
 		logObj(dr, "retreating from burning area");
+		return true;
 	}
+	return false;
 }
 
 //// used for non combat droids
@@ -506,15 +514,101 @@ function fleeFromHostiles(dr)
 		}
 
 		// run if we get too close
-		if (longest_range && longest_droid && distBetweenTwoPoints(dr.x, dr.y, longest_droid.x, longest_droid.y) < longest_range + 3)
+		if (longest_range && longest_droid && distBetweenTwoPoints(dr.x, dr.y, longest_droid.x, longest_droid.y) < longest_range + 4)
 		{
-			orderDroid(dr, DORDER_RTB);
-			logObj(dr, "truck ordered to RTB as enemies too close longest_range:"+longest_range);
-			orderLocations.delete(dr.id);
-			orderTargets.delete(dr.id);
-			return true;
+			let rallyPoint = extendLine(longest_droid, dr, GROUP_SCAN_RADIUS, direction = 'beyond');
+
+			if (rallyPoint && rallyPoint.x !== undefined && rallyPoint.y !== undefined && droidCanReach(dr, rallyPoint.x, rallyPoint.y)) {
+				orderDroidLoc(dr, DORDER_MOVE, rallyPoint.x, rallyPoint.y);
+				logObj(dr, "truck ordered to retreat enemies close longest_range:"+longest_range);
+				oilAssignments.delete(oilAssignments.get(dr.id));
+				orderLocations.delete(dr.id);
+				orderTargets.delete(dr.id);
+				return true;
+			} else {
+				orderDroid(dr, DORDER_RTB);
+				logObj(dr, "truck ordered to RTB enemies close longest_range:"+longest_range);
+				oilAssignments.delete(oilAssignments.get(dr.id));
+				orderLocations.delete(dr.id);
+				orderTargets.delete(dr.id);
+				return true;
+			}
+
 		}
 	}
 	return false;
 }
 
+const shouldWeRetreat = (droid) => {
+    if (!droid || !droid.id || droid.isVTOL) return false;
+
+    // 1. Scan for Threats and Allies
+    const seenEnemyGroup = enumRange(droid.x, droid.y, GROUP_SCAN_RADIUS*1.5, ENEMIES, true).filter(obj =>
+        obj.isVTOL === false &&
+        obj.player !== scavengerPlayer &&
+        !(obj.canHitAir === true && obj.canHitGround === false) && // not AA
+        (obj.droidType === DROID_WEAPON || obj.droidType === DROID_CYBORG || obj.droidType === DROID_REPAIR || obj.stattype === DEFENSE)
+    );
+
+    const seenAllyGroup = enumRange(droid.x, droid.y, GROUP_SCAN_RADIUS*1.5, ALLIES, true).filter(obj =>
+        obj.isVTOL === false &&
+        (obj.droidType === DROID_WEAPON || obj.droidType === DROID_CYBORG ||
+         obj.droidType === DROID_COMMAND || obj.droidType === DROID_REPAIR || obj.stattype === DEFENSE)
+    );
+
+    // 2. Calculate Effective Health
+    const allyHealth = aggregateGroupHealth(seenAllyGroup);
+    const enemyHealth = aggregateGroupHealth(seenEnemyGroup);
+
+    // 3. Decision Logic (Retreat if enemy is too powerful)
+    if (allyHealth * RETREAT_THRESHOLD < enemyHealth) {
+        log(`Retreat condition ${allyHealth}*${RETREAT_THRESHOLD} < ${enemyHealth}`);
+        return { seenAllyGroup, seenEnemyGroup, allyHealth, enemyHealth };
+    }
+
+    return false;
+};
+const calculateEffectiveHealth = (droid) => {
+    const cost = droid.cost ?? 100;
+    const bodySize = droid.bodySize ?? 1;
+    // Ensure health is treated as a ratio (0 to 1) for accurate scaling
+    const healthRatio = droid.health / 100;
+    return cost * (bodySize + 1) * healthRatio;
+};
+const aggregateGroupHealth = (group) => {
+    return group.reduce((total, droid) => {
+        return total + calculateEffectiveHealth(droid);
+    }, 0);
+};
+
+function collectArtifacts(dr)
+{
+	if (!collectArtifacts._assignments) collectArtifacts._assignments = new Map();
+
+	let artifacts = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS, ALL_PLAYERS, true).filter((obj) => (obj.type === FEATURE && (obj.stattype === OIL_DRUM || obj.stattype === ARTIFACT)));
+	artifacts = sortByDistToLoc(dr, artifacts);
+
+	if (artifacts && artifacts.length > 0) {
+		for (let artifact of artifacts) {
+			if (artifact.x === undefined || artifact.y === undefined) continue;
+			// check assignments
+			let lastAssignment = collectArtifacts._assignments.get(artifact.id) || 0;
+			if (lastAssignment < gameTime - ONE_MINUTE) {
+				collectArtifacts._assignments.delete(artifact.id);
+				// check is accessible
+				if (droidCanReach(dr, artifact.x, artifact.y)) {
+					let enemies = getHostilesNear(artifact, GROUP_SCAN_RADIUS).filter((obj) => (obj.isAA === false));
+					if (enemies.length === 0) {
+						orderDroidObj(dr, DORDER_RECOVER, artifact);
+						logObj(dr, "droidAware truck found artifact to collect");
+						orderLocations.set(dr.id, {x: artifact.x, y: artifact.y, enemies: false});
+						// update assignments
+						collectArtifacts._assignments.set(artifact.id, gameTime);
+						return true;
+					}
+				}
+			}
+		}
+	}
+	return false;
+}

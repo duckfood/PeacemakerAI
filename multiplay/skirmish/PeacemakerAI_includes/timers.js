@@ -1,76 +1,132 @@
 function droidAwareAttacker() { queue("droidAwareAttackerQ"); }
 function droidAwareAttackerQ()
 {
-	let droidAware = enumGroup(attackGroup).concat(enumGroup(defendGroup));
+	let droidAware = enumGroup(attackGroup).concat(enumGroup(defendGroup)).concat(enumGroup(oilAttackers));
 	for (let dr of droidAware)
 	{
-		// very damaged attackers retreat to repair fac
+		if (!dr || !dr.id) continue;
+		if (dr.order === DORDER_RTR || dr.order === DORDER_RTB) continue;
+
+		// very damaged attackers retreat to repair fac or base
 		if (dr.health < 40)
 		{
 			if (countStruct(REPAIR_FACILITY_STAT)){
 				orderDroid(dr, DORDER_RTR);
-				logObj(dr, "very damaged attacker ordered to RTR");
+				logObj(dr, "droidAwareAttacker very damaged attacker ordered to RTR");
 				continue;
 			} else {
 				orderDroid(dr, DORDER_RTB);
-				logObj(dr, "very damaged attacker ordered to RTB");
+				logObj(dr, "droidAwareAttacker very damaged attacker ordered to RTB");
 				continue;
 			}
 		}
+		// less damaged attackers move to nearest repair droid
+		if (dr.health < 80)
+		{
+			let repairs = sortByDistToLoc(dr, enumGroup(repairGroup));
+			if (repairs && repairs[0] && repairs[0].id) {
+				orderDroidLoc(dr, DORDER_MOVE, repairs[0].x, repairs[0].y);
+				logObj(dr, "droidAwareAttacker damaged droid moving to repair: "+repairs[0].id);
+			}
+		}
+
+		// handle droids on firesupport
+		if (dr.hasIndirect === true && dr.order === DORDER_FIRESUPPORT && dr.action !== DACTION_FIRESUPPORT) {
+			// remove from firesupport
+			idleAttacker(dr);
+			continue;
+		}
+
 		// stop scouting droids from returning to position
-		if (dr.order === DORDER_SCOUT && dr.action === 38)
+		if (dr.order === DORDER_SCOUT && dr.action === DACTION_RETURNTOPOS)
 		{
 			idleAttacker(dr);
 			continue;
 		}
 		// catch attack droids that have fallen idle while guarding
-		if (dr.order === 25 && dr.action === 0)
+		if (dr.order === DORDER_GUARD && dr.action === DACTION_NONE)
 		{
 			idleAttacker(dr);
 			continue;
 		}
 		// check for damaged droids stuck on scout 
-		if ((dr.health < 85) && (dr.order === DORDER_SCOUT || dr.order === DORDER_ATTACK))
+		if ((dr.health < 75) && (dr.order === DORDER_SCOUT || dr.order === DORDER_ATTACK))
 		{ 
 			droidNeedsRepair(dr.id);
 			continue;
 		}
 		// move to a nearby non burning location
 		moveFromBurningTile(dr);
+
+		if (dr.action !== DACTION_ATTACK && Math.random() * 100 < 6 && collectArtifacts(dr)) continue;
 	}
 }
 
 function droidAwareSensor()
 {
-	let droidAware = enumGroup(sensorGroup);
+    let droidAware = enumGroup(sensorGroup);
 
-	for (let dr of droidAware)
-	{
-		if (dr.droidType !== DROID_SENSOR) continue;
+    for (let dr of droidAware)
+    {
+        // 1. Basic Checks (Unchanged)
+        if (dr.droidType !== DROID_SENSOR) continue;
+        if (dr.order === DORDER_RTR || dr.order === DORDER_RTB) continue;
+        // rtb if on tileIsBurning
+        if (moveFromBurningTile(dr)) continue;
 
-		if (dr.order === DORDER_RTR || dr.order === DORDER_RTB) continue;
+        // Damage Check (Unchanged)
+        if (dr.health < 80 && dr.order !== DORDER_RTR)
+        {
+            orderDroid(dr, DORDER_RTR);
+            logObj(dr, "damaged sensor ordered to RTR");
+            continue;
+        }
 
-		// rtb if on tileIsBurning
-		moveFromBurningTile(dr);
+        // 2. Support Call (Refactored Section)
+        // call in support when illuminating
+        if (dr.action === 7) { // DACTION_OBSERVE
+            let nearbyArtillery = seenStore.findNear(dr, GROUP_SCAN_RADIUS * 2, { player: me, type: DROID, hasIndirect: true });
 
-		if (dr.health < 80 && dr.order !== DORDER_RTR)
-		{
-			orderDroid(dr, DORDER_RTR);
-			logObj(dr, "damaged sensor ordered to RTR");
-			continue;
-		}
+            // *** FIX: Initialize a set to track assigned IDs for THIS TICK ***
+            const assignedArtillery = new Set();
 
-		// escort the most exp attack droid
-		if (random(100) > 70)
-		{
-			let new_escort = findMostExpDroid();
-			if (new_escort && new_escort.id)
-			{
-				orderDroidObj(dr, 25, new_escort); // defend
-				logObj(dr, "sensor ordered to escort: "+new_escort.id);
-			}
-		}
-	}
+            for (let artillery of nearbyArtillery) {
+                const artilleryId = artillery.id;
+
+                // Skip if unit has no ID or if it has already been assigned a mission this tick
+                if (!artilleryId || assignedArtillery.has(artilleryId)) {
+                    continue;
+                }
+
+                // Original logic check
+                if (artillery.order === DORDER_SCOUT && orderTargets.get(dr.id) !== artilleryId) {
+
+                    // 3. Issue Command
+                    orderDroidObj(artillery,  DORDER_FIRESUPPORT, dr);
+                    logObj(artillery, "assigned to sensor: "+dr.id);
+
+                    // 4. Update State & Mark as Assigned
+                    orderTargets.set(artilleryId, dr.id);
+                    orderLocations.set(artilleryId, dr);
+                    assignedArtillery.add(artilleryId); // <-- KEY FIX: Mark this unit as handled
+                }
+            }
+        }
+
+        // 3. Escort Logic (Unchanged, but safely runs after the support logic)
+        // escort the most exp attack droid
+        if (Math.random() * 100 > 70)
+        {
+            let new_escort = findMostExpDroid();
+            if (new_escort && new_escort.id && orderTargets.get(dr.id) !== new_escort.id)
+            {
+                orderDroidObj(dr, 25, new_escort); // defend
+                logObj(dr, "sensor ordered to escort: "+new_escort.id);
+                orderTargets.set(dr.id, new_escort.id);
+                orderLocations.set(dr.id, new_escort);
+            }
+        }
+    }
 }
 
 function droidAwareAA()
@@ -79,26 +135,31 @@ function droidAwareAA()
 
 	for (let dr of droidAware)
 	{
-		if (!(dr.canHitGround === false && dr.canHitAir === true)) { continue; }
-		if (dr.order === DORDER_RTR || dr.order === DORDER_RTB) { continue; }
+		if (!(dr.canHitGround === false && dr.canHitAir === true)) continue;
+		if (dr.order === DORDER_RTR || dr.order === DORDER_RTB) continue;
 
-		moveFromBurningTile(dr);
+		if (moveFromBurningTile(dr)) continue;
 
-		if (dr.health < 80 && dr.order !== DORDER_RTR)
-		{
+		if (dr.health < 80) {
 			orderDroid(dr, DORDER_RTR);
-			logObj(dr, "damaged aa ordered to RTR");
+			logObj(dr, "damaged AA ordered to RTR");
 			continue;
 		}
 
-		// escort the most exp attack droid
-		if (random(100) > 89)
-		{
-			let new_escort = findMostExpDroid();
-			if (new_escort && new_escort.id)
-			{
+		let new_escort = findMostExpDroid();
+		if (dr.order === 25 && distBetweenTwoPoints(dr.x, dr.y, new_escort.x, new_escort.y) > 6) {
+			if (new_escort && new_escort.id){
 				orderDroidLoc(dr, DORDER_SCOUT, new_escort.x, new_escort.y);
-				logObj(dr, "sensor ordered to escort: "+new_escort.id);
+				logObj(dr, "AA ordered to return to escort: "+new_escort.id);
+			}
+		}
+
+		// escort the most exp attack droid
+		if (Math.random() * 100 > 89){
+
+			if (new_escort && new_escort.id){
+				orderDroidObj(dr, 25, new_escort);
+				logObj(dr, "AA ordered to escort: "+new_escort.id);
 			}
 		}
 	}
@@ -112,7 +173,7 @@ function droidAwareVtolQ()
 	{
 		if (!dr.isVTOL) continue;
 
-		if (dr.health < 65 && dr.order === DORDER_SCOUT && enumStruct(me, VTOL_PAD_STAT))
+		if (dr.health < 75 && dr.order === DORDER_SCOUT && enumStruct(me, VTOL_PAD_STAT))
 		{
 			orderDroid(dr, DORDER_REARM);
 			orderLocations.delete(dr.id);
@@ -127,10 +188,9 @@ function droidAwareVtolQ()
 			if (threats && threats.length)
 			{
 				// check to see if nearby vtols vastly outnumber aa
-				let allied_vtols = seenStore.findNear(dr, GROUP_SCAN_RADIUS *3, { isAllied: true, isVTOL: true });
-				let hostile_aa = seenStore.findNear(dr, GROUP_SCAN_RADIUS *3, { isAllied: false, isAA: true });
+				let allied_vtols = seenStore.findNear(dr, GROUP_SCAN_RADIUS *2, { isAllied: true, isVTOL: true });
 
-				if (allied_vtols.length / 6 > hostile_aa.length)
+				if (allied_vtols.length / 6 > threats.length)
 				{
 					orderDroidObj(dr, DORDER_ATTACK, threats[0]);
 					logObj(dr, "droidAware scouting mass of vtol ordered to attack AA");
@@ -140,9 +200,9 @@ function droidAwareVtolQ()
 					for (let vt of my_vtols)
 					{
 						if (vt.health === 100 && vt.weapons[0].armed === 100 && vt.id != dr.id &&
-								!throttleThis("droidAwareVtol_throttle_AAairSupport_"+vt.id, VTOL_DEFEND_TIME))
+								!throttleThis("droidAwareVtol_throttle_AAairSupport_"+vt.id, VTOL_DEFEND_TIME*3))
 						{
-							let aathreat = returnRandInFirstFew(hostile_aa);
+							let aathreat = returnRandInFirstFew(threats);
 							let vt_object = getObject(vt.type, vt.player, vt.id);
 							if (vt_object && vt_object.id && vt_object.isVTOL) {
 								orderDroidObj(vt_object, DORDER_ATTACK, aathreat);
@@ -217,7 +277,7 @@ function droidAwareVtolQ()
 				logObj(dr, "droidAware circling vtol ordered to REARM");
 				continue;
 			}
-			if (random(100) > 85) { // remove some from circle
+			if (Math.random() * 100 > 85) { // remove some from circle
 				let target = getVTOLtarget(dr);
 				if (target && dr.health === 100 && dr.weapons[0].armed === 100 && target.x && target.y)
 				{
@@ -239,7 +299,7 @@ function droidAwareVtolQ()
 function droidAwareRepair() { queue("droidAwareRepairQ"); }
 function droidAwareRepairQ()
 {
-	let droidAware = enumDroid(me, DROID_REPAIR);
+	let droidAware = enumGroup(repairGroup);
 	for (let dr of droidAware)
 	{
 		if (dr.droidType !== DROID_REPAIR) continue;
@@ -251,7 +311,7 @@ function droidAwareRepairQ()
 			continue;
 		}
 
-		// repair scout to most damaged droid nearby, but not if retreating
+		// repair scout to most damaged droid nearby
 		if (dr.order !== DORDER_RTB)
 		{
 			// try for tanks first
@@ -346,268 +406,343 @@ function droidAwareScoutQ()
 }
 
 function droidAwareTruck() { queue("droidAwareTruckQ"); }
-function droidAwareTruckQ()
-{
-	let droidAware = enumDroid(me, DROID_CONSTRUCT);
-	for (let dr of droidAware)
-	{
-		if (dr.order === DORDER_RTR || dr.order === DORDER_RTB) continue;
+function droidAwareTruckQ() {
 
-		// rtr if on tileIsBurning
-		if (tileIsBurning(dr.x, dr.y)) moveFromBurningTile(dr);
+    // 1. Initialization and Droid Enumeration
+    const droidAware = enumDroid(me, DROID_CONSTRUCT);
+    for (const dr of droidAware) {
+        if (!dr || !dr.id) continue;
 
-		// make oil trucks RTB if they spot enemies, but not AA, and not if already in base
-		if (dr.group === oilBuilders && distBetweenTwoPoints(dr.x, dr.y, BASE.x, BASE.y) > AVG_BASE_RADIUS/2) {
-			if (fleeFromHostiles(dr)) continue;
-		}
+        // Skip droids already ordered to return or take specific retreat orders.
+        if (dr.order === DORDER_RTR || dr.order === DORDER_RTB) continue;
 
-		// check if oilbuilder sees free oil to build on or a well to liberate
-		if (dr.group === oilBuilders && (dr.order === DORDER_MOVE || dr.order === DORDER_SCOUT))
-		{
-			// check for free wells first
-			let oils = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS, ALL_PLAYERS, true).filter((obj) => (obj.type === FEATURE && obj.stattype === OIL_RESOURCE));
-			oils = sortByDistToLoc(dr, oils);
+        // 2. Check burning tiles
+        if (moveFromBurningTile(dr)) continue;
 
-			if (oils && oils.length > 0)
-			{
-				let oil = oils[0];
-				// check for adjacent oil first
-				if (distBetweenTwoPoints(dr.x, dr.y, oil.x, oil.y) < 1.5) {
-					orderDroidBuild(dr, DORDER_BUILD, DERRICK_STAT, oil.x, oil.y);
-					logObj(dr, "droidAware truck building on adjacent oil");
-					orderLocations.set(dr.id, {x: oil.x, y: oil.y, enemies: false});
-					oilResourceStore.addObject( oil.id, { ...oil, id: oil.id, isReachable: true, requiresDestruction: false });
-					continue;
-				}
+        // 3. Oil Builder Logic: Hostile Evasion
+        if (dr.group === oilBuilders && distBetweenTwoPoints(dr.x, dr.y, BASE.x, BASE.y) > AVG_BASE_RADIUS / 4) {
+            if (fleeFromHostiles(dr)) continue;
+        }
 
-				// check assignments
-				const lastAssignmentTime = oilAssignments.get(oil.id) || -Infinity;
-				if (gameTime - lastAssignmentTime > 30000) {
-					oilAssignments.delete(oilAssignments.get(dr.id)); // delete old oil assignment for this truck
+        // 4. Core Oil Builder Logic (Resource Scanning and Assignment)
+        if (dr.group === oilBuilders && (dr.order === DORDER_MOVE || dr.order === DORDER_SCOUT)) {
 
-					// check is accessible
-					if (oilResourceStore.query({isReachable: true, requiresDestruction: false, x: oil.x, y: oil.y}).length && droidCanReach(dr, oil.x, oil.y)) {
-						let enemies = getHostilesNear(oil, GROUP_SCAN_RADIUS).filter((obj) => (obj.isAA === false));
-						if (enemies.length === 0)
-						{
-							orderDroidBuild(dr, DORDER_BUILD, DERRICK_STAT, oil.x, oil.y);
-							logObj(dr, "droidAware truck found free oil feature on way to build something");
-							orderLocations.set(dr.id, {x: oil.x, y: oil.y, enemies: false});
-							// update assignments
-							oilAssignments.set(oil.id, gameTime);
-							oilAssignments.set(dr.id, oil.id);
-							continue;
-						}
-					}
-				}
-			}
+            // 4a. Check for Free Oil (Immediate Build Adjacent)
+            let nearbyOils = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS, ALL_PLAYERS, true).filter(
+                (obj) => (obj.type === FEATURE && obj.stattype === OIL_RESOURCE)
+            );
 
-			// see if there is a well to liberate
-			oils = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS, ENEMIES, true).filter((obj) => (obj.type === STRUCTURE && obj.stattype === RESOURCE_EXTRACTOR));
-			oils = sortByDistToLoc(dr, oils);
+            if (nearbyOils.length > 0) {
+                const sortedOils = sortByDistToLoc(dr, nearbyOils);
+                const nearestOil = sortedOils[0];
 
-			if (oils && oils.length > 0 && oilResourceStore.query({isReachable: true, requiresDestruction: false, x:oils[0].x, y:oils[0].y}).length && droidCanReach(dr, oils[0].x, oils[0].y)) {
-				let oil = oils[0];
-				// if allied combat droids or defenses are present do not liberate
-				let mydefenses = enumRange(oil.x, oil.y, GROUP_SCAN_RADIUS, ALLIES, true).filter((obj) =>
-						(obj.droidType === DROID_WEAPON || obj.droidType === DROID_CYBORG || obj.stattype === DEFENSE));
-				if (mydefenses.length === 0) {
-					let enemies = getHostilesNear(oil, GROUP_SCAN_RADIUS).filter((obj) => (obj.isAA === false));
-					if (enemies.length === 0)
-					{
-						let defense = firstAvailableStructure(Schemes[Scheme].STANDARD_DEFENSES);
-						let buildloc = false;
-						if (defense) {
-							buildloc = pickStructLocation(dr, defense, oil.x, oil.y, 1);
-						}
-						if (buildloc) {
-							orderDroidBuild(dr, DORDER_BUILD, defense, buildloc.x, buildloc.y);
-							logObj(dr, "droidAware truck found oil to liberate");
-							orderLocations.set(dr.id, {x: oil.x, y: oil.y, enemies: false});
-							continue;
-						}
-					}
-				}
-			}
-		}
+                // Check for building opportunity adjacent to the droid.
+                if (distBetweenTwoPoints(dr.x, dr.y, nearestOil.x, nearestOil.y) < 2 && !tileIsBurning(nearestOil.x, nearestOil.y)) {
+                    orderDroidBuild(dr, DORDER_BUILD, DERRICK_STAT, nearestOil.x, nearestOil.y);
+                    logObj(dr, "droidAware truck building on adjacent oil");
+                    orderLocations.set(dr.id, { x: nearestOil.x, y: nearestOil.y, enemies: false });
+                    // Update assignments for this immediate build
+                    oilAssignments.set(nearestOil.id, gameTime);
+                    oilAssignments.set(dr.id, nearestOil.id);
+                    continue;
+                }
+            }
 
-		// check for artifacts
-		if (dr.group === oilBuilders && (dr.order === DORDER_MOVE || dr.order === DORDER_SCOUT)) {
-			if (collectArtifacts(dr)) continue;
-		}
+            // 4b. Scan for the Best Site (Deeper Search)
+            let suitableSite = null;
+            const oilsToProcess = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS, ALL_PLAYERS, true).filter(
+                (obj) => (obj.type === FEATURE && obj.stattype === OIL_RESOURCE)
+            );
 
-		// check truck scout locations for enemies, cancel scout order if more than one hostile combat unit present
-		if (orderLocations.has(dr.id) && dr.order !== 0 && dr.order == DORDER_SCOUT)
-		{
-			let scoutLoc = orderLocations.get(dr.id);
-			if (scoutLoc && scoutLoc.x && scoutLoc.y)
-			{
-				if (scoutLoc.x >= 0 && scoutLoc.y >= 0)
-				{
-					let enemies = getHostilesNear(scoutLoc, GROUP_SCAN_RADIUS).filter((obj) => (obj.isAA === false));
-					if (enemies[1])
-					{
-						orderDroid(dr, DORDER_RTB);
-						logObj(dr, "scouting constructor ordered to RTB as scout location has more than one enemy");
-						orderTargets.delete(dr.id);
-						orderLocations.delete(dr.id);
-						continue;
-					}
-				}
-			}
-		}
-		// trigger idle
-		if (dr.order === 0 || dr.order === 25)
-		{
-			idleConstructor(dr);
-			continue;
-		}
-	}
+            for (const oil of oilsToProcess) {
+                // Skip if hostiles are present unless they are AA
+                const hostileCheck = getHostilesNear(oil, GROUP_SCAN_RADIUS).filter(
+                    (obj) => obj.isAA === false
+                );
+                if (hostileCheck.length > 0) continue;
+
+                // Check reachability and availability
+                if (!droidCanReach(dr, oil.x, oil.y)) continue;
+                if (oilResourceStore.query({ isReachable: false, x: oil.x, y: oil.y }).length) continue;
+                if (tileIsBurning(oil.x, oil.y)) continue;
+
+                // Skip if assignment is too recent
+                const lastAssignmentTime = oilAssignments.get(oil.id) || -Infinity;
+                if (gameTime - lastAssignmentTime < ONE_MINUTE/2) continue;
+
+                // Skip if multiple trucks are already near this site
+                const nearbyTrucks = seenStore.findNear(oil, 2, { player: me, droidType: DROID_CONSTRUCT });
+                if (nearbyTrucks && nearbyTrucks.length > 1) continue;
+
+                // Found a suitable site - break and assign
+                suitableSite = oil;
+                break;
+            }
+
+            // 4c. Execute Build Order if Site Found
+            if (suitableSite && suitableSite.x !== undefined && suitableSite.y !== undefined) {
+                // Clear old assignments (if applicable)
+                if (oilAssignments.has(dr.id)) {
+                    oilAssignments.delete(dr.id);
+                }
+
+                orderDroidBuild(dr, DORDER_BUILD, DERRICK_STAT, suitableSite.x, suitableSite.y);
+                logObj(dr, "droidAware truck found free oil feature on way to build something");
+                orderLocations.set(dr.id, { x: suitableSite.x, y: suitableSite.y, enemies: false });
+
+                // Update assignments
+                oilAssignments.set(suitableSite.id, gameTime);
+                oilAssignments.set(dr.id, suitableSite.id);
+                continue;
+            }
+        }
+
+        // 5. Resource Extraction: Liberating Wells
+        let wells = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS, ENEMIES, true).filter(
+            (obj) => (obj.type === STRUCTURE && obj.stattype === RESOURCE_EXTRACTOR)
+        );
+        wells = sortByDistToLoc(dr, wells);
+
+        if (wells.length > 0) {
+            const primaryWell = wells[0];
+
+            // Check for resource extraction potential at the primary well
+            const resourceQuery = oilResourceStore.query({ isReachable: true, requiresDestruction: false, x: primaryWell.x, y: primaryWell.y });
+
+            // Check if the droid can reach the well
+            if (resourceQuery.length > 0 && droidCanReach(dr, primaryWell.x, primaryWell.y)) {
+                let myDefenses = enumRange(primaryWell.x, primaryWell.y, GROUP_SCAN_RADIUS, ALLIES, true).filter(
+                    (obj) => (obj.droidType === DROID_WEAPON || obj.droidType === DROID_CYBORG || obj.stattype === DEFENSE)
+                );
+
+                // Only proceed if no allied combat droids or defenses are present
+                if (myDefenses.length === 0) {
+                    const enemyHostiles = getHostilesNear(primaryWell, GROUP_SCAN_RADIUS).filter(
+                        (obj) => (obj.isAA === false)
+                    );
+
+                    // Only proceed if there are no hostile combat units
+                    if (enemyHostiles.length === 0) {
+                        let defenseSchema = firstAvailableStructure(Schemes[Scheme].STANDARD_DEFENSES);
+                        let buildLocation = false;
+
+                        if (defenseSchema) {
+                            buildLocation = pickStructLocation(dr, defenseSchema, primaryWell.x, primaryWell.y, 1);
+                        }
+
+                        if (buildLocation) {
+                            orderDroidBuild(dr, DORDER_BUILD, defenseSchema, buildLocation.x, buildLocation.y);
+                            logObj(dr, "droidAware truck found oil to liberate");
+                            orderLocations.set(dr.id, { x: primaryWell.x, y: primaryWell.y, enemies: false });
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 6. Artifact Collection Check
+        if (dr.group === oilBuilders && (dr.order === DORDER_MOVE || dr.order === DORDER_SCOUT)) {
+            if (collectArtifacts(dr)) continue;
+        }
+
+        // 7. Scout Location Management (Enemy Detection)
+        // Check if the droid is actively scouting and if the location is hostile.
+        if (orderLocations.has(dr.id) && dr.order !== 0 && dr.order === DORDER_SCOUT) {
+            const scoutLoc = orderLocations.get(dr.id);
+
+            // Ensure coordinates are valid before checking
+            if (scoutLoc && scoutLoc.x !== undefined && scoutLoc.y !== undefined) {
+                const enemies = getHostilesNear(scoutLoc, GROUP_SCAN_RADIUS).filter(
+                    (obj) => (obj.isAA === false)
+                );
+
+                // If more than one hostile combat unit is present, order withdrawal.
+                if (enemies.length > 1) {
+                    orderDroid(dr, DORDER_RTB);
+                    logObj(dr, "scouting constructor ordered to RTB as scout location has more than one enemy");
+                    orderTargets.delete(dr.id);
+                    orderLocations.delete(dr.id);
+                    continue;
+                }
+            }
+        }
+
+        // 8. Idle/Default Behavior Trigger
+        if (dr.order === 0 || dr.order === 25) {
+            idleConstructor(dr);
+            continue;
+        }
+    }
 }
 
-function collectArtifacts(dr)
-{
-	if (!collectArtifacts._assignments) collectArtifacts._assignments = new Map();
-
-	let artifacts = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS, ALL_PLAYERS, true).filter((obj) => (obj.type === FEATURE && (obj.stattype === OIL_DRUM || obj.stattype === ARTIFACT)));
-	artifacts = sortByDistToLoc(dr, artifacts);
-
-	if (artifacts && artifacts.length > 0) {
-		for (let artifact of artifacts) {
-			if (artifact.x === undefined || artifact.y === undefined) continue;
-			// check assignments
-			let lastAssignment = collectArtifacts._assignments.get(artifact.id) || 0;
-			if (lastAssignment < gameTime - 60000) {
-				collectArtifacts._assignments.delete(artifact.id);
-				// check is accessible
-				if (droidCanReach(dr, artifact.x, artifact.y)) {
-					let enemies = getHostilesNear(artifact, GROUP_SCAN_RADIUS).filter((obj) => (obj.isAA === false));
-					if (enemies.length === 0) {
-						orderDroidObj(dr, DORDER_RECOVER, artifact);
-						logObj(dr, "droidAware truck found artifact to collect");
-						orderLocations.set(dr.id, {x: artifact.x, y: artifact.y, enemies: false});
-						// update assignments
-						collectArtifacts._assignments.set(artifact.id, gameTime);
-						return true;
-					}
-				}
-			}
-		}
-	}
-	return false;
-}
-
-let lastDemoOrderTime = 0;
 function droidAwareObstacles() { queue("droidAwareObstaclesQ"); }
+let lastDemoOrderTime = 0;
+const STAGNATION_THRESHOLD = ONE_MINUTE/2;
 function droidAwareObstaclesQ() {
-    // Get demolish droid or grab weakest combat unit
+
+    // 1. Setup & Droid Selection
     let droids = enumGroup(demolishGroup);
     if (!droids || !droids.length) {
-        const weakestDroids = getStrongestAttackDroids().reverse(); // weakest droids
+        const weakestDroids = getStrongestAttackDroids().reverse();
         if (weakestDroids && weakestDroids.length && weakestDroids[0].id) {
             groupAdd(demolishGroup, weakestDroids[0]);
             logObj(weakestDroids[0], "added to demolishGroup");
-        } else { return; }// No droids available
+        } else { return; }
     }
-
     const dr = droids[0];
     if (!dr || !dr.id) return;
 
-	// check if healthy
-	if (dr.health < 85 && dr.order !== DORDER_RTR) {
-		orderDroid(dr, DORDER_RTR);
-		logObj(dr, "RTR");
+    // 2. Vital Maintenance (Health & Retreat)
+    if (dr.health < 75 && dr.order !== DORDER_RTB && dr.order !== DORDER_RTR) {
+		if (countStruct(REPAIR_FACILITY_STAT)){
+			orderDroid(dr, DORDER_RTR);
+			logObj(dr, "droidAwareObstacles damaged RTR");
+			return;
+		} else {
+			orderDroid(dr, DORDER_RTB);
+			logObj(dr, "droidAwareObstacles damaged RTB");
+			return;
+		}
+    }
+    if (dr.health < 90 && dr.order === DORDER_RTB || dr.order === DORDER_RTR) return;
+
+    // 3. Scouting Logic
+    let hostiles = getHostilesNear(dr, GROUP_SCAN_RADIUS * 2);
+    if (hostiles && hostiles.length) {
+        orderDroidLoc(dr, DORDER_SCOUT, hostiles[0].x, hostiles[0].y);
+        return;
+    }
+
+    // 4. STAGNATION CHECK
+    const isStagnant = (gameTime - lastDemoOrderTime > STAGNATION_THRESHOLD);
+    const isStuckInAttack = (dr.order === DORDER_ATTACK && isStagnant);
+
+    if (isStuckInAttack) {
+        logObj(dr, "Demolition Stagnation Detected! Attempting to reposition...");
+        orderDroidLoc(dr, DORDER_MOVE, dr.x + randomBetween(-3, 3), dr.y + randomBetween(-3, 3));
+        lastDemoOrderTime = gameTime;
 		return;
-	}
+    }
 
-	// scout to nearby hostiles instead
-	let hostiles = getHostilesNear(dr, GROUP_SCAN_RADIUS*2);
-	if (hostiles && hostiles.length && dr.order !== DORDER_SCOUT && dr.order === DORDER_RTR) {
-		orderDroidLoc(dr, DORDER_SCOUT, hostiles[0].x, hostiles[0].y);
-		logObj(dr, `demolish droid scouting to nearby hostile`);
-		return;
-	}
+    // 5. Avoid Interrupting Active Tasks (unless we are the ones forcing a reposition)
+    const isBusy = (dr.order === DORDER_SCOUT || dr.order === DORDER_ATTACK ||
+                    dr.order === DORDER_RTR || dr.order === DORDER_RECOVER) && dr.action !== 0;
+    if (isBusy && !isStagnant) return;
 
-	if (dr.order === DORDER_ATTACK && lastDemoOrderTime < gameTime - 30000) {
-		orderDroidLoc(dr, DORDER_MOVE, dr.x+randomBetween(-3, 3), dr.y+randomBetween(-3, 3));
-		logObj(dr, `demolish droid move to new location`);
-	}
+    // 6. Task: Artifact Collection
+    if (collectArtifacts(dr)) return;
 
-    // if attacking or scouting and not idle return
-    if ((dr.order === DORDER_SCOUT || dr.order === DORDER_ATTACK || dr.order === DORDER_RTR || dr.order === DORDER_RECOVER ) && dr.action !== 0) return;
+    // 7. Task: Base Obstacles
+    let baseObstacles = enumRange(BASE.x, BASE.y, AVG_BASE_RADIUS, ALL_PLAYERS, false)
+        .filter((obj) => obj.type === FEATURE && obj.damageable && droidCanReach(dr, obj.x, obj.y));
 
-	// try to collect artifacts
-	if (collectArtifacts(dr)) return;
+    if (baseObstacles && baseObstacles.length) {
+        baseObstacles = sortByDistToLoc(dr, baseObstacles);
+        orderDroidObj(dr, DORDER_ATTACK, baseObstacles[0]);
+        lastDemoOrderTime = gameTime;
+        return;
+    }
 
-	logObj(dr, `droidAwareObstacles starting run`);
+    // 8. Task: Path Clearing (Blocked Oils)
+    let blockedOils = oilResourceStore.query({ isReachable: true, requiresDestruction: true });
+    if (!blockedOils || !blockedOils.length) {
+        if (dr.order !== DORDER_ATTACK) {
+            groupAdd(attackGroup, dr);
+			removeTimer("droidAwareObstacles");
+        }
+        return;
+    }
 
-    // Demolish base obstacles if not already cleared
-    if (!droidAwareObstaclesQ._clearedBaseObstacles) {
-        let baseObstacles = enumRange(BASE.x, BASE.y, AVG_BASE_RADIUS, ALL_PLAYERS, false).filter((obj) =>
-			obj.type === FEATURE && obj.damageable && droidCanReach(dr, obj.x, obj.y));
-		baseObstacles = sortByDistToLoc(dr, baseObstacles);
+    // Check the first blocked oil
+    const blockedOil = blockedOils[0];
+    const blockedPath = findShortestPath(blockedOil, BASE, dr.prop, true);
 
-        if (baseObstacles && baseObstacles.length) {
-            orderDroidObj(dr, DORDER_ATTACK, baseObstacles[0]);
-            logObj( dr, `droidAware demolishing base feature ${baseObstacles[0].name} at ${baseObstacles[0].x},${baseObstacles[0].y}` );
-			lastDemoOrderTime = gameTime;
-            return;
+    if (blockedPath) {
+        const oilObstacles = blockedPath.destructionList.reverse();
+        if (oilObstacles.length > 0) {
+            let obstacleLocation = oilObstacles[0];
+            let obstacleObject = getObject(obstacleLocation.x, obstacleLocation.y);
+
+            if (obstacleObject && obstacleObject.id) {
+                const nearbyHostiles = getHostilesNear(obstacleLocation, GROUP_SCAN_RADIUS).length > 0;
+                if (!nearbyHostiles) {
+					orderDroidObj(dr, DORDER_ATTACK, obstacleObject);
+                    lastDemoOrderTime = gameTime;
+                    return;
+                }
+            }
         }
     }
 
-    droidAwareObstaclesQ._clearedBaseObstacles = true;
-
-    // Demolish paths to blocked oil
-    let blockedOils = oilResourceStore.query({isReachable: true, requiresDestruction: true });
-
-    if (!blockedOils || !blockedOils.length) {
-        removeTimer("droidAwareObstacles");
-        groupAdd(attackGroup, dr);
-        logObj(dr, "removed timer");
-        return; // All demolition tasks completed
-    }
-
-    let update = false;
+    // 9. Task: Update visibility for oils that are actually reachable
     for (const oil of blockedOils) {
-		logObj(dr, `checking for unblocked path to oil: ${oil.x},${oil.y}`);
         const pathWithout = findShortestPath(oil, dr, dr.prop, false);
         if (pathWithout) {
-            // Update seenStore and mark the oil as reachable
-			seenStore.deleteKey(oil.id); // oils are frozen
-            seenStore.addObject(oil.id, { ...oil, id: oil.id, requiresDestruction: false });
-            logObj(dr, `updated seenStore`);
-            update = true;
-            break; // Only check one per iteration
+            seenStore.deleteKey(oil.ID);
+            seenStore.addObject(oil.ID, { ...oil, requiresDestruction: false });
+            break;
         }
     }
+}
 
-    if (update) blockedOils = oilResourceStore.query({ isReachable: true, requiresDestruction: true });
-
-    if (blockedOils && blockedOils.length) {
-        const blockedOil = blockedOils[0];
-		logObj(dr, `checking path for blocked oil: ${blockedOil.x},${blockedOil.y}`);
-        const blockedPath = findShortestPath(blockedOil, BASE, dr.prop, true);
-
-        if (blockedPath) {
-			logObj(dr, `clearing path to: ${blockedOil.x},${blockedOil.y}`);
-            // Start unblocking the path if safe
-            const oilObstacles = blockedPath.destructionList.reverse();
-			if (oilObstacles.length) {
-				let obstacleObject = getObject(oilObstacles[0].x, oilObstacles[0].y); // fetch by location since no id
-				if (obstacleObject && obstacleObject.id) {
-					const hostilesOil = getHostilesNear(oilObstacles[0], GROUP_SCAN_RADIUS).length > 0;
-					if (!hostilesOil) {
-						if (obstacleObject && obstacleObject.id) {
-							orderDroidObj(dr, DORDER_ATTACK, obstacleObject);
-							logObj(dr, `droidAware demolishing path obstacle: `+JNstr(oilObstacles[0]));
-							lastDemoOrderTime = gameTime;
-							return;
-						}
+function droidAwareRetreat() { queue("droidAwareRetreatQ"); }
+function droidAwareRetreatQ()
+{
+	// check attackers and defenders for retreat
+	let droidAware = enumGroup(attackGroup).concat(enumGroup(defendGroup));
+	for (const dr of droidAware) {
+		if (!dr || !dr.id) continue;
+		const retreat = shouldWeRetreat(dr);
+		if (retreat && retreat.seenAllyGroup && retreat.seenAllyGroup.length) {
+			for (const ally of retreat.seenAllyGroup.filter((obj) => (obj.player === me)) ) {
+				if (ally.id && ally.type === DROID && ally.player === me && distBetweenTwoPoints(ally.x, ally.y, BASE.x, BASE.y) > AVG_BASE_RADIUS) {
+					if (ally.type === DROID_REPAIR) {
+						orderDroidLoc(ally, DORDER_SCOUT, BASE.x, BASE.y);
+						logObj(ally, "droidAwareRetreat retreating scout to base");
+					} else {
+						orderDroid(ally, DORDER_RTB);
+						logObj(ally, "droidAwareRetreat retreating from hostile group");
 					}
+					groupAdd(retreatGroup, ally);
+					orderTargets.delete(ally.id);
+					orderLocations.delete(ally.id);
 				}
 			}
-        }
-    }
+		}
+	}
+
+	// check if retreatGroup should return to front line
+	droidAware = enumGroup(retreatGroup);
+	for (const dr of droidAware) {
+		if (!dr || !dr.id) continue;
+		// if hostiles still visible keep retreating
+		const seenEnemyGroup = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*1.5, ENEMIES, true).filter(obj =>
+			obj.isVTOL === false &&
+			obj.player !== scavengerPlayer &&
+			!(obj.canHitAir === true && obj.canHitGround === false) && // not AA
+			(obj.droidType === DROID_WEAPON || obj.droidType === DROID_CYBORG || obj.droidType === DROID_REPAIR || obj.stattype === DEFENSE)
+		);
+		if (!seenEnemyGroup || !seenEnemyGroup.length || !seenEnemyGroup[0].id) {
+			// no hostiles seen return to front line
+			const retreat = shouldWeRetreat(dr); // returns false or retreat object
+			if (!retreat) {
+				if (dr.droidType === DROID_REPAIR) {
+					groupAdd(repairGroup, dr);
+					idleRepair(dr);
+					logObj(dr, "droidAwareRetreat repairing");
+				} else if (dr.canHitAir && !dr.canHitGround) { // AA
+					groupAdd(aaGroup, dr);
+					orderDroid(dr, DORDER_STOP);
+					logObj(dr, "droidAwareRetreat returning to attack");
+				} else {
+					idleAttacker(dr);
+					logObj(dr, "droidAwareRetreat going idle");
+					groupAdd(attackGroup, dr);
+				}
+			}
+		}
+	}
 }
 
 function droidAwareRTB() { queue("droidAwareRTBQ"); }
@@ -616,35 +751,33 @@ function droidAwareRTBQ()
 	let droidAware = enumDroid(me);
 	for (let dr of droidAware)
 	{
+		if (!dr || !dr.id) continue;
+
 		// send retreating vtols on random attack missions
-		if (dr.order === DORDER_RTB && dr.isVTOL === true && dr.health > 80 && dr.weapons[0].armed > 80)
+		if (dr.order === DORDER_RTB && dr.isVTOL === true && dr.health > 90 && dr.weapons[0].armed > 80)
 		{
 			// select random enemy target and attack
 			let target = getVTOLtarget(dr, random);
-			if (target)
+			if (target && target.id)
 			{
 				orderDroidLoc(dr, DORDER_SCOUT, target.x, target.y);
-				logObj(dr, "droidAware RTB vtol droid ordered to scout to derrick:"+target.x+"x"+target.y);
+				logObj(dr, "droidAware RTB vtol scouting to:"+target.x+"x"+target.y);
 			}
 		}
 
-		// check for healthy RTR droid
+		// check for healthy RTR droid returning for repair
 		if (dr.health > 90 && dr.order === DORDER_RTR)
 		{
-			orderDroidLoc(dr, DORDER_SCOUT, dr.x, dr.y);
+			orderDroid(dr, DORDER_STOP);
 			logObj(dr, "droidAwareRTB found healthy RTR");
-			orderTargets.delete(dr.id);
-			orderLocations.delete(dr.id);
 			continue;
 		}
 
 		// check if RTB droid is very near base
 		if (dr.order === DORDER_RTB && distBetweenTwoPoints(dr.x, dr.y, BASE.x, BASE.y) < 8)
 		{
-			orderDroidLoc(dr, DORDER_SCOUT, dr.x, dr.y);
+			orderDroid(dr, DORDER_STOP);
 			logObj(dr, "droidAware found RTB very close to base");
-			orderTargets.delete(dr.id);
-			orderLocations.delete(dr.id);			
 			continue;
 		}
 
@@ -668,49 +801,18 @@ function droidAwareRTBQ()
 			}
 		}
 
-		// RTB move to nearby defense
+		// RTB and base is not under attack go idle
 		if (dr.order === DORDER_RTB && baseUnderAttack === 0) 
 		{
 			let enemies = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*2, ENEMIES, true);
 			if (!enemies[0])
 			{
-				let defenses = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*2, me, true).filter((obj) => (obj.stattype === DEFENSE && obj.status === BUILT));
-				if (defenses[0]) // move to nearby defense 
-				{	
-					if (dr.droidType == DROID_REPAIR)
-					{		
-						let droids = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*2, me, true).filter((obj) => (obj.droidType === DROID_WEAPON && obj.isVTOL === false));
-						if (!droids[0]) { droids = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*2, me, true).filter((obj) => (obj.droidType === DROID_CYBORG)); }
-						let droid = droids[random(droids.length-1)];
-						if (droid) 
-						{
-							orderDroidLoc(dr, DORDER_SCOUT, defenses[0].x, defenses[0].y);
-							log("RTB repair switched to scout to defense :"+dr.id);
-							orderLocations.set(dr.id, {x: defenses[0].x, y: defenses[0].y, enemies: true});
-						}
-						else 
-						{ 
-							orderDroidLoc(dr, DORDER_SCOUT, defenses[0].x, defenses[0].y);
-							log("RTB repair switched to scout to defense :"+dr.id);
-							orderLocations.set(dr.id, {x: defenses[0].x, y: defenses[0].y, enemies: true});
-						}				
-					}
-					else 
-					{
-						orderDroidLoc(dr, DORDER_SCOUT, defenses[0].x, defenses[0].y);
-						log("RTB droid switched to scout to defense:"+dr.id);
-						orderLocations.set(dr.id, {x: defenses[0].x, y: defenses[0].y, enemies: true});
-					}
-				}
-				else 
-				{
-					orderDroidLoc(dr, DORDER_SCOUT, dr.x, dr.y); 
-					log("RTB switched to scout to current location:"+dr.id);
-					orderLocations.set(dr.id, {x: dr.x, y: dr.y, enemies: false});
-				}
+				orderDroid(dr, DORDER_STOP);
+				logObj(dr, "droidAware RTB but base and nearby area is safe");
+				continue;
 			}
 		}
-	}	
+	}
 }
 
 function baseAware()
@@ -729,16 +831,16 @@ function baseAware()
 		(obj.isVTOL === false && (obj.droidType === DROID_WEAPON || obj.droidType === DROID_CYBORG || obj.droidType === DROID_CONSTRUCT || obj.stattype === DEFENSE)) );
 	enemies.sort(sortByDistToBase);
 
-	if (enemies.length > 12) {
+	if (enemies.length > 8) {
 		log("baseAware hq spotted mass of enemy attackers:"+enemies.length);
 		baseUnderAttack = 4;
 	}
-	else if (enemies.length > 8)
+	else if (enemies.length > 5)
 	{
 		log("baseAware hq spotted many enemy attackers:"+enemies.length);
 		baseUnderAttack = 3
 	}
-	else if (enemies.length > 3)
+	else if (enemies.length > 2)
 	{
 		log("baseAware hq spotted several enemy attackers:"+enemies.length);
 		baseUnderAttack = 2;
@@ -824,6 +926,16 @@ function balanceGroups()
 			logObj(repair, "vtolrepair put on PATROL");
 		}
 	}
+	// setup oilAttackers with artillery
+	if (groupSize(oilAttackers) < 1) {
+		let artillery = getStrongestAttackDroids().filter((obj) => (obj.hasIndirect === true)).reverse();
+		if (artillery && artillery.length) {
+			let arti = returnRandInFirstFew(artillery, 2);
+			groupAdd(oilAttackers, arti);
+			logObj(arti, "added to oilAttackers");
+		}
+	}
+
 	// if attackgroup is large enough move some droids to defendGroup if needed
 	if (groupSize(attackGroup) > MIN_ATTACK_GSIZE*3 && groupSize(defendGroup) < MIN_ATTACK_GSIZE*1.5 ||
 		groupSize(attackGroup) > MIN_ATTACK_GSIZE*6 && groupSize(defendGroup) < MIN_ATTACK_GSIZE*3)
@@ -835,7 +947,7 @@ function balanceGroups()
 			let dr = attackers[i];
 			if (!droidNeedsRepair(dr.id) && dr.order !== DORDER_RECYCLE && dr.order !== DORDER_RTR)
 			{
-				if (random(100) < 20) 
+				if (Math.random() * 100 < 33)
 				{
 					groupAdd(defendGroup, dr);
 					orderDroidLoc(dr, DORDER_SCOUT, BASE.x, BASE.y);
@@ -865,7 +977,7 @@ function balanceGroups()
 			}
 		}
 	}
-	// recycle experienced cobra or bug vtols if pulse laser is available
+	// recycle vtols if experienced cobra or bug and pulse laser is available
 	if (componentAvailable("Laser2PULSEMk1") && groupSize(vtolGroup) > MIN_VTOL_UNITS*4)
 	{
 		const vtols = enumDroid(DROID_WEAPON);
@@ -894,7 +1006,7 @@ function checkVtolAlphaStrikeQ()
 	// get clusters of unallied AA units sorted by smallest first and randomly check one of the first few
 	let clusters = seenStore.findClusters({ canHitGround: false, isAllied: false, canHitAir: true, }, 3, 24)
 		.sort((a, b) => a.members.length - b.members.length )
-		.filter((obj) => (obj.lastSeen > gameTime - 600000));
+		.filter((obj) => (obj.lastSeen > gameTime - TEN_MINUTE));
 
 	let chance = 100;
 	if (clusters.length > 3) { chance = 25; }
@@ -902,7 +1014,7 @@ function checkVtolAlphaStrikeQ()
 	else if (clusters.length === 2) { chance = 50; }
 	for (let cluster of clusters)
 	{
-		if (random(100) < chance)
+		if (Math.random() * 100 < chance)
 		{
 			if (vtols.length > cluster.members.length*3)
 			{
@@ -970,6 +1082,7 @@ function updateSeenStoreQ()
         }
         pidx++;
     }
+
     objects = objects.concat(enumFeature(me, OIL_RESOURCE)); // add seen oil resources
 
     // Process each object once with optimized checks
@@ -996,12 +1109,11 @@ function pruneSeenStore() { queue("pruneSeenStoreQ"); }
 function pruneSeenStoreQ() {
     // Expire AAthreats based on type and age
     for (let obj of AAseenStore.query({})) {
-        if ((obj.type === STRUCTURE && obj.lastSeen < gameTime - 600000) ||
-            (obj.type === DROID && obj.lastSeen < gameTime - 120000)) {
+        if ((obj.type === STRUCTURE && obj.lastSeen < gameTime - TEN_MINUTE*2) ||
+            (obj.type === DROID && obj.lastSeen < gameTime - TWO_MINUTE)) {
             AAseenStore.deleteKey(obj.id);
         }
     }
-
     // Remove structures that have been destroyed while unseen
     const seenNow = new Map();
     let pidx = 0;
@@ -1052,7 +1164,7 @@ function recycleDroidsForHover()
 
 function checkOrderLocations() { queue("checkOrderLocationsQ"); }
 function checkOrderLocationsQ() {
-    const EXPIRATION_TIME_MS = 240000; // four minutes
+    const EXPIRATION_TIME_MS = FOUR_MINUTE; // four minutes
 
     // Single pass: update orderLocations with threat info and check for expiration
     orderLocations.forEach(({ x, y, enemies: oldEnemies, lastUpdated }, key) => {
@@ -1069,7 +1181,7 @@ function checkOrderLocationsQ() {
 
         // Check for current enemies
         const enemies = seenStore.findNear({ x, y }, GROUP_SCAN_RADIUS, { isAllied: false, isCombat: true })
-            .filter(obj => obj.lastSeen > currentTime - 60000); // Adjust the filter condition if needed
+            .filter(obj => obj.lastSeen > currentTime - ONE_MINUTE); // Adjust the filter condition if needed
 
         // Update in-place if threat status changed or record was just created/updated
         let shouldUpdate = false;
@@ -1116,17 +1228,21 @@ function checkUnreachableOilsQ() {
 function adjustSchemeAndStance()
 {
 	// evaluate hostile forces and choose scheme
-	let hostileCyborg = seenStore.query({ isAllied: false, droidType: DROID_CYBORG });
+	let hostileCyborg = seenStore.query({ isAllied: false, droidType: DROID_CYBORG }).concat(seenStore.query({ isAllied: false, droidType: DROID_PERSON }));
 	let hostileTanks = seenStore.query({ isAllied: false, droidType: DROID_WEAPON, isVTOL: false });
+	let SCHEME_THRESHOLD = 1.25; // twenty five percent
+
+	// don't adjust too early if ultimate scavs
+	if (isUltimateScavs && gameTime < TEN_MINUTE) return;
 
 	// choose anti-tank or anti-cyborg
-	if (hostileCyborg.length + hostileTanks.length > 15 && !componentAvailable("Laser3BEAMMk1")) { // if already at flashlight don't switch
+	if (hostileCyborg.length + hostileTanks.length > 25 && !componentAvailable("Laser3BEAMMk1")) { // if already at flashlight don't switch
 
-		if (hostileCyborg.length > hostileTanks.length && Scheme !== "MGLAS") {
+		if (hostileCyborg.length * SCHEME_THRESHOLD > hostileTanks.length && Scheme !== "MGLAS") {
 			Scheme = "MGLAS";
 			log("switching scheme to MGLAS");
 		}
-		if (hostileCyborg.length < hostileTanks.length && Scheme !== "CNLAS") {
+		if (hostileCyborg.length < hostileTanks.length * SCHEME_THRESHOLD && Scheme !== "CNLAS") {
 			Scheme = "CNLAS";
 			log("switching scheme to CNLAS");
 		}

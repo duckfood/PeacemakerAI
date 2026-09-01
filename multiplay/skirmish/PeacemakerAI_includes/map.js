@@ -7,13 +7,12 @@ class SpatialDataStore {
   }
 
   addObject(id, obj) {
-    if (!id || !obj) {
-      log('ERROR Object and id must be defined'); return false;
-    }
+    if (!id) { log('ERROR id must be defined'); return false; }
+    if (!obj) { log('ERROR obj must be defined'); return false; }
     if (obj.x === undefined || obj.y === undefined) {
       log('ERROR Object must have x,y properties'); return false;
     }
-
+    // Add the object
     this.objects.set(id, obj);
 
     // Index by properties
@@ -404,7 +403,7 @@ class ultimate_PriorityQueue {
     _bubbleUp(index) {
         const element = this.heap[index];
         while (index > 0) {
-            let parentIndex = Math.floor((index - 1) / 2);  // ← Correct formula
+            let parentIndex = Math.floor((index - 1) / 2);
             if (element.priority >= this.heap[parentIndex].priority) break;
             [this.heap[index], this.heap[parentIndex]] = [this.heap[parentIndex], this.heap[index]];
             index = parentIndex;
@@ -507,7 +506,7 @@ function findShortestPath(start, dest, propulsion = PROP_WHEEL, allowDestruction
             path.unshift(current);
             const tile = tiles[current[0]][current[1]];
             if (tile.type === FEATURE && tile.damageable && !tile.destroyed) {
-                destructionList.push(tile); // ({x: current[0], y: current[1], id: tile.id, type: tile.type, stattype: tile.stattype, health: tile.health, player: tile.player}); // rebuild oil object from tiles
+                destructionList.push(tile); // rebuild oil object from tiles
             }
         }
         return {

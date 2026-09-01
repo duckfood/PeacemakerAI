@@ -32,10 +32,10 @@ const Schemes = {
         FUNDAMENTALS2: [
         	"R-Vehicle-Body11", // python
         	"R-Wpn-MG-ROF02", // rapid mg
-            "R-Struc-RprFac-Upgrade04",
-        	"R-Vehicle-Prop-Tracks",
             "R-Wpn-MG4",
             "R-Defense-RotMG",
+            "R-Struc-RprFac-Upgrade04",
+        	"R-Vehicle-Prop-Tracks",
             "R-Wpn-MG5",
         ],
         FUNDAMENTALS3: [
@@ -53,9 +53,11 @@ const Schemes = {
             "R-Sys-Sensor-Upgrade03",
         ],
         FUNDAMENTALS4: [
-            "R-Vehicle-Body09", // tiger
+            //"R-Vehicle-Body09", // tiger
+            "R-Vehicle-Body07", // retribution
             "R-Wpn-ParticleGun",
             "R-Defense-MortarPit-Incendiary",
+            "R-Wpn-Missile2A-T", // scourge
             "R-Cyborg-Hvywpn-A-T",  // scourge
             "R-Struc-Factory-Upgrade04",
             "R-Wpn-Bomb05", // plasmite bomb
@@ -65,9 +67,9 @@ const Schemes = {
             "R-Wpn-Missile-ROF03",
             "R-Vehicle-Body10", // vengence
             "R-Sys-Resistance-Circuits",
-            "R-Defense-Howitzer-Incendiary",
-            "R-Vehicle-Body14", // dragon body
             "R-Wpn-LasSat",
+            "R-Vehicle-Body14", // dragon body
+            "R-Defense-Howitzer-Incendiary",
         ],
         ADVANCED_TECH: [
             "R-Wpn-Energy-Accuracy01",
@@ -92,17 +94,13 @@ const Schemes = {
             "MG2Mk1", // twin mg
             "MG1Mk1", // mg, initial weapon
         ],
-        TANK_ARTILLERY_LIST: [
-            "Howitzer-Incendiary",
-            "Mortar-Incendiary",
-        ],
         TANK_AA_LIST: [
             "AAGunLaser",
             "QuadRotAAGun", // whirlwind
             "QuadMg1AAGun" // hurricane
         ],
         CYBORG_BASIC_LIST: [
-            "Cyb-Wpn-Laser",
+        //    "Cyb-Wpn-Laser",
             "CyborgRotMG",
             "CyborgChaingun",
         ],
@@ -194,9 +192,11 @@ const Schemes = {
         FUNDAMENTALS4: [
             "R-Wpn-Cannon-Damage09",
             "R-Wpn-Cannon-ROF06",
-            "R-Vehicle-Body09", // tiger
+            //"R-Vehicle-Body09", // tiger
+            "R-Vehicle-Body07", // retribution
             "R-Wpn-ParticleGun",
             "R-Defense-MortarPit-Incendiary",
+            "R-Wpn-Missile2A-T", // scourge
             "R-Cyborg-Hvywpn-A-T",  // scourge
             "R-Struc-Factory-Upgrade04",
             "R-Wpn-Bomb05", // plasmite bomb
@@ -205,9 +205,9 @@ const Schemes = {
             "R-Wpn-Missile-Damage03",
             "R-Wpn-Missile-ROF03",
             "R-Sys-Resistance-Circuits",
-            "R-Defense-Howitzer-Incendiary",
             "R-Wpn-LasSat",
             "R-Vehicle-Body14", // dragon body
+            "R-Defense-Howitzer-Incendiary",
         ],
         ADVANCED_TECH: [
             "R-Wpn-Energy-Accuracy01",
@@ -234,17 +234,14 @@ const Schemes = {
             "MG2Mk1", // twin mg
             "MG1Mk1", // mg, initial weapon
         ],
-        TANK_ARTILLERY_LIST: [
-            "Howitzer-Incendiary",
-            "Mortar-Incendiary",
-        ],
         TANK_AA_LIST: [
             "AAGunLaser",
             "QuadRotAAGun", // whirlwind
             "QuadMg1AAGun" // hurricane
         ],
         CYBORG_BASIC_LIST: [
-            "Cyb-Wpn-Laser",
+          //  "Cyb-Wpn-Laser",
+            "CyborgRotMG",
             "CyborgCannon",
             "CyborgChaingun",
         ],

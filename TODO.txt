@@ -1,193 +1,165 @@
 TODO and done for PeacemakerAI
 
-units not retreating correctly when no repiarfac
+idle basebuilders should patrol
+transporter operations
+rocket scheme for T2
 
--air map mode
--sea map mode
-
-if extra labs are available and needed build more
-
+IDEAS:
+don't research if no power plant unless mass cash
+hit and run tactics for missile
+only produce at facs if product can reach active hostile base
+vtol mode build facs on with access to active hostile base
+if no power plant but derricks save or recycle enough to build one
+consider hover dragon plasma cannon
+maybe send first 2 oil trucks to oil clusters at start
+maybe send early trucks to empty bases
 check once or twice if oils marked unreachable are reachable by nearby truck just to be sure
-
 routine to help prevent damaged droids from getting stuck on each other
 option to include local player built blockades in pathfinding
+guard oil clusters
+maybe make units flee the opposite direction, only if rtb is not safe for group
+if maxed out with cheap droids and advanced droids are available recycle the weakest
+handle objects where the location is unknown eg. old mobile threats
+seenStore object confidence level which decays over time
+build a repairfac fortress and maintain
+repairs sensor daction none trigger idle
+some oils which are accessible not getting claimed on Strikeout and others
+random all combat unit blocked oil check
+if many opponents build fortress near base maybe
+build and defend wall trucks
+truck building defense do not retreat check daction -- no way to know what it's building
+new units should stop moving on build -- not move to rally point
+secondary orders -- not in jsapi
+commanders -- without secondary orders they are not much use
+improve extra high oil map low tech routine
+lassat only fires when selected for player, but works for non-player -- game bug
+set factory rally point - maybe not possible
+retreat when electronic health is low - no way to know
+cancel factory production by replacing with null droid
+demolish unowned walls or other likely obstacles
+check for stuck oilbuilders
 
-if opponents go rocket build cyborgs not tanks maybe
-
+DONE:
+-daction constants
+-assign nearby mortars to sensor while engaging
+-if sensor is illuminating target near artillery assign them to sensor
+-if artillery is one fire support but no hostiles go back to scout
+-oilAttackers artillery group
+-aa should stay near escort
+-trucks should retreat in the opposite direction or rtb
+-vtols should only attack AA with help
+-if base is congested build anywhere with more blocking tiles
+-don't rely on dragon
+-units not retreating correctly when no repair fac
+-healthy combat group going all the way back to base in retreat
+-improve trucks per oil production logic
+-build aa emplacements near random vtol pad or power plant
+-don't research mortar on airmap
+-build early posse on high tech
+-enable repair cyborgs
+-don't build replacement trucks if too few repairs and attackers
+-check to see if ultimate scavs are alive before responding
+-if ultimate scavs switch to mg scheme and research aa tech
+-random all combat unit collect artifacts
+-move outnumbered retreat logic to droidAwareRetreat
+-airmap mode
+-seamap mode
 -if vtols in area outnumber aa 5 to 1 don't retreat
 -when plasmite bomb is available switch to mixed vtol
 -build aa vtols if there are many hostile vtols
-
 -expire order locations
 -improve early game no tech high oil efficiency
 -eliminate production unseen free oil check
-
 -trucks seem to be getting assigned all to one oil sometimes
 -repairfac should use grabtrucks not ordertrucks
 -mix up defense spending for better balance
 -increase mass cash spending threshold
 -repairs are hanging around the base vtols maybe?
-
-some oils which are accessible not getting claimed on Strikeout and others
-
 -try to collect artifacts and oil drums, but only a few times, maybe try again later
-
 -redo obstacle destruction
-
 -don't build tower to liberate oil if allied combat units are nearby
 -don't build on burning oil if there is a non burning oil seen
 -stop notmyoil scouting if at max power plants
-guard oil clusters
-maybe make units flee the opposite direction
 -trucks on build not fleeing properly sometimes
 -phased research for better efficiency
-
-if maxed out with cheap droids and advanced droids are available recycle the weakest
-
 -since defenses are unlimited, build defenses with mass extra cash
 -oilbuilders getting confused when there are multiple oil to build on and an oil to liberate
-
-trucks are moving to owned oil maybe stop scouting if now owned
-
-handle objects where the location is unknown eg. old mobile threats
-
+-trucks are moving to owned oil maybe stop scouting if now owned
 -maybe use findpath for blocked oil
 -maybe build a third factory at start if oil rich map
 -trucks are attempting to build on inaccessible oil in roughness despite checks
-
 -only return accessible oil targets
 -gather vtol for alphastrike
-build a repairfac fortress and maintain
-
-repairs sensor daction none trigger idle
-
 -repairs guarding repairs stop
 -improve random building
 -if cyborgs get hit with reprogram ray run
 -trucks should select random oils within the first few
-artillery cyborgs should stay near max range and stop to attack only when ready
-hit and run tactics for mortar and missile
-
 -tie groupscanrange to sensor range
-
 -pick location for lassat
-
-alphastrike massed mobile aa not tested
 -find clusters function
 -detect massive vtol losses and discontinue production
 -scout if no targets
-
 -redo fact upgrades
-
-build defenses near clusters of oil
 -consider building double artillery
 -hvart not a good deal
 -capture ray not effective enough
 -burning ground move to nearby not burning ground instead of rtb
-
 -better repair droid routine
 -rtr when fighting in base
-
 --aa droids should escort not scout
 --improve base maintenance
-
 -building and crete strength upgrades much later
-
 -sensor escort most exp unit
 -rtb if on burning tile
 -early focus on mg not cannon
-
-maybe recall idle oilbuilders to base and patrol
-
 -repair trucks getting ordered to guard repeat
 -extra oil truck building should be dependent on wells count
-
 -still not building enough trucks at start
-idle trucks in base should patrol
-
-lassat only fires when selected for player, but works for non-player
-
 -improve mg some before cannon
 -only build defenses if affordable
-
 -produce more oil trucks early
 -detect mass cyborg losses and slow building them
 -use tracks when high tech maybe
-
 -delay vtol plant construction if not relying on vtols
 -delay cyborg plant construction if relying vtols
-
 -slim down droidawaretruck idletruck
-
 -less cheaty
 -use database of seen opponents to find new building targets
 -checkorderlocations use seen database
 -scout when no more opponents seen
-
 -particle gun
-
 -find a way to spend mass excess cash
 -limit building excess oil trucks
-
 -repair units are not repairing the most damaged unit
-
 -take healthy attackers off RTR
-
 -limit building extra aa in base
 -reduce vtol building throttle
-
 -better randomize lassat placement
-
 --lassat still not firing
-
 -dont build labs on max tech
 -build lassat a little later
 -check if aa support vtols are ready
-
-set factory rally point
-retreat when electronic health is low
-
 -pilot upgrade not working soon enough
-
-retreat from ultimate scavs maybe
-
 -build vtol pads before extra factories
-
 -add units present at start to groups
-
 -detect and handle pileups
-
 -limit oil trucks
--dont send trucks to collect artifacts only players do that
-
-order units to stop before reaching rally point
-
 -when starting with all tech rely on vtols less
 -maybe vtols should run from one high tech aa unit
 -re-enable double tanks
-
 -retreating vtols should attack random derrick after a few secs
-handle group of roaming aa better with alphastrike not tested
-
 -vtol call in support when attacking aa
-
 -prune eventattacked -- support is not called in
 -print debugging to in-game console
 -vtols should respond to attacks on derricks and units
 -delay building second vtol factory
 -repairs getting stuck at base after rtb defend
-
-new units should stop moving on build -- not move to rally point
-relocate rally points
 -truck run zone should be smaller
 -remove strongest player messages
 -remove time from console logs
 -what to do with excess energy? defenses? repair? bank it? build factories?
-
 -leastaaplayer not working
 -destroyed base oil not being rebuilt
-===========================================
-
 -don't return oilbuilder to upgrade factories
 -delay upgrade of factories if vtol is available but not filled
 -attack bandit walls instead of scout
@@ -200,53 +172,31 @@ relocate rally points
 -vtol alpha strike not working
 -build more power early if needed
 -delay building defenses until 2 power
-
 -AA bunker building not working
 -damaged vtols not repairing
 -command still being built before relay
 -random lab still favors lab
 -build AA site not working
-
 -no grabbing helpbuild basebuilders 
 -require less pads at higher levels
 -remove recycling droids from groups
-
 -make trucks steal any oil
 -trucks are not turning back when threatened and moving to build
-
 -attackEnemy use closest target
 -if dorder guard and daction none for attackers
 -vtols should track down trucks
-
-if many opponents build fortress near base maybe
-build and defend wall trucks
-
 -if truck is repairing
-or building defense do not retreat
 -grab idle repair droids
 -add if droid can reach location to targeting
 -add repair to supportgroup 1/5
-
-=-=================================
-
 -trucks do not capture oil unless its visible
 -research gets upgraded too late
 -trucks that did not build on oil should move to oil
-============================
-
 -demolish trees near base
 -try to prevent basebuilders building in a difficult place to reach near base
-idle basebuilders should patrol
-
-====
-
 -build less defenses in base
 -prefer indirect fire for base defenses
-
 -getClosestMapEdges()
-
 -basebuilders should be more if there are many derricks
-
 -attack most threatening player
 -getStrongestPlayer()
-

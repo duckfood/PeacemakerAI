@@ -22,8 +22,8 @@ const VTOL_PADS_UPGRADES = [
 // non standard start tech
 const HOVER_START_TECH = [
     "R-Wpn-MG1Mk1",
-    "R-Vehicle-Engine02",
     "R-Struc-PowerModuleMk1",
+    "R-Struc-Research-Module",
     "R-Struc-Factory-Module",
     "R-Vehicle-Body05", // cobra
     "R-Vehicle-Prop-Hover",
@@ -34,12 +34,13 @@ const HOVER_START_TECH = [
 const AIR_START_TECH = [
     "R-Struc-PowerModuleMk1",
     "R-Struc-Factory-Module",
+    "R-Struc-Research-Module",
     "R-Wpn-Cannon1Mk1",
     "R-Struc-VTOLFactory",
     "R-Vehicle-Prop-VTOL",
     "R-Struc-VTOLPad",
     "R-Struc-VTOLPad-Upgrade03",
-    "R-Cyborg-Transport",
+   // "R-Cyborg-Transport",
 ];
 
 //// perform research in tiered stages unless flush
@@ -68,7 +69,7 @@ function lookForResearch(tech, labParam) { // timer
         // finish start tech
         if (!found) found = evalResearch(lab.id, Schemes[Scheme].START_TECH);
         if (getRealPower() < 1500 && !isResearched(Schemes[Scheme].START_TECH)) continue;
-        // if hostiles have been spotted push for AA
+        // if vtol hostiles have been spotted push for AA
         if (enemyHasVtol && !found) {
             found = evalResearch(lab.id, Schemes[Scheme].ANTI_AIR_TECH);
         }
@@ -129,6 +130,9 @@ function evalResearch(labID, list) {
             if (item === "R-Vehicle-Prop-Halftracks" || item === "R-Vehicle-Prop-Tracks") continue;
             // don't research cyborg related tech
             if (item.includes("Cyborg")) continue;
+        }
+        if (isAirMap) {
+            if (item.includes("Mortar")) continue;
         }
 
         const research = getResearch(item);

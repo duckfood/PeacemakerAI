@@ -48,15 +48,15 @@ function eventDroidBuilt(droid, struct)
 	}
 	else if (droid.droidType === DROID_REPAIR)
 	{
-		if ((groupSize(vtolRepairGroup) < 1 && countStruct(VTOL_PAD_STAT) > 4) || (groupSize(vtolRepairGroup) < 2 && countStruct(VTOL_PAD_STAT) > 12))
+		if ((groupSize(vtolRepairGroup) === 0 && countStruct(VTOL_PAD_STAT) > 8) || (groupSize(vtolRepairGroup) < 2 && countStruct(VTOL_PAD_STAT) > 20))
 		{
 			groupAdd(vtolRepairGroup, droid);
 			logObj(droid, "added repair to vtolRepairGroup");
 		}
 		else
 		{
-			groupAdd(attackGroup, droid);
-			logObj(droid, "added repair to attackGroup");
+			groupAdd(repairGroup, droid);
+			logObj(droid, "added repair to repairGroup");
 			idleRepair(droid);
 		}
 	}
@@ -78,10 +78,9 @@ function eventAttacked(victim, attacker) {
     if (attacker.player !== me && !allianceExistsBetween(attacker.player, me)) {
 		if (attacker.canHitAir === true && attacker.canHitGround === false) {
 			AAseenStore.addObject(attacker.id, { ...attacker, isAllied: false, isAA: true, isCombat: true, lastSeen: gameTime });
-		} else {
-			seenStore.addObject(attacker.id, { ...attacker, isAllied: false, isAA: false, isCombat: true, lastSeen: gameTime });
 		}
-    }
+		seenStore.addObject(attacker.id, { ...attacker, isAllied: false, isAA: false, isCombat: true, lastSeen: gameTime });
+	}
 
     // Handle droid repairs if the victim is a droid
     if (victim.type === DROID) droidNeedsRepair(victim.id);
@@ -91,7 +90,7 @@ function eventAttacked(victim, attacker) {
         for (let weapon of attacker.weapons) {
             if (weapon.id === "SpyTurret01" || weapon.id === "ScavNEXUSlink") {
                 orderDroid(victim, DORDER_RTB);
-                logObj(victim, "cyborg or truck hit by link ray RTB");
+                logObj(victim, "eventAttacked cyborg or truck hit by reprogram link ray RTB");
                 orderTargets.delete(victim.id);
                 orderLocations.delete(victim.id);
                 return;
@@ -102,41 +101,23 @@ function eventAttacked(victim, attacker) {
     // Determine when to flee and when to stand ground
     if (attacker.player !== me && !allianceExistsBetween(attacker.player, me)) {
         if (victim.type === DROID && victim.player === me && !victim.isVTOL) {
-            const seenEnemyGroup = enumRange(victim.x, victim.y, GROUP_SCAN_RADIUS, ENEMIES, true).filter(
-                obj => obj.isVTOL === false && obj.player !== scavengerPlayer &&
-                !(obj.canHitAir === true && obj.canHitGround === false) &&
-                (obj.droidType === DROID_WEAPON || obj.droidType === DROID_CYBORG || obj.droidType === DROID_REPAIR || obj.stattype === DEFENSE)
-            );
-
-            const seenAllyGroup = enumRange(victim.x, victim.y, GROUP_SCAN_RADIUS, ALLIES, true).filter(
-                obj => obj.isVTOL === false && (obj.droidType === DROID_WEAPON || obj.droidType === DROID_CYBORG ||
-                    obj.droidType === DROID_COMMAND || obj.droidType === DROID_REPAIR || obj.stattype === DEFENSE)
-            );
-
-            let allyHealth = 0;
-            let enemyHealth = 0;
-
-            // Aggregate health estimates for allies and enemies
-            for (let ally of seenAllyGroup) {
-                const cost = ally.cost ?? 100;
-                const bodySize = ally.bodySize ?? 1;
-                allyHealth += cost * (bodySize + 1) * (ally.health / 100);
-            }
-
-            for (let enemy of seenEnemyGroup) {
-                const cost = enemy.cost ?? 100;
-                const bodySize = enemy.bodySize ?? 1;
-                enemyHealth += cost * (bodySize + 1) * (enemy.health / 100);
-            }
 
             // Retreat if outnumbered
-            if (allyHealth * 1.2 < enemyHealth) {
-                for (let ally of seenAllyGroup) {
-                    if (ally.type === DROID && ally.player === me && distBetweenTwoPoints(ally.x, ally.y, BASE.x, BASE.y) > AVG_BASE_RADIUS) {
-                        orderDroid(ally, DORDER_RTB);
-                        log(`droid ${ally.id} RTB ${allyHealth}*1.2 < ${enemyHealth}`);
-                        orderTargets.delete(ally.id);
-                        orderLocations.delete(ally.id);
+			const retreat = shouldWeRetreat(victim); // returns false or retreat object
+            if (retreat && retreat.seenAllyGroup && retreat.seenAllyGroup.length) {
+                for (const ally of retreat.seenAllyGroup.filter((obj) => (obj.player === me)) ) {
+                    if (ally.id && ally.type === DROID && ally.player === me && distBetweenTwoPoints(ally.x, ally.y, BASE.x, BASE.y) > AVG_BASE_RADIUS) {
+						if (ally.type === DROID_REPAIR) {
+							orderDroidLoc(ally, DORDER_SCOUT, BASE.x, BASE.y);
+							groupAdd(retreatGroup, ally);
+							logObj(ally, "eventAttacked retreating scout to base");
+						} else {
+							orderDroid(ally, DORDER_RTB);
+							groupAdd(retreatGroup, ally);
+							logObj(ally, "eventAttacked retreating from hostile group");
+						}
+						orderTargets.delete(ally.id);
+						orderLocations.delete(ally.id);
                     }
                 }
             }
@@ -163,7 +144,7 @@ function eventAttacked(victim, attacker) {
             if (!droidNeedsRepair(dr.id) && dr.id !== victim.id && dr.order !== DORDER_RTB) {
                 if (dr.droidType !== DROID_REPAIR) {
                     orderDroidLoc(dr, DORDER_SCOUT, loc.x, loc.y);
-                    log("defend droid " + dr.id + " scouting: " + loc.x + "x" + loc.y);
+                    log("eventAttacked defend droid " + dr.id + " scouting: " + loc.x + "x" + loc.y);
                     orderLocations.set(dr.id, { x: loc.x, y: loc.y, enemies: true });
                 }
             }
@@ -171,17 +152,17 @@ function eventAttacked(victim, attacker) {
     }
 	// order vtols scout to attacker if safe
     const vtols = enumGroup(vtolGroup);
-    if (vtols.length > MIN_VTOL_UNITS * 2) {
+    if (vtols.length > MIN_VTOL_UNITS * 5) {
         for (let vt of vtols) {
-            if (throttleThis("eventAttacked_throttle_Vtol_" + vt.id, VTOL_DEFEND_TIME * 3)) continue;
+            if (throttleThis("eventAttacked_throttle_Vtol_" + vt.id, VTOL_DEFEND_TIME * 5)) continue;
             let AA = getAAthreats(loc);
             if (AA && AA.length > 2) {
-                logObj(vt, "vtol not sent on defend mission AA: "+AA.length);
+                logObj(vt, "eventAttacked vtol not sent on defend mission AA: "+AA.length);
                 return;
             }
             if (vtolReady(vt) && vt.order !== DORDER_ATTACK && vt.order !== DORDER_REARM) {
-                orderDroidLoc(vt, DORDER_SCOUT, loc.x, loc.y);
-                logObj(vt, "vtol sent on defend mission");
+                orderDroidLoc(vt, DORDER_SCOUT, loc.x+randomBetween(-3, 3), loc.y+randomBetween(-3, 3));
+                logObj(vt, "eventAttacked vtol sent on defend mission");
             }
         }
     }
@@ -266,6 +247,7 @@ function eventDestroyed(object)
 
 function eventStructureBuilt(structure, droid)
 {
+	if (!structure || !structure.id || structure.player !== me) return;
 	// update lastBuildLoc
 	if (structure && !structure.modules && (structure.stattype === FACTORY || structure.stattype === RESEARCH_LAB || structure.stattype === POWER_GEN || structure.stattype === VTOL_FACTORY))
 	{
@@ -273,6 +255,12 @@ function eventStructureBuilt(structure, droid)
 		lastBuildLoc.x = structure.x-1; lastBuildLoc.y = structure.y;
 	}
 	if (distBetweenTwoPoints(lastBuildLoc.x, lastBuildLoc.y, BASE.x, BASE.y) > GROUP_SCAN_RADIUS*2)	lastBuildLoc = {x: BASE.x, y: BASE.y};
+
+	// if derrick remove assignments
+	if (structure.stattype === RESOURCE_EXTRACTOR) {
+		oilAssignments.delete(droid.id);
+		oilAssignments.delete(structure.id);
+	}
 
 	if (droid.group === oilBuilders) {
 		// check for other visible reachable oils
@@ -283,8 +271,6 @@ function eventStructureBuilt(structure, droid)
 				if (!tileIsBurning(oil.x, oil.y) && droidCanReach(droid, oil.x, oil.y) && oilResourceStore.query({ isReachable: true, requiresDestruction: false, x:oil.x, y:oil.y })) {
 					orderDroidBuild(droid, DORDER_BUILD, DERRICK_STAT, oil.x, oil.y);
 					logObj(droid, "eventStructureBuilt building on nearby oil");
-					oilAssignments.set(oil.id, gameTime);
-					oilAssignments.set(droid.id, oil.id);
 					break;
 				}
 			}
@@ -294,9 +280,13 @@ function eventStructureBuilt(structure, droid)
 
 function eventPickup(feature, droid)
 {
-	// if artifact picked check for another and delete assignment
-	if (feature.stattype === ARTIFACT || feature.stattype === OIL_DRUM) {
-		collectArtifacts._assignments.delete(feature.id);
-		if (collectArtifacts(droid)) return;
+	if (!feature || !feature.id || !droid || !droid.id)
+
+	if (droid.player === me) {
+		// if artifact picked check for another and delete assignment
+		if (feature.stattype === ARTIFACT || feature.stattype === OIL_DRUM) {
+			collectArtifacts._assignments.delete(feature.id);
+			if (collectArtifacts(droid)) return;
+		}
 	}
 }
