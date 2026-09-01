@@ -1,7 +1,7 @@
 function droidNeedsRepair(droidID, percent = null)
 {
 	const dr = getObject(DROID, me, droidID);
-	if (!dr || dr.id == undefined)
+	if (!dr || dr.id === undefined)
 	{
 		logTrace("WARNING droidNeedsRepair no dr");
 		return true; // dead?
@@ -223,7 +223,7 @@ function returnTarget(dr, randomtarget=false, droidAge=TWO_MINUTE, structAge=TEN
 			else if (targets.length === 2) { chance = 50; }
 			if (random(100) <= chance) {
 				// if vtol check aa
-				if (dr.isVTOL == true) {
+				if (dr.isVTOL === true) {
 					let t_aa = getAAthreats(t);
 					if (t_aa && t_aa.length > 1) {
 						log("returnTarget "+t_aa.length+" AA near target - next target");
@@ -237,7 +237,7 @@ function returnTarget(dr, randomtarget=false, droidAge=TWO_MINUTE, structAge=TEN
 			}
 		}
 	}
-	if (!target || target.x == undefined || target.y == undefined) return getRandomScoutLoc(dr);
+	if (!target || target.x === undefined || target.y === undefined) return getRandomScoutLoc(dr);
 	return target;
 }
 
@@ -307,7 +307,7 @@ function getAttackerTarget(dr, randomize=false)
 	}
 
 	let target = returnTarget(dr, randomize);
-	if (!target || target.x == undefined || target.y == undefined) return false;
+	if (!target || target.x === undefined || target.y === undefined) return false;
 	return target;
 }
 
@@ -339,15 +339,15 @@ function idleVtol(dr)
 	if (distBetweenTwoPoints(dr.x, dr.y, BASE.x, BASE.y) > AVG_BASE_RADIUS) { randomize = true; }
 
 	const target = getVTOLtarget(dr, randomize);
-	if (!target || target.x == undefined || target.y == undefined) return false;
+	if (!target || target.x === undefined || target.y === undefined) return false;
 
-	if (target.stattype == LASSAT && dr.weapons[0].armed > 50 && dr.health > 85)
+	if (target.stattype === LASSAT && dr.weapons[0].armed > 50 && dr.health > 85)
 	{
 		orderDroidObj(dr, DORDER_ATTACK, target);
 		logObj(dr, "idleVtol droid ordered to attack lassat");
 		return;
 	}
-	else if (target.stattype == SAT_UPLINK && dr.weapons[0].armed > 50 && dr.health > 85)
+	else if (target.stattype === SAT_UPLINK && dr.weapons[0].armed > 50 && dr.health > 85)
 	{
 		orderDroidObj(dr, DORDER_ATTACK, target);
 		logObj(dr, "idleVtol droid ordered to attack uplink");
@@ -380,7 +380,7 @@ function idleVtol(dr)
 
 function idleAttacker(dr)
 {
-	if (!dr || dr.id == undefined) return;
+	if (!dr || dr.id === undefined) return;
 	if (throttleThis("idleAttacker_"+dr.id+"throttle", 2000)) { return; }
 	if (groupSize(attackGroup) >= MIN_GROUND_UNITS || componentAvailable("HeavyRepair"))
 	{
@@ -418,7 +418,7 @@ function fireLassat()
 {
 	let my_lassat = enumStruct(me, LASSAT_STAT);
 	if (!my_lassat.length) return false;
-	if (lassatFired == false) lassatFired = activateStructure(my_lassat[0], returnTarget(my_lassat[0]));
+	if (lassatFired === false) lassatFired = activateStructure(my_lassat[0], returnTarget(my_lassat[0]));
 }
 
 function getStrongestAttackDroids() {

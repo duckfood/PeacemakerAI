@@ -86,7 +86,7 @@ function eventAttacked(victim, attacker) {
     if (victim.type === DROID) droidNeedsRepair(victim.id);
 
     // Check for retreat conditions when a cyborg or truck is hit by a reprogram ray
-    if (victim.type === DROID && (victim.droidType == DROID_CYBORG || victim.droidType == DROID_CONSTRUCT)) {
+    if (victim.type === DROID && (victim.droidType === DROID_CYBORG || victim.droidType === DROID_CONSTRUCT)) {
         for (let weapon of attacker.weapons) {
             if (weapon.id === "SpyTurret01" || weapon.id === "ScavNEXUSlink") {
                 orderDroid(victim, DORDER_RTB);

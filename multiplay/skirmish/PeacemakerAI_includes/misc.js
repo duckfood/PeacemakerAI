@@ -6,7 +6,7 @@ function log(message)
 
 function logObj(obj, message)
 {
-	if (obj == null) {return;}
+	if (obj === null) {return;}
 	if (DEBUG) { dump(gameTime + " [" + obj.name + " id=" + obj.id + "] > " + message); }
 	if (DEBUG_CONSOLE) { console(" [" + obj.name + " id=" + obj.id + "] > " + message); }
 }

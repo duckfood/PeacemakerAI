@@ -266,7 +266,7 @@ function grabTrucksAndBuild(structure, maxBlocking=1, x=BASE.x+randomBetween(-3,
 	baseCongested = true;
     log("default building at: "+x+"x"+y);
     buildloc = pickStructLocation(builder, structure, x, y, maxBlocking+1);
-	return orderTrucksBuild(droids, structure, buildloc, direction);
+	return orderTrucksBuild(structure, buildloc);
 }
 
 //// used to build accessory buildings and by grabTrucksAndBuild()
@@ -282,7 +282,7 @@ function orderTrucksBuild(structure, site, maxBlocking=1, direction=0)
 	if (!site || site.x === undefined || site.y === undefined) site = trucks[0];
 
 	let buildloc = pickStructLocation(trucks[0], structure, site.x, site.y, maxBlocking);
-	if (!buildloc || buildloc.x == undefined || buildloc.y == undefined) return false;
+	if (!buildloc || buildloc.x === undefined || buildloc.y === undefined) return false;
 
 	log("building structure "+JNstr(structure)+" at: "+JNstr(buildloc));
 	let done = false;
@@ -571,6 +571,7 @@ function upgradeGenerators()
 			return orderTrucksBuild(POW_MODULE_STAT, struct);
 		}
 	}
+	return false;
 }
 function upgradeResearch()
 {
@@ -583,12 +584,13 @@ function upgradeResearch()
 			return orderTrucksBuild(RES_MODULE_STAT, struct);
 		}
 	}
+	return false;
 }
 
 //// assigns trucks to closet safe notMyOil() with pre-computation, state, and PQ
 function assignTrucksToOil() { queue("assignTrucksToOilQ"); } // timer
 function assignTrucksToOilQ() {
-	const BUILDER_SPACING_THRESHOLD = mapWidth + mapHeight / 4;
+	const BUILDER_SPACING_THRESHOLD = (mapWidth + mapHeight) / 4;
     // Step 1: Filter builders based on specified conditions
     const builders = enumGroup(oilBuilders).filter((obj) =>
         (obj.order === 0 || obj.action === 0 || obj.order === DORDER_HELPBUILD));
@@ -599,7 +601,7 @@ function assignTrucksToOilQ() {
 	let sites;
 	// get clusters for first 3 minutes
 	if (gameTime < THREE_MINUTE) {
-		if (!sites || !site.length) sites = oilResourceStore.findClusters({ isReachable: true, requiresDestruction: false }, 2, GROUP_SCAN_RADIUS).clusters;
+		if (!sites || !sites.length) sites = oilResourceStore.findClusters({ isReachable: true, requiresDestruction: false }, 2, GROUP_SCAN_RADIUS).clusters;
 	}
 	if (!sites || !sites.length) sites = getNotMyOil();
 	if (!sites || !sites.length) return false;
@@ -721,7 +723,7 @@ function assignTrucksToOilQ() {
 //// reduced original working version
 function idleConstructor(droid)
 {
-	if (!droid || droid.id == null) return;
+	if (!droid || droid.id === null) return;
 	if (droid.group === baseBuilders) return;
 	if (droid.order !== 0 || droid.action !== 0) return;
 
@@ -750,7 +752,7 @@ function idleConstructor(droid)
 			logObj(droid,"idle truck scout notMyOil: "+oil.x+"x"+oil.y);
 			orderLocations.set(dr.id, {x: oil.x, y: oil.y, enemies: false});
 			oilAssignments.set(dr.id, oil.id);
-			oilAssignments.set(oil.id, oil.id);
+			oilAssignments.set(oil.id, gameTime);
 			return true;
 		}
 	}
@@ -759,8 +761,8 @@ function idleConstructor(droid)
 	let nearbyOil = seenStore.findNear(dr, GROUP_SCAN_RADIUS, { type: FEATURE, type: OIL_RESOURCE });
 	nearbyOil = sortByDistToLoc(dr, nearbyOil);
 	if (nearbyOil && nearbyOil.length && nearbyOil[0].id && !tileIsBurning(nearbyOil[0].x, nearbyOil[0].y)) {
-		const enemies = getHostilesNear(damagedDefenses[0], GROUP_SCAN_RADIUS).filter((obj) => (obj.isAA === false));
-		if (!enemies[0] && droidCanReach(droid, damagedDefenses[0].x, damagedDefenses[0].y))
+		const enemies = getHostilesNear(nearbyOil[0], GROUP_SCAN_RADIUS).filter((obj) => (obj.isAA === false));
+		if (!enemies[0] && droidCanReach(droid, nearbyOil[0].x, nearbyOil[0].y))
 		{
 			orderDroidBuild(droid, DORDER_BUILD, nearbyOil[0].x, nearbyOil[0].y);
 			logObj(droid,"idle truck build nearbyOil: "+nearbyOil[0].x+"x"+nearbyOil[0].y);

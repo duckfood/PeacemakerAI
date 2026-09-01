@@ -788,7 +788,7 @@ function droidAwareRTBQ()
 			let enemies = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*2, ENEMIES, true);
 			if (!enemies[0] || distBetweenTwoPoints(dr.x, dr.y, BASE.x, BASE.y) < AVG_BASE_RADIUS)
 			{
-				if (dr.droidType == DROID_REPAIR)
+				if (dr.droidType === DROID_REPAIR)
 				{	
 					idleRepair(dr);
 				}
@@ -879,7 +879,7 @@ function baseAware()
 			if (dr && distBetweenTwoPoints(dr.x, dr.y, BASE.x, BASE.y) > AVG_BASE_RADIUS &&
 				distBetweenTwoPoints(dr.x, dr.y, baseUnderAttackLoc.x, baseUnderAttackLoc.y) > AVG_BASE_RADIUS)
 			{
-				if (dr.droidType == DROID_REPAIR)
+				if (dr.droidType === DROID_REPAIR)
 				{
 					let defrand = defenders[random(defenders.length)];
 					orderDroidObj(dr, 25, defrand); // DORDER_GUARD
