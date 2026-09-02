@@ -1,10 +1,14 @@
 TODO and done for PeacemakerAI
 
-idle basebuilders should patrol
 transporter operations
-rocket scheme for T2
+move more string defs into jsapi.js
+trucks should finish nearby defenses if no other trucks
 
 IDEAS:
+use api unit templates
+demolish extra factories or hold production
+idle basebuilders should patrol
+only fire lassat at inexpensive objects if they are massed
 don't research if no power plant unless mass cash
 hit and run tactics for missile
 only produce at facs if product can reach active hostile base
@@ -23,7 +27,6 @@ handle objects where the location is unknown eg. old mobile threats
 seenStore object confidence level which decays over time
 build a repairfac fortress and maintain
 repairs sensor daction none trigger idle
-some oils which are accessible not getting claimed on Strikeout and others
 random all combat unit blocked oil check
 if many opponents build fortress near base maybe
 build and defend wall trucks
@@ -40,6 +43,7 @@ demolish unowned walls or other likely obstacles
 check for stuck oilbuilders
 
 DONE:
+-rocket scheme for T2
 -daction constants
 -assign nearby mortars to sensor while engaging
 -if sensor is illuminating target near artillery assign them to sensor

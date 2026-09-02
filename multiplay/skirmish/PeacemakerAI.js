@@ -1,9 +1,9 @@
-//// PeacemakerAI v0.11 2026-9-1 http://github.com/duckfood
+//// PeacemakerAI v0.11 2026-9-2 http://github.com/duckfood
 //// MIT license. No warranty whatsoever. Use this code at your own risk!
 //// Include this notice in any substantial reproductions.
 
 // log messages to bot log file
-const DEBUG = true;
+const DEBUG = false;
 // log messages in-game
 const DEBUG_CONSOLE = false;
 const DEBUG_TRACE = false;
@@ -18,7 +18,7 @@ const MIN_RESEARCH_POWER = 20;
 const MIN_PRODUCTION_POWER = 50;
 const MIN_LIBERATE_POWER = 0;
 const MIN_ATTACK_GSIZE = 5;
-const MIN_SENSOR_DROIDS = 1;
+const MIN_SENSOR_DROIDS = 2;
 const HELP_CONSTRUCT_AREA = 20;
 const MIN_GROUND_UNITS = 5;
 const MIN_VTOL_UNITS = 4;
@@ -40,7 +40,6 @@ const FIVE_MINUTE =  300000;
 const SIX_MINUTE =   360000;
 const TEN_MINUTE =   600000;
 
-// approx time it would take for a fast vtol to fly from one corner of the map half way to the opposing corner
 let VTOL_DEFEND_TIME = 0;
 
 let truckStarts;
@@ -79,6 +78,7 @@ let baseUnderAttack = 0;
 let baseUnderAttackLoc;
 
 let isUltimateScavs = false;
+let startedWithBB = false;
 
 let lastBuildLoc;
 
@@ -108,8 +108,15 @@ function eventStartLevel()
 	log("isSeaMap:"+isSeaMap);
 	log("isAirMap:"+isAirMap);
 
+	// T2+ use rocket and mortar scheme
+	if (componentAvailable("Rocket-BB")) {
+		startedWithBB = true;
+		Scheme = "RKTMTR";
+	}
+
 	researchDone = false;
 	enemyHasVtol = false;
+	// fast vtol flight time from corner to center
 	VTOL_DEFEND_TIME = distBetweenTwoPoints(1, 1, mapWidth-2, mapHeight-2) / 22 * 1000;
 	log("VTOL_DEFEND_TIME: "+VTOL_DEFEND_TIME);
 
@@ -159,7 +166,7 @@ function eventStartLevel()
     if (!reslist.length) researchDone = true;
 
 	// if ultimate scavs use AC scheme
-	if (scavengers > 1)	{
+	if (scavengers > 1 && !startedWithBB)	{
 		const scavStructures = enumStruct(scavengerPlayer).length;
 		const scavUnits = enumDroid(scavengerPlayer).length;
 		if (scavStructures || scavUnits) {

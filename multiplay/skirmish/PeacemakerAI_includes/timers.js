@@ -31,7 +31,7 @@ function droidAwareAttackerQ()
 		}
 
 		// handle droids on firesupport
-		if (dr.hasIndirect === true && dr.order === DORDER_FIRESUPPORT && dr.action !== DACTION_FIRESUPPORT) {
+		if (dr.hasIndirect === true && dr.order === DORDER_FIRESUPPORT && dr.weapons[0].armed === 100) {
 			// remove from firesupport
 			idleAttacker(dr);
 			continue;
@@ -68,13 +68,13 @@ function droidAwareSensor()
 
     for (let dr of droidAware)
     {
-        // 1. Basic Checks (Unchanged)
+        // 1. Basic Checks
         if (dr.droidType !== DROID_SENSOR) continue;
         if (dr.order === DORDER_RTR || dr.order === DORDER_RTB) continue;
         // rtb if on tileIsBurning
         if (moveFromBurningTile(dr)) continue;
 
-        // Damage Check (Unchanged)
+        // Damage Check
         if (dr.health < 80 && dr.order !== DORDER_RTR)
         {
             orderDroid(dr, DORDER_RTR);
@@ -82,12 +82,22 @@ function droidAwareSensor()
             continue;
         }
 
-        // 2. Support Call (Refactored Section)
-        // call in support when illuminating
-        if (dr.action === 7) { // DACTION_OBSERVE
-            let nearbyArtillery = seenStore.findNear(dr, GROUP_SCAN_RADIUS * 2, { player: me, type: DROID, hasIndirect: true });
+        // 2. Support
+        if (dr.action === DACTION_OBSERVE) {
+			// move to another observation point if no support nearby
+			let nearbySupport = seenStore.findNear(dr, GROUP_SCAN_RADIUS * 2, { player: me, type: DROID, canHitGround: true});
+			if (!nearbySupport || !nearbySupport.length) {
+				let escorts = getStrongestAttackDroids();
+				if (escorts && escorts.length) {
+					let escort = escorts[0];
+					orderDroidLoc(dr, DORDER_MOVE, escort.x, escort.y);
+					logObj(dr, "moving to escort: "+escort.id);
+					continue;
+				}
+			}
 
-            // *** FIX: Initialize a set to track assigned IDs for THIS TICK ***
+			// call in support when illuminating
+            let nearbyArtillery = seenStore.findNear(dr, GROUP_SCAN_RADIUS * 2, { player: me, type: DROID, hasIndirect: true });
             const assignedArtillery = new Set();
 
             for (let artillery of nearbyArtillery) {
@@ -98,7 +108,6 @@ function droidAwareSensor()
                     continue;
                 }
 
-                // Original logic check
                 if (artillery.order === DORDER_SCOUT && orderTargets.get(dr.id) !== artilleryId) {
 
                     // 3. Issue Command
@@ -108,24 +117,32 @@ function droidAwareSensor()
                     // 4. Update State & Mark as Assigned
                     orderTargets.set(artilleryId, dr.id);
                     orderLocations.set(artilleryId, dr);
-                    assignedArtillery.add(artilleryId); // <-- KEY FIX: Mark this unit as handled
+                    assignedArtillery.add(artilleryId);
                 }
             }
         }
 
-        // 3. Escort Logic (Unchanged, but safely runs after the support logic)
-        // escort the most exp attack droid
-        if (Math.random() * 100 > 70)
-        {
-            let new_escort = findMostExpDroid();
-            if (new_escort && new_escort.id && orderTargets.get(dr.id) !== new_escort.id)
-            {
-                orderDroidObj(dr, 25, new_escort); // defend
-                logObj(dr, "sensor ordered to escort: "+new_escort.id);
-                orderTargets.set(dr.id, new_escort.id);
-                orderLocations.set(dr.id, new_escort);
-            }
-        }
+        // 3. Observe
+		if ((dr.order !== DORDER_MOVE && dr.order !== DORDER_SCOUT) || dr.action === DACTION_NONE) {
+			let escorts = getStrongestAttackDroids();
+			if (escorts && escorts.length) {
+				let escort = escorts[0];
+				orderDroidLoc(dr, DORDER_SCOUT, escort.x, escort.y);
+				logObj(dr, "scouting to escort: "+escort.id);
+				continue;
+			}
+		}
+		// stop scouting sensors from returning to position
+		if (dr.order === DORDER_SCOUT && dr.action === DACTION_RETURNTOPOS)
+		{
+			let escorts = getStrongestAttackDroids();
+			if (escorts && escorts.length) {
+				let escort = escorts[0];
+				orderDroidLoc(dr, DORDER_SCOUT, escort.x, escort.y);
+				logObj(dr, "scouting to escort: "+escort.id);
+				continue;
+			}
+		}
     }
 }
 
@@ -1239,8 +1256,8 @@ function adjustSchemeAndStance()
 	// don't adjust too early if ultimate scavs
 	if (isUltimateScavs && gameTime < TEN_MINUTE) return;
 
-	// choose anti-tank or anti-cyborg
-	if (hostileCyborg.length + hostileTanks.length > 25 && !componentAvailable("Laser3BEAMMk1")) { // if already at flashlight don't switch
+	// choose anti-tank or anti-cyborg, but not if started with Bunker Buster
+	if (!startedWithBB && hostileCyborg.length + hostileTanks.length > 25 && !componentAvailable("Laser3BEAMMk1")) { // if already at flashlight don't switch
 
 		if (hostileCyborg.length * SCHEME_THRESHOLD > hostileTanks.length && Scheme !== "MGLAS") {
 			Scheme = "MGLAS";
