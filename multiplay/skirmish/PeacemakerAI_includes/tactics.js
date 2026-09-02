@@ -63,7 +63,7 @@ function droidNeedsRepair(droidID, percent = null)
 			orderDroid(dr, DORDER_RTR);
 			log("damaged constructor ordered to RTR:"+dr.id);
 		}
-		else if (dr.isVTOL && dr.order !== DORDER_REARM && enumStruct(me, VTOL_PAD_STAT))
+		else if (dr.isVTOL && dr.order !== DORDER_REARM && enumStruct(me, VTOL_PAD_STAT).length > 0)
 		{
 			orderDroid(dr, DORDER_REARM);
 			log("damaged vtol ordered to REARM:"+dr.id);
@@ -190,7 +190,7 @@ function returnTarget(dr, randomtarget=false, droidAge=TWO_MINUTE, structAge=TEN
 	{
 		targets = targets.sort((a, b) => b.cost - a.cost); // decending
 		// if one of the first few are a lassat return it
-		for (i = 0; i < 3; i++)
+		for (let i = 0; i < 3; i++)
 		{
 			if (!targets[i] || !targets[i].id) continue;
 			if (targets[i].type === STRUCTURE && targets[i].stattype === LASSAT) return targets[i];
@@ -385,7 +385,7 @@ function idleAttacker(dr)
 	if (groupSize(attackGroup) >= MIN_GROUND_UNITS || componentAvailable("HeavyRepair"))
 	{
 		let target = getAttackerTarget(dr);
-		if (target && target.x && target.y) {
+		if (target && target.x !== undefined && target.y !== undefined) {
 			orderDroidLoc(dr, DORDER_SCOUT, target.x, target.y);
 			logObj(dr, "attacker scouting: "+target.x+"x"+target.y);
 			if (target.id !== undefined) orderLocations.set(dr.id, {x: target.x, y: target.y, enemies: true});
@@ -414,11 +414,17 @@ function idleRepair(dr)
 }
 
 let lassatFired = false;
-function fireLassat()
+function fireLassat(myLassat) // timer
 {
-	let my_lassat = enumStruct(me, LASSAT_STAT);
-	if (!my_lassat.length) return false;
-	if (lassatFired === false) lassatFired = activateStructure(my_lassat[0], returnTarget(my_lassat[0]));
+	if (lassatFired === true) return false;
+	if (!myLassat || !myLassat.id) {
+		let lasSats = enumStruct(me, LASSAT_STAT);
+		if (lasSats && lasSats.length && lasSats[0].id) {
+			myLassat = lasSats[0];
+		} else { return false; }
+	}
+	lassatFired = activateStructure(myLassat, returnTarget(myLassat));
+	return lassatFired;
 }
 
 function getStrongestAttackDroids() {
@@ -443,8 +449,7 @@ function getStrongestRepairDroids() {
     // Combine groups, filtering for repair droids
     const allDroids = [].concat(
         enumGroup(attackGroup),
-        enumGroup(defendGroup),
-        enumGroup(supportGroup)
+        enumGroup(defendGroup)
     ).filter(droid => droid.droidType === DROID_REPAIR);
 
     // Sort droids by descending strength
@@ -516,7 +521,7 @@ function fleeFromHostiles(dr)
 		// run if we get too close
 		if (longest_range && longest_droid && distBetweenTwoPoints(dr.x, dr.y, longest_droid.x, longest_droid.y) < longest_range + 4)
 		{
-			let rallyPoint = extendLine(longest_droid, dr, GROUP_SCAN_RADIUS, direction = 'beyond');
+			let rallyPoint = extendLine(longest_droid, dr, GROUP_SCAN_RADIUS, 'beyond');
 
 			if (rallyPoint && rallyPoint.x !== undefined && rallyPoint.y !== undefined && droidCanReach(dr, rallyPoint.x, rallyPoint.y)) {
 				orderDroidLoc(dr, DORDER_MOVE, rallyPoint.x, rallyPoint.y);

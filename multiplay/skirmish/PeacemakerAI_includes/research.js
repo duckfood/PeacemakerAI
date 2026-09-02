@@ -109,7 +109,7 @@ function isResearched(list) {
     if (!list.length) return true; // empty so done
     for (let item of list) {
         let itemsLeft = findResearch(item, me).length;
-        if (itemsLeft && itemsLeft.length) return false; // not done
+        if (itemsLeft) return false; // not done
     }
     return true; // done
 }

@@ -729,16 +729,20 @@ function droidAwareRetreatQ()
 			if (!retreat) {
 				if (dr.droidType === DROID_REPAIR) {
 					groupAdd(repairGroup, dr);
-					idleRepair(dr);
 					logObj(dr, "droidAwareRetreat repairing");
+					idleRepair(dr);
 				} else if (dr.canHitAir && !dr.canHitGround) { // AA
 					groupAdd(aaGroup, dr);
 					orderDroid(dr, DORDER_STOP);
-					logObj(dr, "droidAwareRetreat returning to attack");
+					logObj(dr, "droidAwareRetreat new escort");
+				} else if (dr.droidType === DROID_SENSOR) {
+					groupAdd(sensorGroup, dr);
+					orderDroid(dr, DORDER_STOP);
+					logObj(dr, "droidAwareRetreat new escort");
 				} else {
-					idleAttacker(dr);
-					logObj(dr, "droidAwareRetreat going idle");
 					groupAdd(attackGroup, dr);
+					logObj(dr, "droidAwareRetreat new target");
+					idleAttacker(dr);
 				}
 			}
 		}

@@ -107,7 +107,7 @@ function eventAttacked(victim, attacker) {
             if (retreat && retreat.seenAllyGroup && retreat.seenAllyGroup.length) {
                 for (const ally of retreat.seenAllyGroup.filter((obj) => (obj.player === me)) ) {
                     if (ally.id && ally.type === DROID && ally.player === me && distBetweenTwoPoints(ally.x, ally.y, BASE.x, BASE.y) > AVG_BASE_RADIUS) {
-						if (ally.type === DROID_REPAIR) {
+						if (ally.droidType === DROID_REPAIR) {
 							orderDroidLoc(ally, DORDER_SCOUT, BASE.x, BASE.y);
 							groupAdd(retreatGroup, ally);
 							logObj(ally, "eventAttacked retreating scout to base");
@@ -280,7 +280,7 @@ function eventStructureBuilt(structure, droid)
 
 function eventPickup(feature, droid)
 {
-	if (!feature || !feature.id || !droid || !droid.id)
+	if (!feature || !feature.id || !droid || !droid.id) return false;
 
 	if (droid.player === me) {
 		// if artifact picked check for another and delete assignment

@@ -236,7 +236,7 @@ function buildTankForces(fac) {
         const vrepair = countVirtualProduction(me, FACTORY, DROID_REPAIR);
         log(`repair:${repair.length} vrepair:${vrepair} combat:${combat.length} combat/div:${combat.length/div}`);
 		// build one repair at least
-		if (!repair && !repair.length && !vrepair && buildRepair(fac, prop)) return true;
+		if ((!repair || !repair.length) && !vrepair && buildRepair(fac, prop)) return true;
 		// maybe build more if needed
 		if (random(100) < REPAIR_CHANCE) {
 			if (repair.length + vrepair < combat.length / div || repair.length + vrepair < 1 && buildRepair(fac, prop)) return true;
@@ -441,7 +441,7 @@ function buildCyborg(fac)
         const vrepair = countVirtualProduction(me, CYBORG_FACTORY, DROID_REPAIR);
         log(`cyborg repair:${repair.length} vrepair:${vrepair} cyborg combat:${combat.length} combat/div:${combat.length/div}`);
 		// build one repair at least
-		if (!repair && !repair.length && !vrepair) return buildRepair(fac);
+		if ((!repair || !repair.length) && !vrepair) return buildRepair(fac);
 		// maybe build more if needed
 		if (random(100) < REPAIR_CHANCE) {
 			if (repair.length + vrepair < combat.length / div || repair.length + vrepair < 1) return buildRepair(fac);
