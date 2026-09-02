@@ -85,7 +85,7 @@ For the latest updates and screenshots visit [duckfood.github.io/PeacemakerAI](h
 *T2 start*
 
 [![Neighborhood2](https://duckfood.github.io/PeacemakerAI/media/neighborhood_screenshot2.jpg)](https://duckfood.github.io/PeacemakerAI/media/neighborhood_screenshot2.jpg)
-*T2 start seamap*
+*T3 start seamap*
 
 ---
 
