@@ -1,5 +1,6 @@
 //// updated and fully optimized version
-class SpatialDataStore {
+class SpatialDataStore
+{
   constructor(indexes) {
     this.objects = new Map();
     this.indexes = { ...indexes };
@@ -7,10 +8,10 @@ class SpatialDataStore {
   }
 
   addObject(id, obj) {
-    if (!id) { log('ERROR id must be defined'); return false; }
-    if (!obj) { log('ERROR obj must be defined'); return false; }
+    if (!id) { logFile('ERROR id must be defined'); return false; }
+    if (!obj) { logFile('ERROR obj must be defined'); return false; }
     if (obj.x === undefined || obj.y === undefined) {
-      log('ERROR Object must have x,y properties'); return false;
+      logFile('ERROR Object must have x,y properties'); return false;
     }
     // Add the object
     this.objects.set(id, obj);
@@ -126,7 +127,7 @@ class SpatialDataStore {
 
   findNear(position, radius, conditions = {}) {
     if (!position || position.x === undefined || position.y === undefined) {
-      log('ERROR findNear must have x,y properties'); return false;
+      logFile('ERROR findNear must have x,y properties'); return false;
     }
 
     const { x, y } = position;
@@ -231,7 +232,8 @@ class SpatialDataStore {
 }
 
 //// determine the closest point on the edge of a given rectangular area to a given point relative to the area
-function closestPointOnRectEdge(rect, point) {
+function closestPointOnRectEdge(rect, point)
+{
     // Clamp point coordinates to rectangle edges
     const clampedX = Math.max(rect.x, Math.min(point.x, rect.x + rect.width));
     const clampedY = Math.max(rect.y, Math.min(point.y, rect.y + rect.height));
@@ -256,36 +258,27 @@ function closestPointOnRectEdge(rect, point) {
     return {x: edgeX, y: edgeY};
 }
 
-//// test function
-function markCliffTiles(tiles)
-{
-    if (!tiles) return false;
-    tiles.forEach((column, x) => {
-        column.forEach((cell, y) => {
-            if (cell.terrainType === TERRAIN_CLIFF) hackMarkTiles(x, y);
-        });
-    });
-}
-
 //// uses hackMarkTiles to mark tiles in an array
-function markTiles(tiles) {
-	if (isIterable(tiles)) {
+function markTiles(tiles)
+{
+	if (Array.isArray(tiles)) {
 		for (let tile of tiles) {
-			if (isIterable(tile)) {
+			if (Array.isArray(tile)) {
 				hackMarkTiles(tile[0], tile[1]);
 			} else if (typeof tile.x === 'number' && typeof tile.y === 'number') {
 				hackMarkTiles(tile.x, tile.y);
 			} else {
-              log("WARNING markTiles tiles not valid: "+JNstr(tiles));
+              logFile("WARNING markTiles tiles not valid: "+JNstr(tiles));
             }
 		}
 	} else {
-      log("WARNING markTiles tiles not iterable: "+JNstr(tiles));
+      logFile("WARNING markTiles tiles not iterable: "+JNstr(tiles));
     }
 }
 
 //// used to prepare pathfinding data
-function loadFeaturesIntoTiles(features, tiles) {
+function loadFeaturesIntoTiles(features, tiles)
+{
     let newTiles = transposeTiles(tiles);
     for (const feature of features) {
         const { x, y } = feature;
@@ -297,7 +290,8 @@ function loadFeaturesIntoTiles(features, tiles) {
 }
 
 //// converts tiles[y][x] to tiles[x][y]
-function transposeTiles(Tiles) {
+function transposeTiles(Tiles)
+{
     if (!Tiles || Tiles.length === 0) return [];
 
     const height = Tiles.length;
@@ -316,24 +310,35 @@ function transposeTiles(Tiles) {
 }
 
 //// determines if a map requires hover to access any start position from ours
-function isHoverMap() {
+function isHoverMap()
+{
+    if (isHoverMap.cache !== undefined) return isHoverMap.cache;
+    isHoverMap.cache = false;
     for (let i = 0; i < maxPlayers; i++) {
         if (!propulsionCanReach(PROP_WHEEL, BASE.x, BASE.y, startPositions[i].x, startPositions[i].y)) {
-            if (propulsionCanReach(PROP_HOVER, BASE.x, BASE.y, startPositions[i].x, startPositions[i].y)) {
-                return true;
-            }
+            if (propulsionCanReach(PROP_HOVER, BASE.x, BASE.y, startPositions[i].x, startPositions[i].y)) isHoverMap.cache = true;
         }
     }
-    return false;
+    return isHoverMap.cache;
 }
 //// determines if a map requires vtol to access any start position from ours
-function isVtolMap() {
+function isVtolMap()
+{
+    if (isVtolMap.cache !== undefined) return isVtolMap.cache;
+    isVtolMap.cache = false;
     for (let i = 0; i < maxPlayers; i++) {
-        if (!propulsionCanReach(PROP_HOVER, BASE.x, BASE.y, startPositions[i].x, startPositions[i].y)) {
-            return true;
-        }
+        if (!propulsionCanReach(PROP_HOVER, BASE.x, BASE.y, startPositions[i].x, startPositions[i].y)) isVtolMap.cache = true;
     }
-    return false;
+    return isVtolMap.cache;
+}
+// determines if transporters should be used
+function isTransportMap()
+{
+    if (isTransportMap.cache !== undefined) return isTransportMap.cache;
+    isTransportMap.cache = false;
+	let unReachable = oilResourceStore.query({ isReachable: false });
+	if (unReachable.length > TRANPORT_MAP_THRESH) isTransportMap.cache = true;
+	return isTransportMap.cache;
 }
 
 //// Extends a line segment from point1 to point2 by distance `d` in the specified direction.
@@ -352,8 +357,8 @@ function extendLine(point1, point2, d, direction = 'beyond') {
     // Compute unit vector and displacement
     const unitX = dx / length;
     const unitY = dy / length;
-    const extendedX = point2.x + (direction === 'beyond' ? d : -d) * unitX;
-    const extendedY = point2.y + (direction === 'beyond' ? d : -d) * unitY;
+    const extendedX = Math.round(point2.x + (direction === 'beyond' ? d : -d) * unitX);
+    const extendedY = Math.round(point2.y + (direction === 'beyond' ? d : -d) * unitY);
 
     return { x: extendedX, y: extendedY };
 }
@@ -437,27 +442,22 @@ class ultimate_PriorityQueue {
 // map bounds clipped to avoid pathfinding off map as game map is inaccessible around the edge
 // considers start tile to be accessible if adjacent tile is
 // allows a path to an inaccessible tile can be formed by swapping start and dest
-function findShortestPath(start, dest, propulsion = PROP_WHEEL, allowDestruction = false, maxPathLength = Infinity) {
-    if (!start || start.x === undefined || start.y === undefined) {
-        log("WARNING findShortestPath no or invalid start for path");
+function findShortestPath(start, dest, propulsion = PROP_WHEEL, allowDestruction = false, maxPathLength = Infinity)
+{
+    if (DEBUGEX) logFile("findShortestPath");
+    if (!start || !isInMapBounds(start)) {
+        logFile("WARNING findShortestPath invalid start for path");
         return false;
     }
-    if (!dest || dest.x === undefined || dest.y === undefined) {
-        log("WARNING findShortestPath no or invalid dest for path");
+    if (!dest || !isInMapBounds(dest)) {
+        logFile("WARNING findShortestPath invalid dest for path");
         return false;
     }
     const tiles = MapTilesFeatures;
     const directions = [[0,1],[1,0],[0,-1],[-1,0]]; // only consider up, down, left, right movements as diagonal is not possible
     const cols = tiles.length;       // x-axis
     const rows = tiles[0].length;    // y-axis
-    if (start.x < 1 || start.x >= cols-1 || start.y < 1 || start.y >= rows-1) { // clip map edges
-        log("WARNING Start position is out of bounds");
-        return false;
-    }
-    if (dest.x < 1 || dest.x >= cols-1 || dest.y < 1 || dest.y >= rows-1) { // clip map edges
-        log("WARNING Destination is out of bounds");
-        return false;
-    }
+
     const heuristic = (x1, y1, x2, y2) => {
         if (x1 === start.x && y1 === start.y) return 0; // Always consider the start position with zero heuristic value
         return Math.abs(x1 - x2) + Math.abs(y1 - y2); // Standard Manhattan distance for other nodes
@@ -517,8 +517,8 @@ function findShortestPath(start, dest, propulsion = PROP_WHEEL, allowDestruction
     }
 }
 
-//// modernized version
-function plotSquareSpiral(xCenter, yCenter, maxRadius = 20, expansionRate = 3) {
+function plotSquareSpiral(xCenter, yCenter, maxRadius = 20, expansionRate = 3, maxSteps = 1000) {
+    if (!isInMapBounds({ x: xCenter, y: yCenter })) return false;
     let x = xCenter;
     let y = yCenter;
     const path = [[x, y]];
@@ -526,7 +526,8 @@ function plotSquareSpiral(xCenter, yCenter, maxRadius = 20, expansionRate = 3) {
     let stepsPerLoop = 1;
     let currentDirIndex = 0;
 
-    while (true) {
+    let step = 0;
+    while (step < maxSteps) {
         for (let i = 0; i < 2; i++) {
             const dir = dirs[currentDirIndex];
             for (let j = 0; j < stepsPerLoop; j++) {
@@ -534,12 +535,19 @@ function plotSquareSpiral(xCenter, yCenter, maxRadius = 20, expansionRate = 3) {
                 y += dir[1];
                 path.push([x, y]);
                 if (Math.max(Math.abs(x - xCenter), Math.abs(y - yCenter)) > maxRadius) {
-                    return path.filter((obj) => obj[0] >= 0 && obj[1] >= 0 && obj[0] < mapWidth && obj[1] < mapHeight);
+                    return path.filter((obj) => isInMapBounds( { x: obj[0], y: obj[1] } ));
                 }
             }
             currentDirIndex = (currentDirIndex + 1) % 4;
         }
         stepsPerLoop += expansionRate;
     }
+    return false;
 }
 
+function isInMapBounds(loc)
+{
+  // game map is clipped one tile around the edge
+  if (!loc || !loc.x || loc.x > mapWidth -1 || !loc.y || loc.y > mapHeight -1) return false;
+  return true;
+}

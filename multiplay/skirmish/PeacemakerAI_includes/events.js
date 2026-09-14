@@ -11,7 +11,7 @@ function eventDroidBuilt(droid, struct)
 		if (target)
 		{
 			orderDroidLoc(droid, DORDER_SCOUT, target.x, target.y);
-			logObj(droid, "new vtol droid ordered to scout to target:"+target.x+"x"+target.y);
+			logFile(droid, "new vtol droid ordered to scout to target:"+target.x+"x"+target.y);
 		}
 	}
 	else if (droid.droidType === DROID_WEAPON)
@@ -19,19 +19,22 @@ function eventDroidBuilt(droid, struct)
 		if (droid.canHitGround === false && droid.canHitAir === true)
 		{
 			groupAdd(aaGroup, droid);
-			logObj(droid, "added to aaGroup");
+			logFile(droid, "added to aaGroup");
+			idleAttacker(droid);
 		}
 		else
 		{
 			groupAdd(attackGroup, droid);
-			logObj(droid, "added to attackGroup");
+			logFile(droid, "added to attackGroup");
+			idleAttacker(droid);
 		}
 	}
 	else if (droid.droidType === DROID_CYBORG)
 	{
 		totalCyborgBuilt ++;
 		groupAdd(attackGroup, droid);
-		logObj(droid, "added to attackGroup");
+		logFile(droid, "added to attackGroup");
+		idleAttacker(droid);
 	}
 	else if (droid.droidType === DROID_CONSTRUCT)
 	{
@@ -39,36 +42,39 @@ function eventDroidBuilt(droid, struct)
 		let baseCount = enumGroup(baseBuilders).length;
 		let oilCount = enumGroup(oilBuilders).length;
 
-		if (baseCount < MIN_BASE_TRUCKS) { groupAdd(baseBuilders, droid); logObj(droid, "added to baseBuilders"); }
-		else if (oilCount < MIN_OIL_TRUCKS) { groupAdd(oilBuilders, droid); logObj(droid, "added to oilBuilders"); }
-		else if (baseCount === MIN_BASE_TRUCKS) { groupAdd(baseBuilders, droid); logObj(droid, "added to baseBuilders"); }
-		else if (oilCount < MAX_OIL_TRUCKS - 1) { groupAdd(oilBuilders, droid); logObj(droid, "added to oilBuilders"); }
-		else if (baseCount < MAX_BASE_TRUCKS) { groupAdd(baseBuilders, droid); logObj(droid, "added to baseBuilders"); }
-		else { groupAdd(oilBuilders, droid); logObj(droid, "added to oilBuilders"); }
+		if (baseCount < MIN_BASE_TRUCKS) { groupAdd(baseBuilders, droid); logFile(droid, "added to baseBuilders"); }
+		else if (oilCount < MIN_OIL_TRUCKS) { groupAdd(oilBuilders, droid); logFile(droid, "added to oilBuilders"); }
+		else if (baseCount === MIN_BASE_TRUCKS) { groupAdd(baseBuilders, droid); logFile(droid, "added to baseBuilders"); }
+		else if (oilCount < MAX_OIL_TRUCKS - 1) { groupAdd(oilBuilders, droid); logFile(droid, "added to oilBuilders"); }
+		else if (baseCount < MAX_BASE_TRUCKS) { groupAdd(baseBuilders, droid); logFile(droid, "added to baseBuilders"); }
+		else { groupAdd(oilBuilders, droid); logFile(droid, "added to oilBuilders"); }
+
+		idleConstructor(droid);
 	}
 	else if (droid.droidType === DROID_REPAIR)
 	{
 		if ((groupSize(vtolRepairGroup) === 0 && countStruct(VTOL_PAD_STAT) > 8) || (groupSize(vtolRepairGroup) < 2 && countStruct(VTOL_PAD_STAT) > 20))
 		{
 			groupAdd(vtolRepairGroup, droid);
-			logObj(droid, "added repair to vtolRepairGroup");
+			logFile(droid, "added repair to vtolRepairGroup");
 		}
 		else
 		{
 			groupAdd(repairGroup, droid);
-			logObj(droid, "added repair to repairGroup");
+			logFile(droid, "added repair to repairGroup");
 			idleRepair(droid);
 		}
 	}
 	else if (droid.droidType === DROID_SENSOR)
 	{
 		groupAdd(sensorGroup, droid);
-		logObj(droid, "added sensor to sensorGroup");
+		logFile(droid, "added sensor to sensorGroup");
 	}
 }
 
 // throttled by api
-function eventAttacked(victim, attacker) {
+function eventAttacked(victim, attacker)
+{
     if (!victim || !attacker || !victim.id || !attacker.id) return;
 
     // Only proceed if the victim belongs to the current player
@@ -90,7 +96,7 @@ function eventAttacked(victim, attacker) {
         for (let weapon of attacker.weapons) {
             if (weapon.id === "SpyTurret01" || weapon.id === "ScavNEXUSlink") {
                 orderDroid(victim, DORDER_RTB);
-                logObj(victim, "eventAttacked cyborg or truck hit by reprogram link ray RTB");
+                logFile(victim, "eventAttacked cyborg or truck hit by reprogram link ray RTB");
                 orderTargets.delete(victim.id);
                 orderLocations.delete(victim.id);
                 return;
@@ -104,23 +110,7 @@ function eventAttacked(victim, attacker) {
 
             // Retreat if outnumbered
 			const retreat = shouldWeRetreat(victim); // returns false or retreat object
-            if (retreat && retreat.seenAllyGroup && retreat.seenAllyGroup.length) {
-                for (const ally of retreat.seenAllyGroup.filter((obj) => (obj.player === me)) ) {
-                    if (ally.id && ally.type === DROID && ally.player === me && distBetweenTwoPoints(ally.x, ally.y, BASE.x, BASE.y) > AVG_BASE_RADIUS) {
-						if (ally.droidType === DROID_REPAIR) {
-							orderDroidLoc(ally, DORDER_SCOUT, BASE.x, BASE.y);
-							groupAdd(retreatGroup, ally);
-							logObj(ally, "eventAttacked retreating scout to base");
-						} else {
-							orderDroid(ally, DORDER_RTB);
-							groupAdd(retreatGroup, ally);
-							logObj(ally, "eventAttacked retreating from hostile group");
-						}
-						orderTargets.delete(ally.id);
-						orderLocations.delete(ally.id);
-                    }
-                }
-            }
+			if (retreat) orderRetreat(retreat);
         }
 
         // Check if the attacker is a VTOL
@@ -144,7 +134,7 @@ function eventAttacked(victim, attacker) {
             if (!droidNeedsRepair(dr.id) && dr.id !== victim.id && dr.order !== DORDER_RTB) {
                 if (dr.droidType !== DROID_REPAIR) {
                     orderDroidLoc(dr, DORDER_SCOUT, loc.x, loc.y);
-                    log("eventAttacked defend droid " + dr.id + " scouting: " + loc.x + "x" + loc.y);
+                    logFile("eventAttacked defend droid " + dr.id + " scouting: " + loc.x + "x" + loc.y);
                     orderLocations.set(dr.id, { x: loc.x, y: loc.y, enemies: true });
                 }
             }
@@ -157,12 +147,12 @@ function eventAttacked(victim, attacker) {
             if (throttleThis("eventAttacked_throttle_Vtol_" + vt.id, VTOL_DEFEND_TIME * 5)) continue;
             let AA = getAAthreats(loc);
             if (AA && AA.length > 2) {
-                logObj(vt, "eventAttacked vtol not sent on defend mission AA: "+AA.length);
+                logFile(vt, "eventAttacked vtol not sent on defend mission AA: "+AA.length);
                 return;
             }
             if (vtolReady(vt) && vt.order !== DORDER_ATTACK && vt.order !== DORDER_REARM) {
                 orderDroidLoc(vt, DORDER_SCOUT, loc.x+randomBetween(-3, 3), loc.y+randomBetween(-3, 3));
-                logObj(vt, "eventAttacked vtol sent on defend mission");
+                logFile(vt, "eventAttacked vtol sent on defend mission");
             }
         }
     }
@@ -197,7 +187,7 @@ function eventDroidIdle(droid)
 function eventObjectTransfer(object, whofrom)
 {
 	if (!object || !object.id) return;
-	logObj(object, "transferred");
+	logFile(object, "transferred");
 	seenStore.deleteObjects({ id: object.id });
 	if (object.canHitGround === false && object.canHitAir === true) AAseenStore.deleteObjects({ id: object.id });
 	if (object.player === me && object.type === DROID) eventDroidBuilt(object);
@@ -206,14 +196,14 @@ function eventObjectTransfer(object, whofrom)
 function eventStructureDemolish(object, droid)
 {
 	if (!object || !object.id) return;
-	logObj(object, "demolished");
+	logFile(object, "demolished");
 	seenStore.deleteObjects({ id: object.id });
 }
 
 function eventObjectRecycled(object)
 {
 	if (!object || !object.id) return;
-	logObj(object, "recycled");
+	logFile(object, "recycled");
 	seenStore.deleteObjects({ id: object.id });
 	if (object.canHitGround === false && object.canHitAir === true) AAseenStore.deleteObjects({ id: object.id });
 }
@@ -221,7 +211,7 @@ function eventObjectRecycled(object)
 function eventDestroyed(object)
 {
 	if (!object || !object.id) return;
-	logObj(object, "destroyed");
+	logFile(object, "destroyed");
 
 	if (object.type === FEATURE && object.stattype !== OIL_RESOURCE) MapTilesFeatures[object.x][object.y].destroyed = true;
 
@@ -235,8 +225,8 @@ function eventDestroyed(object)
 	if (object.type === DROID) orderTargets.delete(object.id);
 	if (object.isVTOL) {
 		totalVtolsLost ++;
-		if (!isAirMap && totalVtolsBuilt > 12 && totalVtolsBuilt < totalVtolsLost*3) relyOnVtols = false;
-		if (!isAirMap && totalVtolsBuilt > 12 && totalVtolsBuilt > totalVtolsLost*3) relyOnVtols = true;
+		if (!isVtolMap() && totalVtolsBuilt > 12 && totalVtolsBuilt < totalVtolsLost*3) relyOnVtols = false;
+		if (!isVtolMap() && totalVtolsBuilt > 12 && totalVtolsBuilt > totalVtolsLost*3) relyOnVtols = true;
 	}
 	if (object.droidType === DROID_CYBORG) {
 		totalCyborgLost ++;
@@ -248,10 +238,13 @@ function eventDestroyed(object)
 function eventStructureBuilt(structure, droid)
 {
 	if (!structure || !structure.id || structure.player !== me) return;
+
+	if (droid.group === baseBuilders) trucksBuildingAt.done = true;
+
 	// update lastBuildLoc
 	if (structure && !structure.modules && (structure.stattype === FACTORY || structure.stattype === RESEARCH_LAB || structure.stattype === POWER_GEN || structure.stattype === VTOL_FACTORY))
 	{
-		logObj(droid, structure.name+" lastBuildLoc:"+JSON.stringify(lastBuildLoc));
+		logFile(droid, structure.name+" lastBuildLoc:"+JSON.stringify(lastBuildLoc));
 		lastBuildLoc.x = structure.x-1; lastBuildLoc.y = structure.y;
 	}
 	if (distBetweenTwoPoints(lastBuildLoc.x, lastBuildLoc.y, BASE.x, BASE.y) > GROUP_SCAN_RADIUS*2)	lastBuildLoc = {x: BASE.x, y: BASE.y};
@@ -262,7 +255,10 @@ function eventStructureBuilt(structure, droid)
 		oilAssignments.delete(structure.id);
 	}
 
-	if (droid.group === oilBuilders) {
+	// if HQ update builtFirstHQ
+	if (structure.stattype === HQ) builtFirstHQ = true;
+
+	if (droid.group === oilBuilders || droid.group === transportGroup) {
 		// check for other visible reachable oils
 		let oils = enumRange(droid.x, droid.y, GROUP_SCAN_RADIUS, ALL_PLAYERS, true).filter((obj) => (obj.type === FEATURE && obj.stattype === OIL_RESOURCE));
 		if (oils && oils.length) {
@@ -270,7 +266,7 @@ function eventStructureBuilt(structure, droid)
 			for (let oil of oils) {
 				if (!tileIsBurning(oil.x, oil.y) && droidCanReach(droid, oil.x, oil.y) && oilResourceStore.query({ isReachable: true, requiresDestruction: false, x:oil.x, y:oil.y })) {
 					orderDroidBuild(droid, DORDER_BUILD, DERRICK_STAT, oil.x, oil.y);
-					logObj(droid, "eventStructureBuilt building on nearby oil");
+					logFile(droid, "eventStructureBuilt building on nearby oil");
 					break;
 				}
 			}
@@ -289,4 +285,13 @@ function eventPickup(feature, droid)
 			if (collectArtifacts(droid)) return;
 		}
 	}
+}
+
+function eventTransporterEmbarked(transport)
+{
+
+}
+function eventTransporterDisembarked(transport)
+{
+
 }

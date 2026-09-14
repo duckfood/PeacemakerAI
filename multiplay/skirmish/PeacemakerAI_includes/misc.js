@@ -1,19 +1,19 @@
-function log(message)
+function logFile(obj, message=null)
 {
-	if (DEBUG) { dump(gameTime + " : " + message); }
-	if (DEBUG_CONSOLE) { console(message); }
-}
+    if (!DEBUG) return;
 
-function logObj(obj, message)
-{
-	if (obj === null) {return;}
-	if (DEBUG) { dump(gameTime + " [" + obj.name + " id=" + obj.id + "] > " + message); }
-	if (DEBUG_CONSOLE) { console(" [" + obj.name + " id=" + obj.id + "] > " + message); }
+    if (!obj.id) dump(gameTime + " : " + obj); // no id so message is first
+    if (obj.id > 0) dump(gameTime + " [" + obj.name + " id=" + obj.id + "] > " + message);
+
+	if (DEBUG_CONSOLE) {
+        if (!obj.id) console(gameTime + " : " + obj);
+        if (obj.id > 0) console(gameTime + " [" + obj.name + " id=" + obj.id + "] > " + message);
+    }
 }
 
 function logTrace(message) {
     let caller = debugGetCallerFuncName();
-    log(`${message} ${JNstr(caller)}`);
+    logFile(`${message} ${JNstr(caller)}`);
 }
 
 function getRealPower()
@@ -55,13 +55,16 @@ function shuffleArray(array) {
 //// used to help generate droid names
 function firstAvailableComponent(list) {
     if (!list || !list.length) return false;
-	for (let item of list) {
+    if (!Array.isArray(list)) list = [list]; // make string into list
+
+    for (let item of list) {
 		if (item.length && componentAvailable(item)) return item;
 	}
 }
 //// used for defenses
 function firstAvailableStructure(list) {
     if (!list || !list.length) return false;
+    if (!Array.isArray(list)) list = [list]; // make string into list
 	for (let item of list) {
 		if (item.length && isStructureAvailable(item, me))	return item;
 	}
@@ -84,6 +87,7 @@ function loadStatsData(data) {
 
 //// return randomly one of the first few elements in an array
 function returnRandInFirstFew(arr, max=4) {
+    if (!arr || !arr.length) return false;
 	return arr[Math.floor(Math.random() * Math.min(max, arr.length))];
 }
 
@@ -107,20 +111,18 @@ function JNstr(obj){
 	return JSON.stringify(obj);
 }
 
-function isIterable(value) {
-    return value != null && typeof value[Symbol.iterator] === 'function';
-}
-
 function sortByDistToLoc(loc, list) {
+    if (!isInMapBounds(loc) || !list || !list.length) return false;
+
 	return list.sort((obj1, obj2) => {
 			let dist1 = distBetweenTwoPoints(loc.x, loc.y, obj1.x, obj1.y);
 			let dist2 = distBetweenTwoPoints(loc.x, loc.y, obj2.x, obj2.y);
 			return (dist1 - dist2); }); // ascending
 }
 
-function showGameTime() { console("gameTime: "+gameTime/1000+" seconds"); } // timer
-
 function randomBetween(min, max) {
+  if (min === undefined || max === undefined) return false;
+
   // If min is greater than max, swap them
   if (min > max) [min, max] = [max, min];
 
@@ -128,3 +130,16 @@ function randomBetween(min, max) {
   max = Math.floor(max);
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
+function detectScavs()
+{
+	if (scavengers) {
+		const scavStructures = enumStruct(scavengerPlayer).length;
+		const scavUnits = enumDroid(scavengerPlayer).length;
+		if (scavUnits || scavStructures) {
+			startedWithScavs = true;
+			if (scavengers > 1) isUltimateScavs = true;
+		}
+	}
+}
+

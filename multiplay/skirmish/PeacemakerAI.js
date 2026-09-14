@@ -1,4 +1,4 @@
-//// PeacemakerAI v0.11 2026-9-2 http://github.com/duckfood
+//// PeacemakerAI v0.12 2026-9-14 http://github.com/duckfood/PeacemakerAI
 //// MIT license. No warranty whatsoever. Use this code at your own risk!
 //// Include this notice in any substantial reproductions.
 
@@ -6,17 +6,18 @@
 const DEBUG = false;
 // log messages in-game
 const DEBUG_CONSOLE = false;
-const DEBUG_TRACE = false;
+const DEBUG_TRACE = false; // with call trace
+const DEBUGEX = false; // extreme debugging every function call
 
 // global config
 const MIN_BASE_TRUCKS = 2;
 const MAX_BASE_TRUCKS = 4;
 const MIN_OIL_TRUCKS = 3;
 const MAX_OIL_TRUCKS = 6;
-const MIN_BUILD_POWER = 100;
-const MIN_RESEARCH_POWER = 20;
+const MIN_BUILD_POWER = 80;
+const MIN_RESEARCH_POWER = 30;
 const MIN_PRODUCTION_POWER = 50;
-const MIN_LIBERATE_POWER = 0;
+const MIN_LIBERATE_POWER = 20;
 const MIN_ATTACK_GSIZE = 5;
 const MIN_SENSOR_DROIDS = 2;
 const HELP_CONSTRUCT_AREA = 20;
@@ -24,7 +25,8 @@ const MIN_GROUND_UNITS = 5;
 const MIN_VTOL_UNITS = 4;
 const AVG_BASE_RADIUS = 20;
 const RETREAT_THRESHOLD = 1.2;
-let GROUP_SCAN_RADIUS = 9; // adjusted later for tech
+const RESEARCH_TIER_THRESH = 1750;
+const TRANPORT_MAP_THRESH = 5; // unreachable oils
 
 // map definitions
 const EXHIGH_OIL_MAP = 80;
@@ -42,10 +44,7 @@ const TEN_MINUTE =   600000;
 
 let VTOL_DEFEND_TIME = 0;
 
-let truckStarts;
-let startDroids;
-
-// group definitions
+// groups
 let attackGroup;
 let defendGroup;
 let oilAttackers;
@@ -58,33 +57,35 @@ let oilBuilders;
 let sensorGroup;
 let retreatGroup;
 let repairGroup;
+let transportGroup;
 
+// global variables
 let researchDone = false;
-let isSeaMap = false;
-let isAirMap = false;
 let enemyHasVtol = false;
-
-// variables
 let BASE = startPositions[me];
+let lastBuildLoc = BASE;
 let relyOnVtols = false;
 let totalVtolsBuilt = 0;
 let totalVtolsLost = 0;
 let relyOnCyborgs = true;
 let totalCyborgBuilt = 0;
 let totalCyborgLost = 0;
-let builtFirstCombat = false;
-
-let baseUnderAttack = 0;
-let baseUnderAttackLoc;
-
 let isUltimateScavs = false;
 let startedWithBB = false;
-
-let lastBuildLoc;
+let startedWithRepair = false;
+let startedWithScavs = false;
+let builtFirstCombat = false;
+let builtFirstHQ = false;
+let truckStarts;
+let startDroids;
+let baseUnderAttack = 0;
+let baseUnderAttackLoc = {};
+let MapTilesFeatures; // pathfinding data
+let trucksBuildingAt = {}; // prevent base builders from starting duplicate builds
+let GROUP_SCAN_RADIUS = 9; // adjusted later for tech
 
 let orderTargets = new Map();
 let orderLocations = new Map();
-
 let artifactPickups = new Map();
 let oilAssignments = new Map();
 
@@ -102,29 +103,37 @@ function eventStartLevel()
 	demolishGroup = newGroup();
 	retreatGroup = newGroup();
 	repairGroup = newGroup();
+	transportGroup = newGroup();
 
-	isSeaMap = isHoverMap();
-	isAirMap = isVtolMap();
-	log("isSeaMap:"+isSeaMap);
-	log("isAirMap:"+isAirMap);
+	// started with light repair
+	if (componentAvailable(TANK_REPAIR_LT)) startedWithRepair = true;
 
-	// T2+ use rocket and mortar scheme
-	if (componentAvailable("Rocket-BB")) {
-		startedWithBB = true;
-		Scheme = "RKTMTR";
-	}
+	// if starting with a hq begin production of combats
+	if (countStruct(PLAYER_HQ_STAT) > 0) builtFirstHQ = true;
 
-	researchDone = false;
-	enemyHasVtol = false;
+	// enumerate starting trucks
+	truckStarts = enumDroid(me, DROID_CONSTRUCT);
+	//if (truckStarts && truckStarts.length && truckStarts[0].id) lastBuildLoc = {x: truckStarts[0].x, y: truckStarts[0].y};
+
+	// handle starting droids
+	startDroids = enumDroid(me);
+	for (const dr of startDroids) { eventDroidBuilt(dr); }
+
+	// check if any research is available
+	const reslist = enumResearch();
+    if (!reslist.length) researchDone = true;
+
+	// check if scavs enabled and alive
+	detectScavs();
+
 	// fast vtol flight time from corner to center
 	VTOL_DEFEND_TIME = distBetweenTwoPoints(1, 1, mapWidth-2, mapHeight-2) / 22 * 1000;
-	log("VTOL_DEFEND_TIME: "+VTOL_DEFEND_TIME);
+	logFile("VTOL_DEFEND_TIME: "+VTOL_DEFEND_TIME);
 
+	// timers for core functionality
 	setTimer("updateSeenStore", 500 + randomBetween(-10, 10));
-	setTimer("pruneSeenStore", 1000 + randomBetween(-10, 10));
-
-	setTimer("produceDroids", 2000 + randomBetween(-10, 10));
-	setTimer("lookForResearch", 2000 + randomBetween(-10, 10));
+	setTimer("produceDroids", 5000 + randomBetween(-10, 10));
+	setTimer("lookForResearch", 5000 + randomBetween(-10, 10));
 	setTimer("buildFundamentals", 2000 + randomBetween(-10, 10));
 	setTimer("assignTrucksToOil", 5000 + randomBetween(-10, 10));
 
@@ -138,42 +147,17 @@ function eventStartLevel()
 	setTimer("droidAwareScout", 5000 + randomBetween(-10, 10));
 	setTimer("droidAwareAA", 5000 + randomBetween(-10, 10));
 	setTimer("droidAwareRTB", 10000 + randomBetween(-50, 50));
-	setTimer("droidAwareRetreat", 1000 + randomBetween(-50, 50));
+	setTimer("droidAwareRetreat", 5000 + randomBetween(-50, 50));
 
-	setTimer("checkVtolAlphaStrike", VTOL_DEFEND_TIME*3 + randomBetween(-50, 50));
-	setTimer("recycleDroidsForHover", 10000 + randomBetween(-50, 50));
-	setTimer("scanForVTOLs", 10000 + randomBetween(-50, 50));
-	setTimer("balanceGroups", 10000 + randomBetween(-50, 50));
-	setTimer("adjustSchemeAndStance", 60000 + randomBetween(-50, 50));
-	setTimer("updateMapTilesFeatures", 60000 + randomBetween(-50, 50));
-	setTimer("handlePileups", 30000 + randomBetween(-50, 50));
-	setTimer("checkOrderLocations", 10000 + randomBetween(-50, 50));
-	setTimer("checkUnreachableOils", 60000 + randomBetween(-50, 50));
-	setTimer("fireLassat", 10000 + randomBetween(-50, 50));
-
-	setTimer("showGameTime", 30000 + randomBetween(-10, 10));
-
-	// enumerate starting trucks
-	truckStarts = enumDroid(me, DROID_CONSTRUCT);
-	lastBuildLoc = {x: truckStarts[0].x, y: truckStarts[0].y};
-
-	// handle starting droids
-	startDroids = enumDroid(me);
-	for (const dr of startDroids) { eventDroidBuilt(dr); }
-
-	// check if any research is available
-	const reslist = enumResearch();
-    if (!reslist.length) researchDone = true;
-
-	// if ultimate scavs use AC scheme
-	if (scavengers > 1 && !startedWithBB)	{
-		const scavStructures = enumStruct(scavengerPlayer).length;
-		const scavUnits = enumDroid(scavengerPlayer).length;
-		if (scavStructures || scavUnits) {
-			Scheme = "MGLAS";
-			isUltimateScavs = true;
-		}
-	}
+	setTimer("checkVtolAlphaStrike", VTOL_DEFEND_TIME*4 + 1000 + randomBetween(-150, 150));
+	setTimer("recycleDroidsForHover", 10000 + randomBetween(-150, 150));
+	setTimer("balanceGroups", 10000 + randomBetween(-150, 150));
+	setTimer("updateMapTilesFeatures", 60000 + randomBetween(-150, 150));
+	setTimer("handlePileups", 30000 + randomBetween(-150, 150));
+	setTimer("checkOrderLocations", 10000 + randomBetween(-150, 150));
+	setTimer("checkUnreachableOils", 30000 + randomBetween(-150, 150));
+	setTimer("fireLassat", 10000 + randomBetween(-150, 150));
+	setTimer("transportTrucks", 2000 + randomBetween(-150, 150));
 
 	// check oil resources accessibility and store
 	checkOilsReachable();
@@ -182,12 +166,11 @@ function eventStartLevel()
 	buildFundamentals();
 }
 
-// include key portions
+// include initial modules
 include("/multiplay/skirmish/PeacemakerAI_includes/wzapi.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/scheme.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/misc.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/map.js");
-include("/multiplay/skirmish/PeacemakerAI_includes/timers.js");
 
 // initialize seenStore
 const seenStore = new SpatialDataStore({
@@ -219,16 +202,15 @@ const oilResourceStore = new SpatialDataStore({
 	requiresHover: new Map(),
 });
 
-// used for naming droids
+// initialize component name and stats data
 const StatsMap = loadStatsData(Stats);
 
-// initialize pathfinding data
-let MapTilesFeatures;
-updateMapTilesFeatures();
-
-// include the rest
+// include remaining modules
+include("/multiplay/skirmish/PeacemakerAI_includes/timers.js");
+updateMapTilesFeatures(); // initialize pathfinding data
 include("/multiplay/skirmish/PeacemakerAI_includes/production.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/build.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/tactics.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/events.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/research.js");
+include("/multiplay/skirmish/PeacemakerAI_includes/transport.js");

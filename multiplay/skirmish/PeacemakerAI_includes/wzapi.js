@@ -1,4 +1,6 @@
 // wz2100 api definitions
+
+// structure defs for countStruct() and others
 const OIL_RES_STAT = "OilResource";
 const RES_LAB_STAT = "A0ResearchFacility";
 const POW_GEN_STAT = "A0PowerGenerator";
@@ -14,15 +16,61 @@ const LASSAT_STAT = "A0LasSatCommand";
 const RELAY_POST_STAT = "A0ComDroidControl";
 const HARDCRETE_WALL_STAT = "A0HardcreteMk1Wall";
 const TANKTRAP_STAT = "A0TankTrap";
+const FACTORY_TYPES = [FACTORY_STAT, CYBORG_FACTORY_STAT, VTOL_FACTORY_STAT];
+
+// upgrade modules
 const FAC_MODULE_STAT = "A0FacMod1";
 const POW_MODULE_STAT = "A0PowMod1";
 const RES_MODULE_STAT = "A0ResearchModule1";
-const PROP_HOVER = "hover01";
-const PROP_WHEEL = "wheeled01";
-const FACTORY_TYPES = [FACTORY_STAT, CYBORG_FACTORY_STAT, VTOL_FACTORY_STAT];
+
+// structure defs for collecting seen objects
 const STRUCTURE_TYPES = [HQ, FACTORY, POWER_GEN, RESOURCE_EXTRACTOR, LASSAT,
 				DEFENSE, WALL, RESEARCH_LAB, REPAIR_FACILITY, CYBORG_FACTORY,
 				VTOL_FACTORY, REARM_PAD, SAT_UPLINK, GATE, STRUCT_GENERIC, COMMAND_CONTROL];
+
+// propulsion
+const PROP_HOVER = "hover01";
+const PROP_WHEEL = "wheeled01";
+const PROP_HALFTRACK = "HalfTrack";
+const PROP_TRACK = "tracked01";
+const PROP_CYBORG = "CyborgLegs";
+const PROP_VTOL = "V-Tol";
+
+// heavy bodies
+const BODY_DRAGON =	"Body14SUP";
+const BODY_WYVERN = "Body13SUP";
+const BODY_VENGEANCE = "Body10MBT";
+const BODY_TIGER = "Body9REC";
+const BODY_MANTIS = "Body12SUP";
+const BODY_PYTHON = "Body11ABT";
+// medium bodies
+const BODY_RETRIBUTION = "Body7ABT";
+const BODY_PANTHER = "Body6SUPP";
+const BODY_SCORPION = "Body8MBT";
+const BODY_COBRA = "Body5REC";
+// light bodies
+const BODY_RETALIATION = "Body3MBT";
+const BODY_LEOPARD = "Body2SUP";
+const BODY_BUG = "Body4ABT";
+const BODY_VIPER = "Body1REC";
+// cyborg bodies
+const BODY_CYBORG_LT = "CyborgLightBody";
+const BODY_CYBORG_HV = "CyborgHeavyBody";
+// transports
+const BODY_SUPERTRANS = "SuperTransportBody";
+const BODY_TRANSPORT = "TransporterBody";
+
+// weapon components
+const TANK_BUNKERB = "Rocket-BB";
+const VTOL_BUNKERB = "Rocket-VTOL-BB";
+const VTOL_SUNBURST = "Rocket-VTOL-Sunburst";
+
+// system components
+const CYBORG_REPAIR = "CyborgRepair";
+const TANK_REPAIR_LT = "LightRepair1";
+const TANK_REPAIR_HV = "HeavyRepair";
+
+// actions missing from api
 const DACTION_NONE = 0; // not doing anything
 const DACTION_MOVE = 1; // moving to a location
 const DACTION_BUILD = 2; // building a structure
@@ -65,7 +113,16 @@ const DACTION_RETURNTOPOS = 38; // used by scout/patrol order when returning to 
 const DACTION_FIRE_SUPPORT_RETREAT = 39; // used by firesupport order when sensor retreats
 const DACTION_CIRCLE = 41; // circling while engaging
 
+// orders missing from api
+const DORDER_NONE = 0;
 const DORDER_GUARD = 25;
+const DORDER_CIRCLE = 40;
 
-const TERRAIN_WATER = 7; // somehow TER_WATER is undefined and defined
+// terrain
+const TERRAIN_WATER = 7; // TER_WATER is defined and undefined
 const TERRAIN_CLIFF = 8; // maybe TER_CLIFFFACE too
+const FEATURE_PLAYER_IDX = 12;
+const TILE_DIVISOR = 128;
+
+const MAX_AA_DIST = 24;
+const VTOL_TURNAROUND_DIST = 16;

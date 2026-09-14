@@ -1,32 +1,30 @@
 TODO and done for PeacemakerAI
 
-transporter operations
-move more string defs into jsapi.js
-trucks should finish nearby defenses if no other trucks
+improve air mode attack waves
+attack bases with transporter
 
 IDEAS:
+maybe locate a rally point at the same z axis or rtb
+trucks should finish nearby defenses if no other trucks
+if basebuilder is outside base do not check buildloc
+demolish owned tank traps in base
+baseBuilders should check to see if base oil is free last
+consider building aa hardpoints
 use api unit templates
-demolish extra factories or hold production
 idle basebuilders should patrol
 only fire lassat at inexpensive objects if they are massed
 don't research if no power plant unless mass cash
 hit and run tactics for missile
 only produce at facs if product can reach active hostile base
-vtol mode build facs on with access to active hostile base
 if no power plant but derricks save or recycle enough to build one
 consider hover dragon plasma cannon
-maybe send first 2 oil trucks to oil clusters at start
-maybe send early trucks to empty bases
 check once or twice if oils marked unreachable are reachable by nearby truck just to be sure
 routine to help prevent damaged droids from getting stuck on each other
 option to include local player built blockades in pathfinding
-guard oil clusters
-maybe make units flee the opposite direction, only if rtb is not safe for group
 if maxed out with cheap droids and advanced droids are available recycle the weakest
 handle objects where the location is unknown eg. old mobile threats
 seenStore object confidence level which decays over time
 build a repairfac fortress and maintain
-repairs sensor daction none trigger idle
 random all combat unit blocked oil check
 if many opponents build fortress near base maybe
 build and defend wall trucks
@@ -35,14 +33,33 @@ new units should stop moving on build -- not move to rally point
 secondary orders -- not in jsapi
 commanders -- without secondary orders they are not much use
 improve extra high oil map low tech routine
-lassat only fires when selected for player, but works for non-player -- game bug
 set factory rally point - maybe not possible
 retreat when electronic health is low - no way to know
 cancel factory production by replacing with null droid
-demolish unowned walls or other likely obstacles
-check for stuck oilbuilders
+check for stuck trucks and maybe other droids
 
 DONE:
+-demolish extra factories or hold production
+-assign units while moving to fac rally point
+-maybe send early oil trucks to oil clusters
+-maybe make units flee or retreat the opposite direction
+-handle map edge clipping with helper
+-transporter operations
+-smarter AA placement
+-SAM hardpoints
+-wall and structure upgrades
+-oilAttackers retreat
+-solve multi-build bug maybe casued by new base build trucks
+-move more string defs into wzapi.js
+-demolish unowned walls or other likely obstacles
+-lassat only fires when selected for player, but works for non-player -- game bug
+-sensor retreat
+-improve general retreat
+-if extra cash at T1 start build more research
+-refactor retreat for speed
+-droids getting repaired should attack
+-function to check for new free oils in seenStore and add to oilstore
+-order attackers to attack unallied walls
 -rocket scheme for T2
 -daction constants
 -assign nearby mortars to sensor while engaging
@@ -203,4 +220,3 @@ DONE:
 -getClosestMapEdges()
 -basebuilders should be more if there are many derricks
 -attack most threatening player
--getStrongestPlayer()
