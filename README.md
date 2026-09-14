@@ -20,7 +20,7 @@ To find the `mods` directory open the in-game Options Menu -> Locate the bottom-
 - **Human-like Operational Constraints**: Operates with the knowledge and constraints of a human player for fair-play. Knows what a player would have the opportunity to know.
 - **Enhanced Droid Intelligence**: Utilizes queued timers to enhance droid awareness while maintaining smooth performance. Droids operate efficiently and purposefully, with self preservation top priority.
 - **Outperforms NullBot, Cobra, Bonecrusher, SemperFi, and FishBot**: Bests existing bots despite their knowledge of unseen objects. Efficiently pacifies multiple opponents in free for all for total world peace!
-- **Strong Technical Foundation**: Employs a wide range of advanced idiomatic JavaScript coding techniques and well-known algorithms to overcome limitations in the wz2100 quickjs API, and ensure strategic and tactical effectiveness.
+- **Strong Technical Foundation**: Employs a wide range of advanced idiomatic JavaScript coding techniques and well-known algorithms to overcome shortcomings in wz2100 quickjs API, and ensure strategic and tactical effectiveness.
 
 ### Attribution
 **Inspired by the prototypical SemperFi from the base Warzone-2100**. Although they share similar naming conventions and structure, PeacemakerAI has undergone significant revisions and enhancements thanks to assistance from gemma4, qwen3, granite4, deepseek-coder-v2, and gpt4 large language models. Special thanks to GitHub Copilot and Claude Haiku 4.5 for assistance solving the toughest bugs.
