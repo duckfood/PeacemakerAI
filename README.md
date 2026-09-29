@@ -9,11 +9,11 @@ Run this code at your own risk as it may absorb your system, your life, or invok
 ### Installation
 Download the mod package or source archive from [github.com/duckfood/PeacemakerAI/releases](https://github.com/duckfood/PeacemakerAI/releases)
 
-To install the pre-built module package place PeacemakerAI.wz in the `mods autoload` directory for your version of Warzone2100 (eg. `data/warzone2100/mods/4.7.0/autoload`)
+To install the pre-built module package place PeacemakerAI.wz in the ```mods autoload``` directory for your version of Warzone2100 (eg. ```data/warzone2100/mods/4.7.0/autoload```)
 
-To install from source `unzip` or `git clone` into the `mods` directory for your version of Warzone2100 (eg. `data/warzone2100/mods/4.7.0`), then run `make.bat` or `make.sh` to install the mod package.
+To install from source ```unzip``` or ```git clone``` into the `mods` directory for your version of Warzone2100 (eg. ```data/warzone2100/mods/4.7.0```), then run ```make.bat``` or ```make.sh``` to install the mod package.
 
-To find the `mods` directory open the in-game Options Menu -> Locate the bottom-left corner -> Click the tiny "Open Configuration Directory" text, then navigate to data -> warzone2100 -> mods. This will reveal the base directory for wz2100 modules required for installation.
+To find the ```mods``` directory open the in-game Options Menu -> Locate the bottom-left corner -> Click the tiny "Open Configuration Directory" text, then navigate to data -> warzone2100 -> mods. This will reveal the base directory for wz2100 modules required for installation.
 
 ### Features
 - **Lightweight Spatial Data Store**: Leverages persistent data stores for observed objects and spatial queries. Enhanced decision-making without knowledge of unseen droids and structures.
@@ -21,6 +21,7 @@ To find the `mods` directory open the in-game Options Menu -> Locate the bottom-
 - **Enhanced Droid Intelligence**: Utilizes queued timers to enhance droid awareness while maintaining smooth performance. Droids operate efficiently and purposefully, with self preservation top priority.
 - **Outperforms NullBot, Cobra, Bonecrusher, SemperFi, and FishBot**: Bests existing bots despite their knowledge of unseen objects. Efficiently pacifies multiple opponents in free for all for total world peace!
 - **Strong Technical Foundation**: Employs a wide range of advanced idiomatic JavaScript coding techniques and well-known algorithms to overcome shortcomings in wz2100 QuickJS API, and ensure strategic and tactical effectiveness.
+- **Skirmish, Multiplayer, and Campaign**: Can serve as a stiff opponent, a reliable partner, or even help take on overwhelming forces. Allied chat on/off selected droids 'peacemakerai selected on' or off. Allied chat on/off global switch 'peacemakerai on' or off.
 
 ### Attribution
 **Inspired by the prototypical SemperFi from the base Warzone-2100**. Although they share similar naming conventions and structure, PeacemakerAI has undergone significant revisions and enhancements thanks to assistance from gemma4, qwen3, granite4, deepseek-coder-v2, and gpt4 large language models. Special thanks to GitHub Copilot and Claude Haiku 4.5 for assistance solving the toughest bugs.
