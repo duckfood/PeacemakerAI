@@ -9,11 +9,11 @@ Run this code at your own risk as it may absorb your system, your life, or invok
 ### Installation
 Download the mod package or source archive from [github.com/duckfood/PeacemakerAI/releases](https://github.com/duckfood/PeacemakerAI/releases)
 
-To install the pre-built module package place PeacemakerAI.wz in the ```mods autoload``` directory for your version of Warzone2100 (eg. ```data/warzone2100/mods/4.7.0/autoload```)
+To install the pre-built module package place PeacemakerAI.wz in the `mods autoload` directory for your version of Warzone2100 (eg. `data/warzone2100/mods/4.7.0/autoload`)
 
-To install from source ```unzip``` or ```git clone``` into the `mods` directory for your version of Warzone2100 (eg. ```data/warzone2100/mods/4.7.0```), then run ```make.bat``` or ```make.sh``` to install the mod package.
+To install from source `unzip` or `git clone` into the `mods` directory for your version of Warzone2100 (eg. `data/warzone2100/mods/4.7.0`), then run `make.bat` or `make.sh` to install the mod package.
 
-To find the ```mods``` directory open the in-game Options Menu -> Locate the bottom-left corner -> Click the tiny "Open Configuration Directory" text, then navigate to data -> warzone2100 -> mods. This will reveal the base directory for wz2100 modules required for installation.
+To find the `mods` directory open the in-game Options Menu -> Locate the bottom-left corner -> Click the tiny "Open Configuration Directory" text, then navigate to data -> warzone2100 -> mods. This will reveal the base directory for wz2100 modules required for installation.
 
 ### Features
 - **Lightweight Spatial Data Store**: Leverages persistent data stores for observed objects and spatial queries. Enhanced decision-making without knowledge of unseen droids and structures.
