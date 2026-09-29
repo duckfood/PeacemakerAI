@@ -272,7 +272,7 @@ function markTiles(tiles)
             }
 		}
 	} else {
-      logFile("WARNING markTiles tiles not iterable: "+JNstr(tiles));
+      logFile("WARNING markTiles tiles not array: "+JNstr(tiles));
     }
 }
 
@@ -309,36 +309,74 @@ function transposeTiles(Tiles)
     return transposed;
 }
 
-//// determines if a map requires hover to access any start position from ours
+//// determines if a map requires hover to access all start positions from ours
 function isHoverMap()
 {
     if (isHoverMap.cache !== undefined) return isHoverMap.cache;
-    isHoverMap.cache = false;
-    for (let i = 0; i < maxPlayers; i++) {
-        if (!propulsionCanReach(PROP_WHEEL, BASE.x, BASE.y, startPositions[i].x, startPositions[i].y)) {
-            if (propulsionCanReach(PROP_HOVER, BASE.x, BASE.y, startPositions[i].x, startPositions[i].y)) isHoverMap.cache = true;
-        }
-    }
-    return isHoverMap.cache;
+
+    let result = checkMapPropulsion(PROP_HOVER, PROP_WHEEL);
+
+    logFile("isHoverMap:", result);
+    isHoverMap.cache = result;
+    return result;
 }
-//// determines if a map requires vtol to access any start position from ours
+
+//// determines if a map requires vtol propulsion to access all start positions from ours
 function isVtolMap()
 {
     if (isVtolMap.cache !== undefined) return isVtolMap.cache;
-    isVtolMap.cache = false;
-    for (let i = 0; i < maxPlayers; i++) {
-        if (!propulsionCanReach(PROP_HOVER, BASE.x, BASE.y, startPositions[i].x, startPositions[i].y)) isVtolMap.cache = true;
-    }
-    return isVtolMap.cache;
+
+    let result = checkMapPropulsion(PROP_VTOL, PROP_HOVER);
+
+    logFile("isVtolMap:", result);
+    isVtolMap.cache = result;
+    return result;
 }
-// determines if transporters should be used
+
+// checks propulsion pair required to reach startPositions
+function checkMapPropulsion(primaryProp, secondaryProp)
+{
+    if (!primaryProp || !secondaryProp) return false;
+    logFile("startPositions", startPositions);
+
+    let primaryReachable = [];
+
+    // first check to see if positions are reachable by primary propulsion
+    for (const position of startPositions) {
+      if (position === startPositions[me]) continue; // but not my start position
+
+      if (propulsionCanReach(primaryProp, BASE.x, BASE.y, position.x, position.y)) {
+        primaryReachable.push(position);
+        logFile("startPosition reachable by primary:", primaryProp , position);
+      }
+    }
+
+    // not primary map if no positions are reachable by primary
+    if (!primaryReachable.length) {
+      logFile("no startPositions reachable by primary:", primaryProp);
+      return false;
+    }
+
+    let allRequirePrimary = true; // only stays true if no positions are reachable by secondary
+    for (const position of primaryReachable) {
+        // not a primary map if secondary can reach any position
+        if (propulsionCanReach(secondaryProp, BASE.x, BASE.y, position.x, position.y)) {
+            allRequirePrimary = false;
+            logFile("startPosition reachable by secondary:", secondaryProp, position);
+            break;
+        }
+    }
+
+    logFile("allRequirePrimary:", allRequirePrimary);
+    return allRequirePrimary;
+}
+
+// determines if transporters should be used to claim oil
 function isTransportMap()
 {
-    if (isTransportMap.cache !== undefined) return isTransportMap.cache;
-    isTransportMap.cache = false;
-	let unReachable = oilResourceStore.query({ isReachable: false });
-	if (unReachable.length > TRANPORT_MAP_THRESH) isTransportMap.cache = true;
-	return isTransportMap.cache;
+	const unReachable = oilResourceStore.query({ isReachable: false });
+	if (unReachable.length > TRANPORT_MAP_THRESH) return true;
+	return false
 }
 
 //// Extends a line segment from point1 to point2 by distance `d` in the specified direction.
@@ -551,3 +589,35 @@ function isInMapBounds(loc)
   if (!loc || !loc.x || loc.x > mapWidth -1 || !loc.y || loc.y > mapHeight -1) return false;
   return true;
 }
+
+// initialize seenStore
+const seenStore = new SpatialDataStore({
+	type: new Map(),
+	stattype: new Map(),
+	order: new Map(),
+	action: new Map(),
+	droidType: new Map(),
+	player: new Map(),
+	isAllied: new Map(),
+	isVTOL: new Map(),
+	isSensor: new Map(),
+	canHitAir: new Map(),
+	canHitGround: new Map(),
+	hasIndirect: new Map(),
+	isAA: new Map(),
+});
+
+// initialize AAseenStore for faster AA queries
+const AAseenStore = new SpatialDataStore({
+	player: new Map(),
+	isVTOL: new Map(),
+	canHitAir: new Map(),
+	canHitGround: new Map(),
+});
+
+// initialize oil resource store
+const oilResourceStore = new SpatialDataStore({
+	isReachable: new Map(),
+	requiresDestruction: new Map(),
+	requiresHover: new Map(),
+});

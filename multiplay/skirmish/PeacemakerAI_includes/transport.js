@@ -47,7 +47,7 @@ function getTransport()
 			}
 		}
 
-		if (groupSize(vtolGroup) > MIN_VTOL_UNITS * 2) {
+		if (groupSize(vtolGroup) > MIN_VTOL_UNITS) {
 			// build transport
 			let vtolFacs = enumStruct(me, VTOL_FACTORY);
 			let vtr = countVirtualProduction(me, VTOL_FACTORY, DROID_TRANSPORTER);
@@ -115,19 +115,6 @@ function getTransportTruck()
         return false;
     }
 
-    // build cyborg factory
-    let basetrucks = enumGroup(baseBuilders).filter((obj) => (obj.order === DORDER_NONE || obj.order === DORDER_PATROL));
-    let basetruck = returnRandInFirstFew(basetrucks);
-    if (basetruck && basetruck.id && getRealPower() > MIN_BUILD_POWER) {
-        let buildloc = pickStructLocation(basetruck, CYBORG_FACTORY_STAT, BASE.x, BASE.y, 1);
-        if (buildloc && isInMapBounds(buildloc) && orderDroidBuild(basetruck, DORDER_BUILD, CYBORG_FACTORY_STAT, buildloc.x, buildloc.y)) {
-            logFile(basetruck, "getTransportTruck starting cyborg factory build");
-            return true;
-        }
-        logFile(basetruck, "getTransportTruck factory build failed");
-        return false;
-    }
-
 	return false;
 }
 
@@ -165,9 +152,9 @@ function isDroidEmbarked(droid, transport)
 function buildTransport(fac)
 {
 	if (!fac || !fac.id) return false;
-    if (fac.modules < 2) return false;
-    makeComponentAvailable("ZNULLSENSOR", me);
-    return buildDroid(fac, "Cyborg Transport", BODY_TRANSPORT, PROP_VTOL, "", "", "ZNULLSENSOR");
+    if (fac.modules < 1) return false;
+
+    return buildDroid(fac, "Cyborg Transport", BODY_TRANSPORT, PROP_VTOL, "", "", PROP_VTOL);
 }
 
 //// transport droids to inaccessible oil resources
@@ -175,138 +162,159 @@ let transportState = {};
 transportState.target = false;
 function transportTrucks() // timer
 {
-	if (DEBUGEX) logFile("transportTrucks");
-	if (!isTransportMap()) return false;
+    if (DEBUGEX) logFile("transportTrucks");
+    if (!isTransportMap()) return false;
 
     if (transportTrucks.delay === undefined) transportTrucks.delay = 0;
 
-	const transport = getTransport();
-    logFile("transport"+JNstr(transport));
-	if (!transport || !transport.id || !isInMapBounds(transport)) return false;
+    const transport = getTransport();
+    if (!transport || !transport.id || !isInMapBounds(transport)) return false;
 
-	// check for retreat condition
-	if (retreatTransport(transport)) {
-		transportState.target = false;
-		return true;
-	}
+    logFile("transport", transport);
 
-	// delay the rest so transport can finish orders
-	if (transportTrucks.delay < 3) {
+    // check for retreat condition
+    if (retreatTransport(transport)) {
+        transportState.target = false;
+        return true;
+    }
+
+    // delay the rest so transport can finish orders
+    if (transportTrucks.delay < 3) {
         transportTrucks.delay++;
         return;
     }
     transportTrucks.delay = 0;
 
     // transport truck to seen notmyoil
-	let oils = getTransportOils();
-    const canBuildPower = isStructureAvailable(POW_GEN_STAT);
+    let oils = getTransportOils();
+    const canBuildPower = isStructureBuildable(POW_GEN_STAT);
+    const derricks = seenStore.query({ player: me, type: STRUCTURE, stattype: RESOURCE_EXTRACTOR }).length;
+    const gens = seenStore.query({ player: me, type: STRUCTURE, stattype: POWER_GEN }).length;
+    const needsDerricks = gens > derricks / 4;
 
-    if (canBuildPower && oils && oils.length && oils[0].id) {
-		oils = sortByDistToLoc(transport, oils);
+    // Find nearby oils
+    let seenNearbyOils = seenStore.findNear(transport, GROUP_SCAN_RADIUS/2, { type: FEATURE, stattype: OIL_RESOURCE });
 
-		let truck = getTransportTruck();
-		if (!truck || !truck.id) return false;
+    // 1. TARGETING AND BUILDER ACTIONS (This remains largely the same)
+    let truck = getTransportTruck();
+    if (!truck || !truck.id) return false;
 
-		const transportOnsite = transportState.target && distBetweenTwoPoints(transport.x, transport.y, transportState.target.x, transportState.target.y) < GROUP_SCAN_RADIUS/2;
-		const truckEmbarked = isDroidEmbarked(truck, transport);
-		const truckBusy = truck.action !== DACTION_NONE;
-		let seenNearbyOils = seenStore.findNear(transport, GROUP_SCAN_RADIUS/2, { type: FEATURE, stattype: OIL_RESOURCE });
+    const transportOnsite = transportState.target && distBetweenTwoPoints(transport.x, transport.y, transportState.target.x, transportState.target.y) < GROUP_SCAN_RADIUS/2;
+    const truckEmbarked = isDroidEmbarked(truck, transport);
+    const truckBusy = (truck.order === DORDER_BUILD);
 
-		// if onsite, truck embarked, and no nearby oil or no target get new target
-		if ((transportOnsite && truckEmbarked && !seenNearbyOils.length) || !transportState.target) {
-			transportState.target = returnRandInFirstFew(oils);
-			logFile(transport, `transportTrucks getting new target: ${transportState.target.x}x${transportState.target.y}`);
-		}
-
-        // build with truck
-		if (!truckEmbarked && !truckBusy) {
-       		// build derricks
-			if (seenNearbyOils && seenNearbyOils.length) {
-				seenNearbyOils = sortByDistToLoc(truck, seenNearbyOils);
-				for (let oil of seenNearbyOils) {
-					if (isInMapBounds(oil) && droidCanReach(truck, oil.x, oil.y) && !tileIsBurning(oil.x, oil.y)
-							&& orderDroidBuild(truck, DORDER_BUILD, DERRICK_STAT, oil.x, oil.y)) {
-						logFile(truck, `transportTrucks building derrick`);
-						return true;
-					}
-				}
-			}
-
-			// build AA site per derrick -1 if funds
-            let nearbyMyAA = seenStore.findNear(transport, GROUP_SCAN_RADIUS, { player: me, type: STRUCTURE, isAA: true, status: BUILT });
-            let nearbyMyDerricks = seenStore.findNear(transport, GROUP_SCAN_RADIUS, { type: STRUCTURE, stattype: RESOURCE_EXTRACTOR, status: BUILT });
-			let buildaa = firstAvailableStructure(Scheme.AA_SITES);
-			if (buildaa && buildaa.length && nearbyMyAA.length < nearbyMyDerricks.length -1 && getRealPower() > MIN_BUILD_POWER) {
-                let site = returnRandInFirstFew(nearbyMyDerricks);
-                site = {x: site.x+randomBetween(-2, 2), y: site.y+randomBetween(-2, 2) };
-                site = pickStructLocation(truck, buildaa, site.x, site.y, 0);
-                if (site && isInMapBounds(site) && droidCanReach(truck, site.x, site.y)
-                        && orderDroidBuild(truck, DORDER_BUILD, buildaa, site.x, site.y)) {
-                    logFile(truck, `transportTrucks build AA site`);
-                    return true;
-                } else {
-                    logFile(truck, `transportTrucks build AA site not started`);
-                }
-			}
-
-			// embark transport if nearby and possible
-			if (droidCanReach(truck, transport.x, transport.y)
-					&& distBetweenTwoPoints(truck.x, truck.y, transport.x, transport.y) < GROUP_SCAN_RADIUS/2
-					&& orderDroidObj(truck, DORDER_EMBARK, transport)) {
-				logFile(truck, `transportTrucks truck embark transport`);
-				return true;
-			}
-		} // done with truck
-
-        // wait for transport move
-        if (transport.order === DORDER_MOVE) return false;
-
-        // move to oil
-        if (truckEmbarked && transportState.target && isInMapBounds(transportState.target)) {
-            // move to target
-            if (!transportOnsite) {
-                orderDroidLoc(transport, DORDER_MOVE, transportState.target.x, transportState.target.y);
-                logFile(transport, "transportTrucks transport moving to oil");
-                return true;
-            }
-            // check to unload truck
-            if (transportOnsite) {
-                orderDroidLoc(transport, DORDER_DISEMBARK, transportState.target.x+randomBetween(-1, 1), transportState.target.y+randomBetween(-1, 1));
-                logFile(transport, "transportTrucks transport unloading truck");
-				return true;
-            }
-        }
-
-        // move about while waiting to avoid fire unless at base
-        if (!truckEmbarked && transportOnsite && distBetweenTwoPoints(transport.x, transport.y, BASE.x, BASE.y) > GROUP_SCAN_RADIUS*2) {
-            let newloc = { x: transportState.target.x+randomBetween(-3, 3), y: transportState.target.y+randomBetween(-3, 3) };
-            if (newloc && isInMapBounds(newloc)) {
-                orderDroidLoc(transport, DORDER_PATROL, newloc.x ,newloc.y);
-                return true;
-            }
-        }
-
-        // fetch truck
-        if (!truckEmbarked) {
-            // move to truck
-            if (!transportOnsite) {
-                transportState.target = {x: truck.x+randomBetween(-2, 2), y: truck.y+randomBetween(-2, 2)};
-                orderDroidLoc(transport, DORDER_MOVE, transportState.target.x ,transportState.target.y);
-                logFile(transport, "transportTrucks transport moving to truck");
-                return true;
-            }
-            // load truck
-            if (!truckBusy) {
-                orderDroidObj(truck, DORDER_EMBARK, transport);
-                logFile(transport, "transportTrucks transport loading truck");
-                return true;
-            }
-        }
-        // final nothing to do so set target false
-        if (truckEmbarked && !seenNearbyOils.length) {
-            transportState.target = false;
+    // if onsite, truck embarked, and no nearby oil or no target get new target
+    if ((transportOnsite && truckEmbarked && !seenNearbyOils.length) || !transportState.target) {
+        let oilsToUse = seenNearbyOils.length > 0 ? seenNearbyOils : oils;
+        if (oilsToUse && oilsToUse.length && oilsToUse[0].id) {
+            let newTarget = sortByDistToLoc(transport, oilsToUse);
+            transportState.target = returnRandInFirstFew(newTarget);
+            logFile(transport, `transportTrucks getting new target: ${transportState.target.x}x${transportState.target.y}`);
         }
     }
+
+    // Build with truck (Building priority)
+    if (!truckEmbarked && !truckBusy) {
+        // build derricks
+        if (seenNearbyOils && seenNearbyOils.length) {
+            seenNearbyOils = sortByDistToLoc(truck, seenNearbyOils);
+            for (const oil of seenNearbyOils) {
+                if (isInMapBounds(oil) && droidCanReach(truck, oil.x, oil.y) && !tileIsBurning(oil.x, oil.y)
+                        && orderDroidBuild(truck, DORDER_BUILD, DERRICK_STAT, oil.x, oil.y)) {
+                    logFile(truck, `transportTrucks building derrick`);
+                    return true;
+                }
+            }
+        }
+
+        // build AA site per derrick -1 if funds
+        const nearbyMyAA = seenStore.findNear(transport, GROUP_SCAN_RADIUS, { player: me, type: STRUCTURE, isAA: true, status: BUILT });
+        const nearbyMyDerricks = seenStore.findNear(transport, GROUP_SCAN_RADIUS, { type: STRUCTURE, stattype: RESOURCE_EXTRACTOR, status: BUILT });
+        const buildaa = firstAvailableStructure(Scheme.AA_SITES);
+        if (buildaa && buildaa.length && nearbyMyAA.length < nearbyMyDerricks.length -1 && getRealPower() > MIN_BUILD_POWER) {
+            const derrick = returnRandInFirstFew(nearbyMyDerricks);
+            const site = {x: derrick.x+randomBetween(-2, 2), y: derrick.y+randomBetween(-2, 2) };
+            //const location = pickStructLocation(truck, buildaa, site.x, site.y, 0);
+            if (site && isInMapBounds(site) && droidCanReach(truck, site.x, site.y)
+                    && orderDroidBuild(truck, DORDER_BUILD, buildaa, site.x, site.y)) {
+                logFile(truck, `transportTrucks build AA site`);
+                return true;
+            } else {
+                logFile(truck, `transportTrucks build AA site not started`);
+            }
+        }
+
+        // Attempt to embark (The single, primary embark condition)
+        // Check if transport and builder are close enough and if the action is possible.
+        if (droidCanReach(truck, transport.x, transport.y)
+                && distBetweenTwoPoints(truck.x, truck.y, transport.x, transport.y) < GROUP_SCAN_RADIUS
+                && !truckEmbarked) { // Ensure we only try to embark if not already embarked
+            if (orderDroidObj(truck, DORDER_EMBARK, transport)) {
+                logFile(truck, `transportTrucks truck embark transport`);
+                return true;
+            }
+        }
+    } // End of building actions
+
+    // 2. MOVEMENT PHASE (This addresses transport following the builder)
+
+    // --- A. PRE-EMBARK MOVEMENT (If builder needs to get to transport, or transport needs to follow builder) ---
+    if (!truckEmbarked) {
+        // If transport is far from the builder, move transport to the builder.
+        // This ensures the transport is always following the builder's current work area.
+        if (distBetweenTwoPoints(transport.x, transport.y, truck.x, truck.y) > GROUP_SCAN_RADIUS/2) {
+            orderDroidLoc(transport, DORDER_MOVE, truck.x, truck.y);
+            logFile(transport, "transportTrucks transport moving to meet builder");
+            return true;
+        }
+    }
+
+    // --- B. CORE EMBARK MOVEMENT (If transport and builder are together, load them up) ---
+    if (!truckEmbarked && !truckBusy) {
+        // If they are close enough, and the transport hasn't been ordered to move, attempt to load.
+        // This catches the case where the builder was waiting near the transport.
+        if (distBetweenTwoPoints(transport.x, transport.y, truck.x, truck.y) < GROUP_SCAN_RADIUS * 1.5) {
+            // Re-check boarding condition to ensure it works even if the builder just moved
+            if (orderDroidObj(truck, DORDER_EMBARK, transport)) {
+                logFile(transport, "transportTrucks transport loading truck (secondary check)");
+                return true;
+            }
+        }
+    }
+
+
+    // --- C. TARGET MOVEMENT (If successfully embarked) ---
+    if (truckEmbarked && transportState.target && isInMapBounds(transportState.target)) {
+        // Move to target location
+        if (!transportOnsite) {
+            orderDroidLoc(transport, DORDER_MOVE, transportState.target.x, transportState.target.y);
+            logFile(transport, "transportTrucks transport moving to oil");
+            return true;
+        }
+        // Unload at target
+        if (transportOnsite) {
+            orderDroidLoc(transport, DORDER_DISEMBARK, transportState.target.x+randomBetween(-1, 1), transportState.target.y+randomBetween(-1, 1));
+            logFile(transport, "transportTrucks transport unloading truck");
+            return true;
+        }
+    }
+
+    // --- D. MAINTENANCE MOVEMENT (Patrolling if nothing else is happening) ---
+    // This now runs if the transport is on site but nothing requires movement/loading.
+    if (transportOnsite && distBetweenTwoPoints(transport.x, transport.y, BASE.x, BASE.y) > GROUP_SCAN_RADIUS*2) {
+        let newloc = { x: transportState.target.x+randomBetween(-3, 3), y: transportState.target.y+randomBetween(-3, 3) };
+        if (newloc && isInMapBounds(newloc)) {
+            orderDroidLoc(transport, DORDER_PATROL, newloc.x ,newloc.y);
+            logFile(transport, "transportTrucks transport patrolling");
+            return true;
+        }
+    }
+
+    // Final cleanup: clear target state if resources are depleted while embarked
+    if (truckEmbarked && !seenNearbyOils.length) {
+        transportState.target = false;
+    }
+
     logFile(transport, "transportTrucks no action taken");
-	return false;
+    return false;
 }

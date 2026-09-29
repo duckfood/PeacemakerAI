@@ -28,6 +28,7 @@ const Scheme = {
         "R-Vehicle-Metals04",
         "R-Cyborg-Metals04",
         "R-Sys-Sensor-Upgrade01",
+        "R-Comp-CommandTurret01",
     ],
     FUNDAMENTALS2: [
         "R-Vehicle-Body11", // python
@@ -39,12 +40,14 @@ const Scheme = {
         "R-Wpn-Cannon-ROF03",
         "R-Struc-RprFac-Upgrade04",
         "R-Vehicle-Prop-Tracks",
+        "R-Defense-WallTower-DoubleAAgun",
     ],
     FUNDAMENTALS3: [
         "R-Vehicle-Body12", // mantis
         "R-Struc-RprFac-Upgrade06", // affects repairs droids too
         "R-Wpn-Cannon-Damage07",
         "R-Wpn-Cannon-ROF04",
+        "R-Defense-WallTower-DoubleAAgun02",
         "R-Wpn-Mortar-Acc03",
         "R-Wpn-Mortar-Damage06",
         "R-Wpn-Mortar-ROF03",
@@ -58,10 +61,12 @@ const Scheme = {
         "R-Vehicle-Prop-VTOL",
         "R-Struc-VTOLPad",
         "R-Struc-VTOLPad-Upgrade03",
+        "R-Defense-Sunburst",
     ],
     FUNDAMENTALS4: [
         "R-Wpn-Missile2A-T", // scourge
         "R-Cyborg-Hvywpn-A-T", // scourge
+        "R-Comp-CommandTurret02",
         "R-Defense-WallTower-SamSite", // SAM1
         "R-Wpn-Missile-Accuracy01",
         "R-Wpn-Missile-ROF03",
@@ -89,14 +94,36 @@ const Scheme = {
         "R-Wpn-Cannon-Damage09",
         "R-Wpn-Cannon-ROF06",
     ],
-    ANTI_AIR_TECH: [
-        "R-Defense-WallTower-DoubleAAgun02", // tornado hardpoint
-        "R-Defense-WallTower-DoubleAAgun", // hurricane defense hardpoint
+    // contextual start tech
+    HOVER_START_TECH: [
+        "R-Wpn-MG1Mk1",
+        "R-Struc-PowerModuleMk1",
+        "R-Struc-Research-Module",
+        "R-Struc-Factory-Module",
+        "R-Vehicle-Body05", // cobra
+        "R-Vehicle-Prop-Hover",
+        "R-Sys-MobileRepairTurret01",
+        "R-Wpn-Cannon2Mk1",
+        "R-Vehicle-Body11", // python
+    ],
+    AIR_START_TECH: [
+        "R-Struc-PowerModuleMk1",
+        "R-Struc-Factory-Module",
+        "R-Struc-Research-Module",
+        "R-Struc-VTOLFactory",
+        "R-Vehicle-Prop-VTOL",
+        "R-Struc-VTOLPad-Upgrade01",
+        "R-Vehicle-Body05", // cobra
+        "R-Defense-Sunburst",
+        "R-Wpn-Rocket03-HvAT", // bunker buster
+        "R-Struc-Materials01",
+        "R-Defense-WallUpgrade03",
     ],
     TANK_WEAPON_LIST: [
         "Missile-A-T", // scourge
         "Rocket-HvyA-T", // tank killer
-        TANK_BUNKERB, // bunker buster
+        //TANK_BUNKERB, // bunker buster
+        "Rocket-LtA-T", // lancer
         "Cannon4AUTOMk1",
         "Cannon2A-TMk1",
         "Cannon1Mk1",
@@ -108,7 +135,9 @@ const Scheme = {
         "Missile-HvySAM", // SAM2
         "Missile-LtSAM", // SAM1
         "Rocket-Sunburst",
+        "AAGun2Mk1Quad", // Tornado
         "QuadRotAAGun", // whirlwind
+        "AAGun2Mk1", // Cyclone
         "QuadMg1AAGun", // hurricane
     ],
     CYBORG_BASIC_LIST: [
@@ -139,11 +168,68 @@ const Scheme = {
         "Emplacement-MortarPit-Incendiary",
     ],
     AA_SITES: [
-        "WallTower-SamHvy", // SAM2 hardpoint
-        "WallTower-SamSite", // SAM1 hardpoint
-        "P0-AASite-Sunburst", // Sunburst emplacment
-        "WallTower-DoubleAAGun02", // Whirlwind hardpoint
-        "WallTower-DoubleAAGun", // Hurricane hardpoint
+        "WallTower-SamHvy", // SAM2
+        "WallTower-SamSite", // SAM1
+        "P0-AASite-Sunburst", // Sunburst
+        "WallTower-DoubleAAGun02", // Tornado
+        "WallTower-DoubleAAGun", // Cyclone
+        "AASite-QuadBof02", // Tornado
+        "AASite-QuadBof", // Cyclone
+        "AASite-QuadRotMg", // Hurricane
+        "AASite-QuadMg1", // Whirlwind
     ],
 };
 
+// final upgrade defs
+const KINETIC_ALLOYS = [
+	"R-Vehicle-Metals09",
+	"R-Cyborg-Metals09",
+];
+const THERMAL_ALLOYS = [
+	"R-Vehicle-Armor-Heat09",
+	"R-Cyborg-Armor-Heat09",
+];
+const STRUCTURE_DEFENSE_UPGRADES = [
+	"R-Struc-Materials03", // final structure upgrade
+	"R-Defense-WallUpgrade11", // final wall upgrade
+];
+const POWER_AND_RESEARCH_UPGRADES = [
+	"R-Struc-Power-Upgrade03a", // final power upgrade
+	"R-Struc-Research-Upgrade09", // final research upgrade
+];
+const VTOL_PADS_UPGRADES = [
+	"R-Struc-VTOLPad-Upgrade06", // final pad upgrade
+];
+
+const RESEARCH_UPGRADES = [
+    POWER_AND_RESEARCH_UPGRADES,
+    KINETIC_ALLOYS,
+    Scheme.BASIC_TECH,
+    THERMAL_ALLOYS,
+    VTOL_PADS_UPGRADES,
+    Scheme.ADVANCED_TECH,
+    STRUCTURE_DEFENSE_UPGRADES,
+];
+
+// transport research defs
+const TRANSPORT_TECH = "R-Cyborg-Transport";
+
+// priories for off tiers research
+const RESEARCH_PRIORITIES = {
+    power: 5,
+    repair: 4,
+    metals: 4,
+    engine: 4,
+    rprfac: 4,
+    mortar: 3,
+    missile: 3,
+    heat: 3,
+    body: 3,
+    cannon: 2,
+    vtol: 2,
+    sam: 2,
+    research: 2,
+    aagun: 2,
+    module: 1,
+    factory: 1
+};

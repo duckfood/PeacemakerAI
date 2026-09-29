@@ -1,13 +1,14 @@
 function eventDroidBuilt(droid, struct)
 {
 	let dr = droid;
+	if (!PeacemakerAIenable) return false;
 
-	if (droid.isVTOL)
+	else if (droid.isVTOL)
 	{
 		totalVtolsBuilt ++;
 		groupAdd(vtolGroup, droid);
 
-		let target = getVTOLtarget(droid,true);
+		let target = getVTOLtarget(droid, true);
 		if (target)
 		{
 			orderDroidLoc(droid, DORDER_SCOUT, target.x, target.y);
@@ -70,15 +71,26 @@ function eventDroidBuilt(droid, struct)
 		groupAdd(sensorGroup, droid);
 		logFile(droid, "added sensor to sensorGroup");
 	}
+	else if (droid.droidType === DROID_TRANSPORTER || droid.droidType === DROID_SUPERTRANSPORTER)
+	{
+		groupAdd(transportGroup, droid);
+		logFile(droid, "added transport to transportGroup");
+	}
+	else if (droid.droidType === DROID_COMMAND)
+	{
+		groupAdd(attackGroup, droid);
+		logFile(droid, "added commander to attackGroup");
+	}
 }
 
 // throttled by api
 function eventAttacked(victim, attacker)
 {
     if (!victim || !attacker || !victim.id || !attacker.id) return;
-
+	if (!PeacemakerAIenable) return false;
     // Only proceed if the victim belongs to the current player
     if (victim.player !== me || attacker.player === me) return;
+	if (victim.group === playerGroup) return false;
 
     // Track seen attackers that do not belong to the current player
     if (attacker.player !== me && !allianceExistsBetween(attacker.player, me)) {
@@ -112,11 +124,6 @@ function eventAttacked(victim, attacker)
 			const retreat = shouldWeRetreat(victim); // returns false or retreat object
 			if (retreat) orderRetreat(retreat);
         }
-
-        // Check if the attacker is a VTOL
-        if (attacker.type === DROID && attacker.isVTOL) {
-            enemyHasVtol = true;
-        }
     }
 
     // Determine defenders based on group size
@@ -130,8 +137,9 @@ function eventAttacked(victim, attacker)
     // defenders scout to victim location
     if (defenders.length >= MIN_GROUND_UNITS && !attacker.isVTOL) {
         for (let dr of defenders) {
+			if (dr.order === DORDER_RTB || dr.order === DORDER_RECYCLE || dr.order === DORDER_RTR) continue;
 			if (throttleThis("eventAttacked_throttle_ground_"+dr.id, VTOL_DEFEND_TIME * 3)) continue;
-            if (!droidNeedsRepair(dr.id) && dr.id !== victim.id && dr.order !== DORDER_RTB) {
+            if (!droidNeedsRepair(dr.id) && dr.id !== victim.id) {
                 if (dr.droidType !== DROID_REPAIR) {
                     orderDroidLoc(dr, DORDER_SCOUT, loc.x, loc.y);
                     logFile("eventAttacked defend droid " + dr.id + " scouting: " + loc.x + "x" + loc.y);
@@ -144,14 +152,15 @@ function eventAttacked(victim, attacker)
     const vtols = enumGroup(vtolGroup);
     if (vtols.length > MIN_VTOL_UNITS * 5) {
         for (let vt of vtols) {
+			if (vt.order === DORDER_RTB || vt.order === DORDER_RECYCLE || vt.order === DORDER_REARM) continue;
             if (throttleThis("eventAttacked_throttle_Vtol_" + vt.id, VTOL_DEFEND_TIME * 5)) continue;
             let AA = getAAthreats(loc);
             if (AA && AA.length > 2) {
                 logFile(vt, "eventAttacked vtol not sent on defend mission AA: "+AA.length);
                 return;
             }
-            if (vtolReady(vt) && vt.order !== DORDER_ATTACK && vt.order !== DORDER_REARM) {
-                orderDroidLoc(vt, DORDER_SCOUT, loc.x+randomBetween(-3, 3), loc.y+randomBetween(-3, 3));
+            if (vtolReady(vt) && vt.order !== DORDER_ATTACK) {
+                orderDroidLoc(vt, DORDER_CIRCLE, loc.x+randomBetween(-3, 3), loc.y+randomBetween(-3, 3));
                 logFile(vt, "eventAttacked vtol sent on defend mission");
             }
         }
@@ -160,6 +169,7 @@ function eventAttacked(victim, attacker)
 
 function eventStructureReady(structure)
 {
+	if (!PeacemakerAIenable) return false;
 	// uses a timer too
 	if (structure.stattype === LASSAT) {
 		lassatFired = false;
@@ -169,6 +179,9 @@ function eventStructureReady(structure)
 
 function eventDroidIdle(droid)
 {
+	if (!PeacemakerAIenable) return false;
+	if (droid.group === playerGroup) return false;
+
 	if (droid.droidType === DROID_CONSTRUCT && droid.group === oilBuilders) {
 		idleConstructor(droid);
 	}
@@ -186,38 +199,42 @@ function eventDroidIdle(droid)
 
 function eventObjectTransfer(object, whofrom)
 {
+	if (!PeacemakerAIenable) return false;
 	if (!object || !object.id) return;
 	logFile(object, "transferred");
-	seenStore.deleteObjects({ id: object.id });
-	if (object.canHitGround === false && object.canHitAir === true) AAseenStore.deleteObjects({ id: object.id });
+	seenStore.deleteKey(object.id);
+	AAseenStore.deleteKey(object.id);
 	if (object.player === me && object.type === DROID) eventDroidBuilt(object);
 }
 
 function eventStructureDemolish(object, droid)
 {
+	if (!PeacemakerAIenable) return false;
 	if (!object || !object.id) return;
 	logFile(object, "demolished");
-	seenStore.deleteObjects({ id: object.id });
+	seenStore.deleteKey(object.id);
+	AAseenStore.deleteKey(object.id);
 }
 
 function eventObjectRecycled(object)
 {
+	if (!PeacemakerAIenable) return false;
 	if (!object || !object.id) return;
 	logFile(object, "recycled");
-	seenStore.deleteObjects({ id: object.id });
-	if (object.canHitGround === false && object.canHitAir === true) AAseenStore.deleteObjects({ id: object.id });
+	seenStore.deleteKey(object.id);
+	AAseenStore.deleteKey(object.id);
 }
 
 function eventDestroyed(object)
 {
+	if (!PeacemakerAIenable) return false;
 	if (!object || !object.id) return;
 	logFile(object, "destroyed");
 
 	if (object.type === FEATURE && object.stattype !== OIL_RESOURCE) MapTilesFeatures[object.x][object.y].destroyed = true;
 
-	if (object.canHitGround === false && object.canHitAir === true) AAseenStore.deleteObjects({ id: object.id });
-
 	seenStore.deleteKey(object.id);
+	AAseenStore.deleteKey(object.id);
 
 	if (object.player !== me) return;
 
@@ -237,9 +254,10 @@ function eventDestroyed(object)
 
 function eventStructureBuilt(structure, droid)
 {
+	if (!PeacemakerAIenable) return false;
 	if (!structure || !structure.id || structure.player !== me) return;
 
-	if (droid.group === baseBuilders) trucksBuildingAt.done = true;
+	if (droid.group === baseBuilders) baseTrucksBuilding = false;
 
 	// update lastBuildLoc
 	if (structure && !structure.modules && (structure.stattype === FACTORY || structure.stattype === RESEARCH_LAB || structure.stattype === POWER_GEN || structure.stattype === VTOL_FACTORY))
@@ -276,13 +294,40 @@ function eventStructureBuilt(structure, droid)
 
 function eventPickup(feature, droid)
 {
+	if (!PeacemakerAIenable) return false;
 	if (!feature || !feature.id || !droid || !droid.id) return false;
 
 	if (droid.player === me) {
 		// if artifact picked check for another and delete assignment
 		if (feature.stattype === ARTIFACT || feature.stattype === OIL_DRUM) {
 			collectArtifacts._assignments.delete(feature.id);
-			if (collectArtifacts(droid)) return;
+			if (collectArtifacts(droid, GROUP_SCAN_RADIUS*2)) return;
+		}
+	}
+}
+
+function eventChat(from, to, message)
+{
+	if (allianceExistsBetween(me, from)) {
+		if (message.toLowerCase().includes("peacemakerai off")) {
+			PeacemakerAIenable = false;
+		}
+		if (message.toLowerCase().includes("peacemakerai on")) {
+			PeacemakerAIenable = true;
+		}
+		if (message.toLowerCase().includes("peacemakerai selected off")) {
+			const selected = enumSelected();
+			for (const dr of selected) {
+				groupAdd(playerGroup, dr);
+				logFile(dr, "added to playerGroup");
+			}
+		}
+		if (message.toLowerCase().includes("peacemakerai selected on")) {
+			const selected = enumSelected();
+			for (const dr of selected) {
+				eventDroidBuilt(dr);
+				logFile(dr, "removed from playerGroup");
+			}
 		}
 	}
 }
@@ -294,4 +339,14 @@ function eventTransporterEmbarked(transport)
 function eventTransporterDisembarked(transport)
 {
 
+}
+
+function eventTransporterLanded(transport) // mission transport
+{
+	// if any droids not in a group try to add them
+	const droids = enumCargo(transport);
+	for (const dr of droids) {
+		if (!dr || !dr.id) continue;
+		if (!isDroidInGroup(dr)) eventDroidBuilt(dr, null);
+	}
 }

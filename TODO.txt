@@ -1,16 +1,15 @@
 TODO and done for PeacemakerAI
 
-improve air mode attack waves
-attack bases with transporter
+compensate for missing production
+build more suitable facs for map if mass cash
 
 IDEAS:
+attack bases with transporter
 maybe locate a rally point at the same z axis or rtb
 trucks should finish nearby defenses if no other trucks
 if basebuilder is outside base do not check buildloc
 demolish owned tank traps in base
 baseBuilders should check to see if base oil is free last
-consider building aa hardpoints
-use api unit templates
 idle basebuilders should patrol
 only fire lassat at inexpensive objects if they are massed
 don't research if no power plant unless mass cash
@@ -31,7 +30,6 @@ build and defend wall trucks
 truck building defense do not retreat check daction -- no way to know what it's building
 new units should stop moving on build -- not move to rally point
 secondary orders -- not in jsapi
-commanders -- without secondary orders they are not much use
 improve extra high oil map low tech routine
 set factory rally point - maybe not possible
 retreat when electronic health is low - no way to know
@@ -39,12 +37,17 @@ cancel factory production by replacing with null droid
 check for stuck trucks and maybe other droids
 
 DONE:
+-use commanders
+-improve air mode attack waves
+-allied chat global and selected on/off switches
+-campaign adaptations
+-less assumptions about available components, structures, and research
 -demolish extra factories or hold production
 -assign units while moving to fac rally point
 -maybe send early oil trucks to oil clusters
 -maybe make units flee or retreat the opposite direction
 -handle map edge clipping with helper
--transporter operations
+-transporter operations, but can't research through jsapi
 -smarter AA placement
 -SAM hardpoints
 -wall and structure upgrades

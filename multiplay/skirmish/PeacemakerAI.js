@@ -1,4 +1,4 @@
-//// PeacemakerAI v0.12 2026-9-14 http://github.com/duckfood/PeacemakerAI
+//// PeacemakerAI v0.13 2026-9-30 http://github.com/duckfood/PeacemakerAI
 //// MIT license. No warranty whatsoever. Use this code at your own risk!
 //// Include this notice in any substantial reproductions.
 
@@ -20,6 +20,7 @@ const MIN_PRODUCTION_POWER = 50;
 const MIN_LIBERATE_POWER = 20;
 const MIN_ATTACK_GSIZE = 5;
 const MIN_SENSOR_DROIDS = 2;
+const MIN_COMMAND_DROIDS = 2;
 const HELP_CONSTRUCT_AREA = 20;
 const MIN_GROUND_UNITS = 5;
 const MIN_VTOL_UNITS = 4;
@@ -44,22 +45,41 @@ const TEN_MINUTE =   600000;
 
 let VTOL_DEFEND_TIME = 0;
 
-// groups
-let attackGroup;
-let defendGroup;
-let oilAttackers;
-let vtolGroup;
-let vtolRepairGroup;
-let aaGroup;
-let demolishGroup;
-let baseBuilders;
-let oilBuilders;
-let sensorGroup;
-let retreatGroup;
-let repairGroup;
-let transportGroup;
+// droid groups
+const attackGroup = newGroup(),
+	defendGroup = newGroup(),
+	oilAttackers = newGroup(),
+	vtolGroup = newGroup(),
+	vtolRepairGroup = newGroup(),
+	aaGroup = newGroup(),
+	demolishGroup = newGroup(),
+	baseBuilders = newGroup(),
+	oilBuilders = newGroup(),
+	sensorGroup = newGroup(),
+	retreatGroup = newGroup(),
+	repairGroup = newGroup(),
+	transportGroup = newGroup(),
+	playerGroup = newGroup();
+
+const allGroups = [
+	attackGroup,
+	defendGroup,
+	oilAttackers,
+	vtolGroup,
+	vtolRepairGroup,
+	aaGroup,
+	demolishGroup,
+	baseBuilders,
+	oilBuilders,
+	sensorGroup,
+	retreatGroup,
+	repairGroup,
+	transportGroup,
+	playerGroup,
+];
 
 // global variables
+let PeacemakerAIenable = true;
 let researchDone = false;
 let enemyHasVtol = false;
 let BASE = startPositions[me];
@@ -70,18 +90,15 @@ let totalVtolsLost = 0;
 let relyOnCyborgs = true;
 let totalCyborgBuilt = 0;
 let totalCyborgLost = 0;
-let isUltimateScavs = false;
 let startedWithBB = false;
 let startedWithRepair = false;
-let startedWithScavs = false;
 let builtFirstCombat = false;
 let builtFirstHQ = false;
-let truckStarts;
+let truckStarts = enumDroid(me, DROID_CONSTRUCT);
 let startDroids;
 let baseUnderAttack = 0;
 let baseUnderAttackLoc = {};
 let MapTilesFeatures; // pathfinding data
-let trucksBuildingAt = {}; // prevent base builders from starting duplicate builds
 let GROUP_SCAN_RADIUS = 9; // adjusted later for tech
 
 let orderTargets = new Map();
@@ -91,40 +108,19 @@ let oilAssignments = new Map();
 
 function eventStartLevel()
 {
-	attackGroup = newGroup();
-	defendGroup = newGroup();
-	oilAttackers = newGroup();
-	sensorGroup = newGroup();
-	vtolGroup = newGroup();
-	vtolRepairGroup = newGroup();
-	aaGroup = newGroup();
-	baseBuilders = newGroup();
-	oilBuilders = newGroup();
-	demolishGroup = newGroup();
-	retreatGroup = newGroup();
-	repairGroup = newGroup();
-	transportGroup = newGroup();
+	// initialize pathfinding data
+	updateMapTilesFeatures();
 
-	// started with light repair
-	if (componentAvailable(TANK_REPAIR_LT)) startedWithRepair = true;
+	// check starting comps
+	if (isComponentProducible(TANK_REPAIR_LT)) startedWithRepair = true;
+	if (isComponentProducible(TANK_BUNKERB)) startedWithBB = true;
 
 	// if starting with a hq begin production of combats
-	if (countStruct(PLAYER_HQ_STAT) > 0) builtFirstHQ = true;
-
-	// enumerate starting trucks
-	truckStarts = enumDroid(me, DROID_CONSTRUCT);
-	//if (truckStarts && truckStarts.length && truckStarts[0].id) lastBuildLoc = {x: truckStarts[0].x, y: truckStarts[0].y};
+	if (enumStruct(me, HQ) > 0) builtFirstHQ = true;
 
 	// handle starting droids
 	startDroids = enumDroid(me);
 	for (const dr of startDroids) { eventDroidBuilt(dr); }
-
-	// check if any research is available
-	const reslist = enumResearch();
-    if (!reslist.length) researchDone = true;
-
-	// check if scavs enabled and alive
-	detectScavs();
 
 	// fast vtol flight time from corner to center
 	VTOL_DEFEND_TIME = distBetweenTwoPoints(1, 1, mapWidth-2, mapHeight-2) / 22 * 1000;
@@ -148,11 +144,13 @@ function eventStartLevel()
 	setTimer("droidAwareAA", 5000 + randomBetween(-10, 10));
 	setTimer("droidAwareRTB", 10000 + randomBetween(-50, 50));
 	setTimer("droidAwareRetreat", 5000 + randomBetween(-50, 50));
+	setTimer("droidAwareCommander", 3000 + randomBetween(-50, 50));
 
-	setTimer("checkVtolAlphaStrike", VTOL_DEFEND_TIME*4 + 1000 + randomBetween(-150, 150));
+	setTimer("checkVtolAlphaStrike", VTOL_DEFEND_TIME*10 + 1000 + randomBetween(-150, 150));
 	setTimer("recycleDroidsForHover", 10000 + randomBetween(-150, 150));
 	setTimer("balanceGroups", 10000 + randomBetween(-150, 150));
 	setTimer("updateMapTilesFeatures", 60000 + randomBetween(-150, 150));
+	setTimer("checkUnassignedDroids", 60000 + randomBetween(-150, 150));
 	setTimer("handlePileups", 30000 + randomBetween(-150, 150));
 	setTimer("checkOrderLocations", 10000 + randomBetween(-150, 150));
 	setTimer("checkUnreachableOils", 30000 + randomBetween(-150, 150));
@@ -168,46 +166,10 @@ function eventStartLevel()
 
 // include initial modules
 include("/multiplay/skirmish/PeacemakerAI_includes/wzapi.js");
-include("/multiplay/skirmish/PeacemakerAI_includes/scheme.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/misc.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/map.js");
-
-// initialize seenStore
-const seenStore = new SpatialDataStore({
-	type: new Map(),
-	stattype: new Map(),
-	droidType: new Map(),
-	player: new Map(),
-	isAllied: new Map(),
-	isVTOL: new Map(),
-	isSensor: new Map(),
-	canHitAir: new Map(),
-	canHitGround: new Map(),
-	hasIndirect: new Map(),
-	isAA: new Map(),
-});
-
-// initialize AAseenStore for faster AA queries
-const AAseenStore = new SpatialDataStore({
-	player: new Map(),
-	isVTOL: new Map(),
-	canHitAir: new Map(),
-	canHitGround: new Map(),
-});
-
-// initialize oil resource store
-const oilResourceStore = new SpatialDataStore({
-	isReachable: new Map(),
-	requiresDestruction: new Map(),
-	requiresHover: new Map(),
-});
-
-// initialize component name and stats data
-const StatsMap = loadStatsData(Stats);
-
-// include remaining modules
+include("/multiplay/skirmish/PeacemakerAI_includes/scheme.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/timers.js");
-updateMapTilesFeatures(); // initialize pathfinding data
 include("/multiplay/skirmish/PeacemakerAI_includes/production.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/build.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/tactics.js");

@@ -56,7 +56,7 @@ const BODY_VIPER = "Body1REC";
 // cyborg bodies
 const BODY_CYBORG_LT = "CyborgLightBody";
 const BODY_CYBORG_HV = "CyborgHeavyBody";
-// transports
+// transport bodies
 const BODY_SUPERTRANS = "SuperTransportBody";
 const BODY_TRANSPORT = "TransporterBody";
 
@@ -66,9 +66,21 @@ const VTOL_BUNKERB = "Rocket-VTOL-BB";
 const VTOL_SUNBURST = "Rocket-VTOL-Sunburst";
 
 // system components
-const CYBORG_REPAIR = "CyborgRepair";
 const TANK_REPAIR_LT = "LightRepair1";
 const TANK_REPAIR_HV = "HeavyRepair";
+const TANK_TRUCK = "Spade1Mk1";
+const CYBORG_TRUCK = "CyborgSpade";
+const CYBORG_REPAIR = "CyborgRepair";
+const TANK_COMMAND = "CommandTurret1";
+const BRAIN_COMMAND = "CommandBrain01";
+
+// terrain and map
+const TERRAIN_WATER = 7; // TER_WATER is defined and undefined
+const TERRAIN_CLIFF = 8; // maybe TER_CLIFFFACE too
+const FEATURE_PLAYER_IDX = 12;
+const TILE_DIVISOR = 128;
+const MAX_AA_DIST = 24;
+const VTOL_TURNAROUND_DIST = 16;
 
 // actions missing from api
 const DACTION_NONE = 0; // not doing anything
@@ -117,12 +129,3 @@ const DACTION_CIRCLE = 41; // circling while engaging
 const DORDER_NONE = 0;
 const DORDER_GUARD = 25;
 const DORDER_CIRCLE = 40;
-
-// terrain
-const TERRAIN_WATER = 7; // TER_WATER is defined and undefined
-const TERRAIN_CLIFF = 8; // maybe TER_CLIFFFACE too
-const FEATURE_PLAYER_IDX = 12;
-const TILE_DIVISOR = 128;
-
-const MAX_AA_DIST = 24;
-const VTOL_TURNAROUND_DIST = 16;

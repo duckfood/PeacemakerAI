@@ -1,19 +1,49 @@
-function logFile(obj, message=null)
-{
-    if (!DEBUG) return;
+function logFile(subject, message, object) {
+    if (!DEBUG) return false;
+    if (subject === undefined) return false;
 
-    if (!obj.id) dump(gameTime + " : " + obj); // no id so message is first
-    if (obj.id > 0) dump(gameTime + " [" + obj.name + " id=" + obj.id + "] > " + message);
+    let entry = `${gameTime}: `;
 
-	if (DEBUG_CONSOLE) {
-        if (!obj.id) console(gameTime + " : " + obj);
-        if (obj.id > 0) console(gameTime + " [" + obj.name + " id=" + obj.id + "] > " + message);
+    // if subject is a string append it instead of subject name and id
+    if (typeof subject === 'string' && subject.length > 0) {
+        entry += subject;
     }
+    // append name and id of subject
+    else if (subject && subject.name && subject.id) {
+        entry += `[${subject.name} id=${subject.id}]`;
+    }
+
+    // if message is a string append it
+    if (typeof message === 'string' && message.length > 0) {
+        entry += ` ${message}`;
+    }
+    // else if message is defined stringify and append
+    else if (message !== undefined){
+        entry += " "+JNstr(message);
+    }
+
+    // if object is defined stringify and append
+    if (object !== undefined) {
+        entry += " "+JNstr(object);
+    }
+
+    // present the entry
+    dump(entry);
+    if (DEBUG_CONSOLE) console(entry);
+    return true;
 }
 
 function logTrace(message) {
     let caller = debugGetCallerFuncName();
     logFile(`${message} ${JNstr(caller)}`);
+}
+
+function JNstr(object){
+    try {
+        return JSON.stringify(object);
+    } catch (e) {
+        return `[Object serialization failed: ${e.message}]`;
+    }
 }
 
 function getRealPower()
@@ -28,22 +58,10 @@ function sortByDistToBase(obj1, obj2)
 	return (dist1 - dist2);
 }
 
-function setupTruckGroups()
+function shuffleArray(array)
 {
-	let cons = enumDroid(me, DROID_CONSTRUCT);
-	for (let i = 0, l = cons.length; i < l; ++i)
-	{
-		let droid = cons[i];
-		if (enumGroup(baseBuilders).length < MIN_BASE_TRUCKS) { groupAdd(baseBuilders, droid); }
-		else if (enumGroup(oilBuilders).length < MIN_OIL_TRUCKS) { groupAdd(oilBuilders, droid); }
-		else if (enumGroup(baseBuilders).length === MIN_BASE_TRUCKS) { groupAdd(baseBuilders, droid); }
-		else if (enumGroup(oilBuilders).length < MIN_OIL_TRUCKS*2) { groupAdd(oilBuilders, droid); }
-		else if (enumGroup(baseBuilders).length < MAX_BASE_TRUCKS) { groupAdd(baseBuilders, droid); }
-		else { groupAdd(oilBuilders, droid); }
-	}
-}
+  if (!Array.isArray(array)) return false;
 
-function shuffleArray(array) {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -52,29 +70,40 @@ function shuffleArray(array) {
   return shuffled;
 }
 
-//// used to help generate droid names
-function firstAvailableComponent(list) {
+function firstAvailableComponent(list)
+{
     if (!list || !list.length) return false;
     if (!Array.isArray(list)) list = [list]; // make string into list
 
     for (let item of list) {
-		if (item.length && componentAvailable(item)) return item;
+        if (!item || !item.length) continue;
+		if (StatsMap.has(item) && componentAvailable(item)) return item;
 	}
 }
-//// used for defenses
-function firstAvailableStructure(list) {
+function firstAvailableStructure(list)
+{
     if (!list || !list.length) return false;
     if (!Array.isArray(list)) list = [list]; // make string into list
+
 	for (let item of list) {
-		if (item.length && isStructureAvailable(item, me))	return item;
+        if (!item || !item.length) continue;
+		if (StatsMap.has(item) && isStructureAvailable(item, me)) return item;
 	}
 }
-
-//// returns a random integer from 0 to max
+function isComponentProducible(id)
+{
+	return StatsMap.has(id) && componentAvailable(id);
+}
+function isStructureBuildable(id)
+{
+	return StatsMap.has(id) && isStructureAvailable(id);
+}
+//// returns a random integer from 0 through max
 function random(max) { return max <= 0 ? 0 : Math.random() * max | 0; }
 
-//// load stats data into Map using property as key while adding data that would be lost
-function loadStatsData(data) {
+//// load stats data into Map using Id property as key while adding data that would be lost
+function loadStatsData(data)
+{
     const result = new Map();
     for (const category in data) {
         for (const name in data[category]) {
@@ -107,10 +136,6 @@ function throttleThis(throttleId, time = 2000) {
     return false;
 }
 
-function JNstr(obj){
-	return JSON.stringify(obj);
-}
-
 function sortByDistToLoc(loc, list) {
     if (!isInMapBounds(loc) || !list || !list.length) return false;
 
@@ -131,15 +156,37 @@ function randomBetween(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function detectScavs()
+function isUltimateScavs()
 {
+    if (isUltimateScavs.cache !== undefined) return isUltimateScavs.cache;
+
 	if (scavengers) {
 		const scavStructures = enumStruct(scavengerPlayer).length;
 		const scavUnits = enumDroid(scavengerPlayer).length;
 		if (scavUnits || scavStructures) {
-			startedWithScavs = true;
-			if (scavengers > 1) isUltimateScavs = true;
+			if (scavengers > 1) {
+                isUltimateScavs.cache = true;
+                return true;
+            }
 		}
 	}
+
+	isUltimateScavs.cache = false;
+	return false;
 }
 
+function isDroidInGroup(droid)
+{
+	if (!droid || !droid.id) return false;
+	for (const group of allGroups) {
+		const members = enumGroup(group);
+		for (const member of members) {
+            if (!member || !member.id) continue;
+			if (droid.id === member.id) return true;
+		}
+	}
+	return false;
+}
+
+// initialize component name and stats data
+const StatsMap = loadStatsData(Stats);

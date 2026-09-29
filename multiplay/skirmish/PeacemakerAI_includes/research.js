@@ -1,73 +1,8 @@
-// standard research
-const KINETIC_ALLOYS = [
-	"R-Vehicle-Metals09",
-	"R-Cyborg-Metals09",
-];
-const THERMAL_ALLOYS = [
-	"R-Vehicle-Armor-Heat09",
-	"R-Cyborg-Armor-Heat09",
-];
-const STRUCTURE_DEFENSE_UPGRADES = [
-	"R-Struc-Materials03", // final structure upgrade
-	"R-Defense-WallUpgrade11", // final wall upgrade
-];
-const POWER_AND_RESEARCH_UPGRADES = [
-	"R-Struc-Power-Upgrade03a", // final power upgrade
-	"R-Struc-Research-Upgrade09", // final research upgrade
-];
-const VTOL_PADS_UPGRADES = [
-	"R-Struc-VTOLPad-Upgrade06", // final pad upgrade
-];
-
-// contextual start tech
-const SCAV_START_TECH = [
-    "R-Vehicle-Body05", // cobra
-    "R-Sys-MobileRepairTurret01",
-    "R-Struc-PowerModuleMk1",
-    "R-Struc-Research-Module",
-    "R-Struc-Factory-Module",
-    "R-Wpn-MG3Mk1", // heavy mg
-    "R-Wpn-MG-Damage04",
-];
-const HOVER_START_TECH = [
-    "R-Wpn-MG1Mk1",
-    "R-Struc-PowerModuleMk1",
-    "R-Struc-Research-Module",
-    "R-Struc-Factory-Module",
-    "R-Vehicle-Body05", // cobra
-    "R-Vehicle-Prop-Hover",
-    "R-Sys-MobileRepairTurret01",
-    "R-Wpn-Cannon2Mk1",
-    "R-Vehicle-Body11", // python
-];
-const AIR_START_TECH = [
-    "R-Struc-PowerModuleMk1",
-    "R-Struc-Factory-Module",
-    "R-Struc-Research-Module",
-    "R-Struc-VTOLFactory",
-    "R-Vehicle-Prop-VTOL",
-    "R-Struc-VTOLPad-Upgrade01",
-    "R-Vehicle-Body05", // cobra
-    "R-Defense-Sunburst",
-    "R-Wpn-Rocket03-HvAT", // bunker buster
-    "R-Struc-Materials01",
-	"R-Defense-WallUpgrade03",
-];
-const SUPERTRANPORT_TECH = ["R-Cyborg-Transport"] // ["R-SuperTransport"];
-
-const RESEARCH_UPGRADES = [
-    POWER_AND_RESEARCH_UPGRADES,
-    KINETIC_ALLOYS,
-    Scheme.BASIC_TECH,
-    THERMAL_ALLOYS,
-    VTOL_PADS_UPGRADES,
-    Scheme.ADVANCED_TECH,
-    STRUCTURE_DEFENSE_UPGRADES,
-];
-
 //// perform research in tiered stages unless flush
 // only assign one lab each run to prevent economic crash
+// fallback from tiers to prioritized research
 function lookForResearch() { // timer
+    if (!PeacemakerAIenable) return false;
     if (researchDone) return false;
     if (baseUnderAttack > 2 && getRealPower() < 800) return false; // produce instead
     if (getRealPower() < MIN_RESEARCH_POWER) return false; // gets total power for the current tick not each run
@@ -77,41 +12,103 @@ function lookForResearch() { // timer
     if (!labs || !labs.length || !labs[0].id) return;
     const lab = labs[0];
 
-    const RESEARCH_TIERS = [
-        isUltimateScavs ? SCAV_START_TECH : false,
-        isVtolMap() ? AIR_START_TECH : false,
-        isTransportMap() ? SUPERTRANPORT_TECH : false,
-        isHoverMap() ? HOVER_START_TECH : false,
-        Scheme.START_TECH, Scheme.FUNDAMENTALS1, Scheme.FUNDAMENTALS2, Scheme.FUNDAMENTALS3, Scheme.FUNDAMENTALS4
-    ];
-    //logFile("RESEARCH_TIERS: "+JNstr(RESEARCH_TIERS));
+    const RESEARCH_TIERS = getResearchTiers();
+    //logFile("RESEARCH_TIERS:", RESEARCH_TIERS);
+    if (lookForResearch.tiersValid === undefined) {
+        lookForResearch.tiersValid = isResearchValid(RESEARCH_TIERS);
+        if (!lookForResearch.tiersValid) logFile("lookForResearch scheme tiers not valid");
+    }
 
     // research each tier before moving to the next unless plenty of power
-    for (tier of RESEARCH_TIERS) {
-        if (!tier || !tier.length) continue;  // empty
-        if (isTierResearched(tier)) continue; // completed
-        if (evalResearch(lab, tier)) return true; // assigned
-        if (getRealPower() > RESEARCH_TIER_THRESH) continue; // extra cash so keep labs busy
+    if (lookForResearch.tiersValid) {
+        // transporters do not get researched when in tiers
+        if (isTransportMap() && isComponentProducible(PROP_VTOL)) {
+            if (StatsMap.has(TRANSPORT_TECH) && pursueResearch(lab, TRANSPORT_TECH)) return true;
+        }
+        for (let tier of RESEARCH_TIERS) {
+            if (!tier || !tier.length) continue;  // empty
+            if (isTierResearched(tier)) continue; // completed
+            if (evalResearch(lab, tier)) return true; // assigned
+            if (getRealPower() > RESEARCH_TIER_THRESH) continue; // extra cash so keep labs busy
 
-        return false; // finish tier first
+            return false; // finish tier first
+        }
+        // finish important upgrades
+        for (let upgrade of shuffleArray(RESEARCH_UPGRADES)) {
+            if (evalResearch(lab, upgrade)) return true;
+        }
+        // all scheme research done continue if extra power
+        return getRealPower() > RESEARCH_TIER_THRESH && researchEverything();
     }
+    // scheme tiered research not valid
+    return researchEverything(lab);
+}
 
-    if (isTierResearched(RESEARCH_TIERS[RESEARCH_TIERS.length - 1])) {
-        // Only run this block if the very last tier is completed
-        for (upgrade of shuffleArray(RESEARCH_UPGRADES)) {
-            if (evalResearch(lab, upgrade)) {
-                return true; // Successfully assigned an upgrade research
+function isResearchValid(tiers)
+{
+    if (!tiers || !tiers.length) return false; // no tiers is invalid
+
+    if (Array.isArray(tiers)) { // maybe tiers
+        for (let tier of tiers) {
+            if (!tier || !tier.length) continue; // empty tier is valid
+            for (let item of tier) {
+                if (!item || !item.length) return false; // empty item is invalid
+                if (!StatsMap.has(item)) return false; // item not in StatsMap is invalid
+                if (!getResearch(item, me)) return false; // no info about item is invalid
             }
         }
-        // randomly complete the rest if flush
-        if (getRealPower() > RESEARCH_TIER_THRESH) {
-            const reslist = enumResearch();
-            if (reslist.length > 0) {
-                const idx = Math.floor(Math.random() * reslist.length);
-                return pursueResearch(lab, reslist[idx].name);
-            }
+    } else { // maybe single item
+        if (!findReseach(tiers, me)) return false;
+    }
+
+    return true;
+}
+
+function getResearchPriority(itemName) {
+    if (!itemName) return 0;
+    const name = itemName.toLowerCase();
+    let highestWeight = 0;
+
+    // Check all known topics against the item name
+    for (const [topic, weight] of Object.entries(RESEARCH_PRIORITIES)) {
+        if (name.includes(topic)) {
+            if (weight > highestWeight) highestWeight = weight;
         }
     }
+    return highestWeight;
+}
+
+function researchEverything(lab) {
+    if (!lab || !lab.id) return false;
+
+    const reslist = enumResearch(); // Get list of available research
+    if (!reslist || reslist.length === 0) return false;
+
+    // Sort the list: Highest priority weight first
+    const sortedList = [...reslist].sort((a, b) => {
+        return getResearchPriority(b.name) - getResearchPriority(a.name);
+    });
+
+    // try to research one of the first 2
+    let item = returnRandInFirstFew(sortedList, 2);
+    if (item && item.name && pursueResearch(lab, item.name)) {
+        return true;
+    }
+
+    return false;
+}
+
+function getResearchTiers()
+{
+    return [
+        isVtolMap() ? Scheme.AIR_START_TECH : false,
+        isHoverMap() ? Scheme.HOVER_START_TECH : false,
+        Scheme.START_TECH,
+        Scheme.FUNDAMENTALS1,
+        Scheme.FUNDAMENTALS2,
+        Scheme.FUNDAMENTALS3,
+        Scheme.FUNDAMENTALS4,
+    ];
 }
 
 function isTierResearched(tier) {
@@ -125,18 +122,20 @@ function isTierResearched(tier) {
             continue;
         }
         //logFile("research tier not done: "+JNstr(tier));
-        return false; // tier not done
+        return false;
     }
     //logFile("research tier done: "+JNstr(tier));
-    return true; // done
+    return true;
 }
 
 function filterUnusedResearch(item)
 {
-    if (!item || !item.length) return true; // empty so filter
+    if (!item || !item.length) return true; // empty so skip
+    if (item.includes("Transport")) return false; // research transports
+
     if (isHoverMap() || isVtolMap()) {
         if (item === "R-Vehicle-Prop-Halftracks" || item === "R-Vehicle-Prop-Tracks") return true; // skip tracks
-        if (item.includes("Cyborg") && item !== "R-Cyborg-Transport") return true; // skip all cyborg except transport
+        if (item.includes("Cyborg")) return true; // skip all cyborg
     }
     if (isVtolMap()) {
         if (item.includes("Mortar")) return true; // skip all mortar
@@ -157,7 +156,6 @@ function evalResearch(lab, list) {
 
         const research = getResearch(item);
         if (!research) { logFile("invalid research item: "+JNstr(item)); return false; } // invalid research
-        //logFile("getResearch: "+JNstr(research));
         if (research && !research.done && pursueResearch(lab, item)) {
             //logFile("research assigned: "+JNstr(item));
             return true;
@@ -170,8 +168,8 @@ function evalResearch(lab, list) {
 function checkResearchCompletion() {
     const resList = enumResearch();
 
-    // Check if the Dragon body is obtained and there are no more research topics left
-    if (componentAvailable(BODY_DRAGON) && !resList.length) {
+    // Check if the BODY_VENGEANCE is obtained and there are no more research topics left
+    if (isComponentProducible(BODY_VENGEANCE) && !resList.length) {
         researchDone = true; // Mark that all research is completed
 
         const labList = enumStruct(me, RES_LAB_STAT);

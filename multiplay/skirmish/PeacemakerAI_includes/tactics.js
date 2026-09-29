@@ -38,7 +38,7 @@ function droidNeedsRepair(droidID, percent = null)
 
 		if (dr.droidType !== DROID_CONSTRUCT && dr.droidType !== DROID_REPAIR && dr.isVTOL === false)
 		{
-			if (repair_droids[0] && !componentAvailable(BODY_DRAGON))
+			if (repair_droids[0] && !isComponentProducible(BODY_DRAGON))
 			{
 				orderDroidObj(dr, 25, returnRandInFirstFew(repair_droids));
 				logFile("damaged droid ordered to guard random nearby repair:"+dr.id);
@@ -123,7 +123,7 @@ function getNotMyOil(oils=oilResourceStore.query({ isReachable: true, requiresDe
 {
 	if (DEBUGEX) logFile("getNotMyOil");
 	if (!oils || !oils.length) {
-		logFile("WARNING no oil resources");
+		//logFile("WARNING no oil resources");
 		return false;
 	}
 	const alliedObjects = new Set();
@@ -163,14 +163,15 @@ function returnTarget(dr, randomtarget=false, droidAge=TWO_MINUTE, structAge=TEN
 			}
 		}
 		// send vtols to attack oil if there's any to take and not maxed out on power plants
-		if (isStructureAvailable(POW_GEN_STAT)) {
+		if (isStructureBuildable(POW_GEN_STAT)) {
 			let notmyoils = sortByDistToLoc(dr, getNotMyOil());
 			if (notmyoils && notmyoils.length) {
 				let notmyoil = returnRandInFirstFew(notmyoils, 4); // test one random nearby oil
-				if (notmyoil && notmyoil.id) {
-					if (distBetweenTwoPoints(dr.x, dr.y, notmyoil.x, notmyoil.y) < GROUP_SCAN_RADIUS ) return false; // already there
-					let oilaa = getAAthreats(notmyoil);
-					if (!oilaa || !oilaa.length) return notmyoil; // return undefended oil
+				if (notmyoil && notmyoil.id && distBetweenTwoPoints(BASE.x, BASE.y, notmyoil.x, notmyoil.y) > GROUP_SCAN_RADIUS*2) {
+					if (distBetweenTwoPoints(dr.x, dr.y, notmyoil.x, notmyoil.y) > GROUP_SCAN_RADIUS ) {
+						let oilaa = getAAthreats(notmyoil);
+						if (!oilaa || !oilaa.length) return notmyoil;
+					}
 				}
 			}
 		}
@@ -179,7 +180,7 @@ function returnTarget(dr, randomtarget=false, droidAge=TWO_MINUTE, structAge=TEN
 
 	targets = seenStore.query({ isAllied: false, type: DROID, isVTOL: false }).filter((obj) => (obj.lastSeen > gameTime - droidAge));
 	targets = targets.concat(seenStore.query({ isAllied: false, type: STRUCTURE}).filter((obj) => (obj.lastSeen > gameTime - structAge)));
-	if (isStructureAvailable(POW_GEN_STAT)) targets = targets.concat(getNotMyOil());
+	if (isStructureBuildable(POW_GEN_STAT)) targets = targets.concat(getNotMyOil());
 
 	// if no targets return a random location
 	if (!targets.length || !targets[0].id) return getRandomScoutLoc(dr);
@@ -348,34 +349,39 @@ function idleVtol(dr)
 
 	// attack lassats
 	if (target.stattype === LASSAT && dr.weapons[0].armed > 50 && dr.health > 85) {
-		orderDroidObj(dr, DORDER_ATTACK, target);
-		logFile(dr, "idleVtol droid ordered to attack lassat");
-		return;
+		if (orderDroidObj(dr, DORDER_ATTACK, target)) {
+			logFile(dr, "idleVtol droid ordered to attack lassat");
+			return;
+		}
 	}
 	// maybe attack walls
 	if ((target.stattype === WALL || target.stattype === GATE) && random(100) > 80 ) {
-		orderDroidObj(dr, DORDER_ATTACK, target);
-		logFile(dr, "idleVtol attacking wall: "+target.x+"x"+target.y);
-		return;
+		if (orderDroidObj(dr, DORDER_ATTACK, target)) {
+			logFile(dr, "idleVtol attacking wall: "+target.x+"x"+target.y);
+			return;
+		}
 	}
 	// scout to hostile if still armed
 	if (dr.weapons[0].armed > 0 && dr.health > 85) {
-		orderDroidLoc(dr, DORDER_SCOUT, target.x, target.y);
-		logFile(dr, "idleVtol droid ordered to scout to:"+target.x+"x"+target.y);
-		return;
+		if (orderDroidLoc(dr, DORDER_SCOUT, target.x, target.y)) {
+			logFile(dr, "idleVtol droid ordered to scout to:"+target.x+"x"+target.y);
+			return;
+		}
 	}
 	// rearm if not 100 percent
 	if ((dr.weapons[0].armed < 100 || dr.health < 100) && dr.order !== DORDER_REARM) {
-		orderDroid(dr, DORDER_REARM);
-		logFile(dr, "idleVtol droid ordered to REARM");
-		return;
+		if (orderDroid(dr, DORDER_REARM)) {
+			logFile(dr, "idleVtol droid ordered to REARM");
+			return;
+		}
 	}
 	// circle vtol pad
 	const vtolPads = enumStruct(me, VTOL_PAD_STAT);
 	if (vtolPads || vtolPads.length || vtolPads[0].id) {
-		orderDroidLoc(dr, DORDER_CIRCLE, vtolPads[0].x, vtolPads[0].y); // DORDER_CIRCLE
-		logFile(dr, "idleVtol droid ordered to CIRCLE vtol factory");
-		return;
+		if (orderDroidLoc(dr, DORDER_CIRCLE, vtolPads[0].x, vtolPads[0].y)) {
+			logFile(dr, "idleVtol droid ordered to CIRCLE vtol factory");
+			return;
+		}
 	}
 }
 
@@ -385,7 +391,7 @@ function idleAttacker(dr)
 	if (!dr || !dr.id) return;
 	if (throttleThis("idleAttacker_"+dr.id+"throttle", 2000)) return;
 
-	if (groupSize(attackGroup) >= MIN_GROUND_UNITS || componentAvailable(BODY_COBRA))
+	if (groupSize(attackGroup) >= MIN_GROUND_UNITS || isComponentProducible(BODY_COBRA))
 	{
 		let target = getAttackerTarget(dr);
 		if (target) {
@@ -594,7 +600,7 @@ function orderRetreat(retreat)
 
 		for (const ally of retreat.seenAllyGroup) {
 			// only order my droids
-			if (ally.id && ally.player === me && ally.type === DROID) {
+			if (ally.id && ally.player === me && ally.type === DROID && ally.group !== playerGroup) {
 
 				if (distBetweenTwoPoints(ally.x, ally.y, BASE.x, BASE.y) > AVG_BASE_RADIUS) {
 					let actionTaken = false;
@@ -660,4 +666,174 @@ function collectArtifacts(dr, range=GROUP_SCAN_RADIUS)
 		}
 	}
 	return false;
+}
+
+class CommanderSupportManager {
+    constructor(initialAssignments = {}) {
+        this.assignments = initialAssignments;
+    }
+
+    calculateSupportLimit(commander) {
+        if (!commander || commander.droidType !== DROID_COMMAND) {
+			logFile("Calculate failed: Invalid commander or droid provided.");
+            return 0;
+        }
+
+        // Assume Upgrades[player].Brain.CommandBrain01 exists and is valid
+        const brain = Upgrades[commander.player]?.Brain?.["Command Turret"];
+        if (!brain) {
+			logFile("Calculate failed: Invalid Brain Upgrade data.");
+            return 0;
+        }
+
+        const thresholds = brain.RankThresholds;
+        const experience = Math.floor(commander.experience);
+        let rank = thresholds.length - 1;
+
+        // Determine rank based on experience vs thresholds
+        for (let i = 1; i < thresholds.length; ++i) {
+            if (experience < thresholds[i]) {
+                rank = i - 1;
+                break;
+            }
+        }
+        return brain.BaseCommandLimit + rank * brain.CommandLimitByLevel;
+    }
+
+    assignToCommander(commander, droid) {
+        // Improved validation
+        if (!commander || !droid || !commander.id || !droid.id) {
+            logFile("Assignment failed: Invalid commander or droid provided.");
+            return false;
+        }
+
+        if (droid.droidType === DROID_COMMAND) return false;
+
+        // Initialize assignments map if it doesn't exist
+        if (!this.assignments[commander.id]) {
+            this.assignments[commander.id] = {};
+        }
+
+        // Check if already assigned (optional, but prevents redundant state updates)
+        if (this.assignments[commander.id][droid.id]) {
+            //logFile(`Droid ${droid.id} already assigned to Commander ${commander.id}.`);
+            return true;
+        }
+
+        // Update state
+        this.assignments[commander.id][droid.id] = true;
+
+        if (orderDroidObj(droid, DORDER_COMMANDERSUPPORT, commander)) {
+			logFile("Assigned to commander:", commander.id, droid.id);
+			return true;
+		}
+		logFile(`Failed to assign to commander:`, commander.id, droid.id);
+        return false;
+    }
+
+    unassignFromCommander(commander, droid) {
+        if (this.assignments[commander.id] && this.assignments[commander.id][droid.id]) {
+            delete this.assignments[commander.id][droid.id];
+            logFile("Unassigned from commander:", commander.id, droid.id);
+        }
+    }
+
+    countTrackedCommanderUnits(commander) {
+        const assignments = this.assignments[commander.id];
+        if (!assignments) {
+            return 0;
+        }
+
+        let count = 0;
+        const validAssignments = {};
+        let unitsToKeep = 0;
+
+        // Use Object.entries to iterate and validate simultaneously
+        for (const [droidId, isAssigned] of Object.entries(assignments)) {
+            const droid = getObject(DROID, me, droidId);
+
+            // Validation checks
+            const isValidDroid = !!droid && droid.droidType !== DROID_COMMAND && droid.order === DORDER_COMMANDERSUPPORT;
+
+            if (isValidDroid) {
+                validAssignments[droidId] = true;
+                unitsToKeep++;
+            }
+        }
+
+        // Update the state by replacing the old assignments object
+        this.assignments[commander.id] = validAssignments;
+
+        return unitsToKeep;
+    }
+
+    processSupport(potentialCommanders) {
+
+        for (const commander of potentialCommanders) {
+            if (!commander || !commander.id) continue;
+			if (commander.action !== DACTION_ATTACK) continue;
+
+			const nearbyAttackers = enumRange(commander.x, commander.y, GROUP_SCAN_RADIUS, me, true).filter((obj) =>
+					((obj.action === DACTION_ATTACK || obj.action === DACTION_OBSERVE) && (obj.group === attackGroup || obj.group === defendGroup)) );
+
+            // 1. Calculate Status
+            const numAssigned = this.countTrackedCommanderUnits(commander);
+			logFile("numAssigned:", numAssigned);
+            const maxAssigned = this.calculateSupportLimit(commander);
+			logFile("maxAssigned:", maxAssigned);
+            const needed = maxAssigned - numAssigned;
+
+            // 2. Assign Support Units (Filling the gap)
+            if (needed > 0 && nearbyAttackers && nearbyAttackers.length > 0) {
+                let assignedCount = 0;
+                for (const combatDroid of nearbyAttackers) {
+                    if (assignedCount >= needed) break;
+
+                    // Check if the nearby droid is viable and not already assigned/processed
+                    if (combatDroid && combatDroid.order !== DORDER_FIRESUPPORT && combatDroid.order !== DORDER_COMMANDERSUPPORT) {
+                         if (this.assignToCommander(commander, combatDroid)) {
+                            assignedCount++;
+                        }
+                    }
+                }
+            }
+
+            // 3. Clean Up Support Units (Order Correction)
+            this.cleanupCommanderSupport(commander);
+        }
+    }
+
+    cleanupCommanderSupport(commander) {
+        const assignments = this.assignments[commander.id];
+        if (!assignments) return;
+
+        const droidIds = Object.keys(assignments);
+
+        for (const droidId of droidIds) {
+            const droid = getObject(DROID, me, droidId);
+            if (!droid || !droid.id) {
+                // Droid object is gone, remove assignment
+                delete this.assignments[commander.id][droidId];
+                continue;
+            }
+
+            // Condition 1: If the droid is supposed to be support, but it's not supporting
+            if (droid.order === DORDER_COMMANDERSUPPORT && (droid.action !== DACTION_ATTACK || droid.action !== DACTION_OBSERVE)) {
+                this.unassignFromCommander(commander, droid);
+				idleAttacker(droid);
+            }
+
+            // Condition 2: If the droid's order changed to something other than support
+            if (droid.order !== DORDER_COMMANDERSUPPORT) {
+                this.unassignFromCommander(commander, droid);
+            }
+        }
+    }
+}
+
+const supportManager = new CommanderSupportManager({});
+function droidAwareCommander() {
+    const commanders = [ ...enumGroup(attackGroup), ...enumGroup(defendGroup) ].filter((obj) => obj.droidType === DROID_COMMAND);
+
+	if (commanders && commanders.length) supportManager.processSupport(commanders);
 }

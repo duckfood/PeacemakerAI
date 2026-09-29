@@ -7,7 +7,7 @@ function buildEarlyBase()
 	if (countStruct(FACTORY_STAT) === 0 && grabTrucksAndBuild(FACTORY_STAT, 1)) return true;
 
 	let oils = oilResourceStore.query({ isReachable: true }).length;
-	let isHighTech = componentAvailable(BODY_COBRA);
+	let isHighTech = isComponentProducible(BODY_COBRA);
 
 	if (!isHighTech) {
 		if (isHoverMap()) {
@@ -54,7 +54,7 @@ function buildEarlyBase()
 			if (oils > HIGH_OIL_MAP && countStruct(VTOL_FACTORY_STAT) < 2 && grabTrucksAndBuild(VTOL_FACTORY_STAT, 1)) return true;
 
 		} else { // standard land map high tech
-			if (isStructureAvailable(CYBORG_FACTORY_STAT)) { // cyborgs
+			if (isStructureBuildable(CYBORG_FACTORY_STAT)) { // cyborgs
 				if (countStruct(CYBORG_FACTORY_STAT) < 1 && grabTrucksAndBuild(CYBORG_FACTORY_STAT, 1)) return true;
 				// build one power generator
 				if (countStruct(POW_GEN_STAT) === 0 && grabTrucksAndBuild(POW_GEN_STAT, 1)) return true;
@@ -80,13 +80,15 @@ function buildEarlyBase()
 function buildBasicBase()
 {
 	if (DEBUGEX) logFile("buildBasicBase");
-	// build power generator if needed
-	if (countStruct(DERRICK_STAT) && !countStruct(POW_GEN_STAT) && grabTrucksAndBuild(POW_GEN_STAT, 1)) return true;
+	// build one power generator if needed
+	if (buildPowerGens(1)) return true;
 	if (upgradeGenerators()) return true;
 	// build one factory
 	if (countStruct(FACTORY_STAT) === 0 && grabTrucksAndBuild(FACTORY_STAT, 1)) return true;
 	// build hq
 	if (countStruct(PLAYER_HQ_STAT) === 0 && grabTrucksAndBuild(PLAYER_HQ_STAT, 1))	return true;
+	// build one cyborg factory unless hover map
+	if (countStruct(CYBORG_FACTORY_STAT) === 0 && !isHoverMap() && grabTrucksAndBuild(CYBORG_FACTORY_STAT, 1)) return true;
 
 	return false;
 }
@@ -94,28 +96,30 @@ function buildBasicBase()
 function buildFundamentals() { queue("buildFundamentalsQ"); } // timer
 function buildFundamentalsQ()
 {
+	if (!PeacemakerAIenable) return false;
 	if (DEBUGEX) logFile("buildFundamentalsQ");
 	if (finishLocalJobs()) return true;
 	if (gameTime < FOUR_MINUTE && buildEarlyBase()) return true;
 	if (buildBasicBase()) return true;
 
 	// build second and third generator if needed
-	if (countStruct(DERRICK_STAT) > 4 && countStruct(POW_GEN_STAT) < 2 && grabTrucksAndBuild(POW_GEN_STAT, 1)) return true;
-	if (countStruct(DERRICK_STAT) > 8 && countStruct(POW_GEN_STAT) < 3 && grabTrucksAndBuild(POW_GEN_STAT, 1)) return true;
+	if (buildPowerGens(3)) return true;
 
 	// upgrade all factory to 1 modules to build early posse
 	if (upgradeFactories(FACTORY, 1)) return true;
 
-	// build more generators as needed
-	if (countStruct(DERRICK_STAT)/4 > countStruct(POW_GEN_STAT) && grabTrucksAndBuild(POW_GEN_STAT, 1))	return true;
+	if (enemyHasVtol && buildBaseAntiAir(2)) return true;
+	if (isVtolMap() && buildBaseAntiAir(3)) return true;
 
 	// upgrade all facs two modules
 	if (upgradeFactories(FACTORY)) return true;
 
-	if (enemyHasVtol && buildBaseAntiAir(2)) return true;
-	if (isVtolMap() && buildBaseAntiAir(6)) return true;
-
+	// upgrade one vtol fac one module
+	if (upgradeFactories(VTOL_FACTORY, 1, 1)) return true;
 	if (buildVTOLpads()) return true;
+
+	// build fourth and fifth generator if needed
+	if (buildPowerGens(5)) return true;
 
 	if (upgradeResearch()) return true;
 
@@ -126,6 +130,13 @@ function buildFundamentalsQ()
 
 	if (buildResearchLabs()) return true;
 	if (buildRepairFacs()) return true;
+
+	// build more generators if needed
+	if (buildPowerGens()) return true;
+
+	if (isVtolMap() && buildBaseAntiAir(6)) return true;
+
+	if (groupSize(attackGroup)+groupSize(defendGroup) > MIN_GROUND_UNITS * 4 && buildCommandPost()) return true;
 
 	if (getRealPower() > MIN_BUILD_POWER*3) {
 		if (buildLassat()) return true;
@@ -162,14 +173,20 @@ function buildFundamentalsQ()
 
 //// used to build core base buildings but not accessory buildings
 let baseCongested = false;
-function grabTrucksAndBuild(structure, maxBlocking=1, x=lastBuildLoc.x+randomBetween(-3, 3), y=lastBuildLoc.y+randomBetween(-3, 3), direction=[0, 90, 180, 270][randomBetween(0, 3)])
+function grabTrucksAndBuild(structure, maxBlocking=1, x=lastBuildLoc.x, y=lastBuildLoc.y, direction=[0, 90, 180, 270][randomBetween(0, 3)])
 {
 	if (DEBUGEX) logFile("grabTrucksAndBuild");
-    if (!isStructureAvailable(structure)) return false;
+    if (!isStructureBuildable(structure)) return false;
 	const droids = findIdleTrucks();
     if (!droids.length) return false;
     const builder = droids[0];
     if (!builder?.id) return false;
+
+	if (!isInMapBounds({x,y})) {
+		logFile("ERROR grabTrucksAndBuild x,y not in map bounds:", x, y);
+		return false;
+
+	}
 
 	// plot a spiral to help efficiently locate building sites
 	let locationSpiral = plotSquareSpiral(x, y, GROUP_SCAN_RADIUS*3);
@@ -177,7 +194,7 @@ function grabTrucksAndBuild(structure, maxBlocking=1, x=lastBuildLoc.x+randomBet
 		logFile("ERROR grabTrucksAndBuild no spiral data");
 		return false;
 	}
-	logFile("grabTrucksAndBuild structure: "+structure);
+	logFile("grabTrucksAndBuild structure:", structure);
 
 	// try the original location first
     let buildloc = pickStructLocation(builder, structure, x, y, maxBlocking);
@@ -241,78 +258,88 @@ function orderTrucksBuild(structure, site, maxBlocking=1, direction=0)
 		return false;
 	}
 
-	let done = false;
+	let started = false;
 	let trucks = findIdleTrucks();
 	if (!trucks || !trucks.length || !trucks[0].id) return false;
 
-	if (!site || !isInMapBounds(site)) site = trucks[0];
-	let buildloc = pickStructLocation(trucks[0], structure, site.x, site.y, maxBlocking);
-	if (!buildloc || !isInMapBounds(buildloc)) return false;
-
-	// check for existing build order to prevent new trucks from builing duplicate structures
-	if (!trucksBuildingAt.done && trucksBuildingAt.structure && trucksBuildingAt.buildloc) {
-		structure = trucksBuildingAt.structure;
-		buildloc = trucksBuildingAt.buildloc;
-		maxBlocking = trucksBuildingAt.maxBlocking;
-		direction = trucksBuildingAt.direction;
+	if (!site || !isInMapBounds(site)) {
+		site = pickStructLocation(truck[0], structure, site.x, site.y, maxBlocking);
+		if (!isInMapBounds(site)) return false;
 	}
-
-	logFile("building structure "+JNstr(structure)+" at: "+JNstr(buildloc));
 
 	for (let dr of trucks)
 	{
-		if (dr && dr.id && droidCanReach(dr, buildloc.x, buildloc.y)) {
-			if (orderDroidBuild(dr, DORDER_BUILD, structure, buildloc.x, buildloc.y, direction)) done = true;
+		if (dr && dr.id && droidCanReach(dr, site.x, site.y)) {
+			if (orderDroidBuild(dr, DORDER_BUILD, structure, site.x, site.y, direction)) started = true;
 		}
 	}
-	// update trucksBuildingAt undefined
-	if (done && structure !== undefined && isInMapBounds(buildloc)) {
-		trucksBuildingAt.structure = structure;
-		trucksBuildingAt.buildloc = buildloc;
-		trucksBuildingAt.maxBlocking = maxBlocking;
-		trucksBuildingAt.direction = direction;
-	}
+	logFile("orderTrucksBuild build started: "+started, structure, site);
 
-	return done;
+	return started;
 }
 
 //// build factories. Attempts to build at least 1 of each factory.
 function factoryBuildOrder() {
-	if (DEBUGEX) logFile("factoryBuildOrder");
-    const FAC_ORDER = [FACTORY_STAT, CYBORG_FACTORY_STAT, VTOL_FACTORY_STAT];
-    let order = relyOnVtols ? [VTOL_FACTORY_STAT, CYBORG_FACTORY_STAT, FACTORY_STAT] : FAC_ORDER;
+    if (DEBUGEX) logFile("factoryBuildOrder");
 
-    // Determine the number of factories to build based on derrick count
-    const derrNum = countStruct(DERRICK_STAT);
+    const BASE_FACTORY_ORDER = [FACTORY_STAT, CYBORG_FACTORY_STAT, VTOL_FACTORY_STAT];
+
+    const factoryOrder = relyOnVtols
+        ? [VTOL_FACTORY_STAT, CYBORG_FACTORY_STAT, FACTORY_STAT]
+        : BASE_FACTORY_ORDER;
+
+    // Calculate the initial target count based on derrick count.
     let numFactoriesToBuild = 1;
-    if (derrNum >= 40) {
+    if (countStruct(DERRICK_STAT) >= 40) {
         numFactoriesToBuild = 3;
-    } else if (derrNum >= 24) {
+    } else if (countStruct(DERRICK_STAT) >= 24) {
         numFactoriesToBuild = 2;
     }
 
-    // Iterate over the factory order
-    for (let i = 0; i < order.length && numFactoriesToBuild > 0; ++i) {
-        const fac = order[i];
+    for (let i = 0; i < factoryOrder.length && numFactoriesToBuild > 0; ++i) {
+        const fac = factoryOrder[i];
+        let compensatedTarget = numFactoriesToBuild;
+        let shouldSkip = false;
 
-		// skip unused factories for sea and air maps and build extra used facs
-		if (isHoverMap()) {
-			if (fac === FACTORY_STAT) numFactoriesToBuild++; // build extra factory instead of cyborg fac
-			if (fac === CYBORG_FACTORY_STAT) continue;
-			if (fac === VTOL_FACTORY_STAT && (groupSize(attackGroup) < MIN_ATTACK_GSIZE * 2) ) continue;
-		} else if (isVtolMap()) {
-			if (fac === VTOL_FACTORY_STAT) numFactoriesToBuild++; // no cyborg or factory production
-			if (fac === CYBORG_FACTORY_STAT) continue;
-			if (fac === FACTORY_STAT) continue;
-		} else {
-			if (fac === VTOL_FACTORY_STAT && groupSize(attackGroup) < MIN_ATTACK_GSIZE * 2) continue;
-			if (fac === CYBORG_FACTORY_STAT && gameTime < SIX_MINUTE && !componentAvailable(TANK_REPAIR_HV)) continue;
-		}
+        if (isHoverMap()) {
+            if (fac === CYBORG_FACTORY_STAT) {
+                shouldSkip = true;
+            }
+            else if (fac === FACTORY_STAT) {
+                compensatedTarget++; // Boost the required count (compensatory build slot)
+            }
+            else if (fac === VTOL_FACTORY_STAT && (groupSize(attackGroup) < MIN_ATTACK_GSIZE * 2)) {
+                shouldSkip = true;
+            }
+        } else if (isVtolMap()) {
+            if (fac === CYBORG_FACTORY_STAT || fac === FACTORY_STAT) {
+                shouldSkip = true;
+            }
+            else if (fac === VTOL_FACTORY_STAT) {
+                compensatedTarget+2; // Boost the required count
+            }
+        } else { // standard map
+            if (fac === VTOL_FACTORY_STAT && groupSize(attackGroup) < MIN_ATTACK_GSIZE * 2) {
+                shouldSkip = true;
+            }
+            else if (fac === CYBORG_FACTORY_STAT && gameTime < SIX_MINUTE && !isComponentProducible(TANK_REPAIR_HV)) {
+                shouldSkip = true;
+            }
+        }
 
-		if (countStruct(fac) < numFactoriesToBuild && grabTrucksAndBuild(fac, 0)) --numFactoriesToBuild;
+        // Skip the rest of the logic if the factory type is unsuitable for this map.
+        if (shouldSkip) {
+            continue;
+        }
+
+        // Check if the factory count is below the adjusted economic target.
+        if (countStruct(fac) < compensatedTarget) {
+            if (grabTrucksAndBuild(fac, 1)) {
+                numFactoriesToBuild--;
+            }
+        }
     }
 
-    // Return true if all required factories were successfully built, otherwise false
     return numFactoriesToBuild === 0;
 }
 
@@ -325,7 +352,7 @@ function buildResearchLabs()
     }
 
 	// delay building research labs for 6 minutes unless plenty of cash
-	if (gameTime < SIX_MINUTE && componentAvailable(TANK_BUNKERB)) {
+	if (gameTime < SIX_MINUTE && isComponentProducible(TANK_BUNKERB)) {
 		if (getRealPower() < RESEARCH_TIER_THRESH) return;
 	}
 
@@ -360,13 +387,15 @@ function buildVTOLpads()
 {
 	if (DEBUGEX) logFile("buildVTOLpads");
 	if (getRealPower() < MIN_BUILD_POWER/2) return false;
-	if (!isStructureAvailable(VTOL_PAD_STAT)) return false;
+	if (!isStructureBuildable(VTOL_PAD_STAT)) return false;
 	if (!countStruct(VTOL_FACTORY_STAT)) return false;
 
-	let Labs = enumStruct(me, RES_LAB_STAT);
-	let baseoils = enumStruct(me, RESOURCE_EXTRACTOR).filter((obj) => (distBetweenTwoPoints(obj.x, obj.y, BASE.x, BASE.y) < AVG_BASE_RADIUS));
-	Labs = Labs.concat(baseoils);
-	let vploc = returnRandInFirstFew(Labs, 8);
+	let sites = [ ...seenStore.query({ player: me, type: STRUCTURE, stattype: RESEARCH_LAB }),
+				  ...seenStore.query({ player: me, type: STRUCTURE, stattype: POWER_GEN }),
+				  ...seenStore.query({ player: me, type: STRUCTURE, stattype: HQ }),
+				];
+
+	let vploc = returnRandInFirstFew(shuffleArray(sites), 8);
 
 	//Build VTOL pads if needed
 	let pad_mult = 0.7; // basic pad
@@ -374,33 +403,34 @@ function buildVTOLpads()
 	if (!findResearch("R-Struc-VTOLPad-Upgrade04")) pad_mult = 0.4;
 	if (!findResearch("R-Struc-VTOLPad-Upgrade06")) pad_mult = 0.3;
 
-	let needVtolPads = countStruct(VTOL_PAD_STAT) < pad_mult * (groupSize(vtolGroup) + 0.1); // boost to build first pad
+	let needVtolPads = !countStruct(VTOL_PAD_STAT) || countStruct(VTOL_PAD_STAT) < pad_mult * (groupSize(vtolGroup));
+
 	if (needVtolPads && vploc) {
-		return orderTrucksBuild(VTOL_PAD_STAT, vploc);
+		return grabTrucksAndBuild(VTOL_PAD_STAT, vploc);
 	}
 }
 
+
 function buildRepairFacs()
 {
-	if (DEBUGEX) logFile("buildRepairFacs");
-	// pre-calculate path
-	if (!buildRepairFacs._triedpath && !buildRepairFacs._path) {
-		let notme;
-		for (let i = 0; i < maxPlayers; i++) {
-			if (startPositions[i] === me) continue; // not our base
-			if (allianceExistsBetween(me, i)) continue; // not allied base
-			notme = i; // first non-allied base
+	// pre-calculate path to another base to identify likely home base exit site
+	if (buildRepairFacs.pathCache === undefined) {
+		let baseloc;
+		let notmybase;
+		for (const position of startPositions) {
+			if (position === startPositions[me]) continue; // me is startPositions index for current player
+			notmybase = position; // use the first one
 			break;
 		}
-		buildRepairFacs._path = findShortestPath(startPositions[me], startPositions[notme], PROP_HOVER, false);
-		buildRepairFacs._triedpath = true;
+		buildRepairFacs.pathCache = findShortestPath(startPositions[me], notmybase, PROP_HOVER, false);
+		logFile("buildRepairFacs path:", buildRepairFacs.pathCache);
 	}
-	if (!isStructureAvailable(REPAIR_FACILITY_STAT)) return false;
+	if (!isStructureBuildable(REPAIR_FACILITY_STAT)) return false;
 	if (getRealPower() < MIN_BUILD_POWER/2) return false;
 
 	if (countStruct(REPAIR_FACILITY_STAT) < (countStruct(FACTORY_STAT) + countStruct(CYBORG_FACTORY_STAT))/4) {
 		// plot a path from our base to a hostile base and build on it
-		if (buildRepairFacs._triedpath && !buildRepairFacs._path) {
+		if (!buildRepairFacs.pathCache) {
 			logFile("buildRepairFacs using plot a line");
 			// use alternate method: plot a line from edge past base
 			let baseEdge = closestPointOnRectEdge({x: 0, y: 0, width: mapWidth, height: mapHeight}, {x: BASE.x, y: BASE.y});
@@ -409,14 +439,27 @@ function buildRepairFacs()
 		}
 		// build on path near base perimeter
 		let randomPathStep = randomBetween(12, 22);
-		return grabTrucksAndBuild(REPAIR_FACILITY_STAT, 8, buildRepairFacs._path.path[randomPathStep][0], buildRepairFacs._path.path[randomPathStep][1]);
+		return grabTrucksAndBuild(REPAIR_FACILITY_STAT, 8, buildRepairFacs.pathCache.path[randomPathStep][0], buildRepairFacs.pathCache.path[randomPathStep][1]);
 	}
 	return false;
 }
 
+function buildPowerGens(amount=Infinity)
+{
+	if (!isStructureBuildable(POW_GEN_STAT)) return false;
+
+	const gens = seenStore.query({ player: me, type: STRUCTURE, stattype: POWER_GEN }).length;
+	const derricks = seenStore.query({ player: me, type: STRUCTURE, stattype: RESOURCE_EXTRACTOR }).length;
+
+	if (derricks/4 > gens && gens < amount) {
+		return grabTrucksAndBuild(POW_GEN_STAT, 1);
+	}
+
+}
+
 function buildLassat() {
 	if (DEBUGEX) logFile("buildLassat");
-    if (isStructureAvailable(LASSAT_STAT)) {
+    if (StatsMap.has(LASSAT_STAT) && isStructureBuildable(LASSAT_STAT)) {
         if (getRealPower() < 0) return false;
 
 		// find a location likely to be behind base
@@ -454,10 +497,10 @@ function buildLassat() {
 }
 
 function buildOneIncendiaryMortar() {
-	if (!isStructureAvailable("Emplacement-MortarPit-Incendiary")) return false;
+	if (!isStructureBuildable("Emplacement-MortarPit-Incendiary")) return false;
 	let base_artillery = seenStore.query({ player: me, hasIndirect: true, type: STRUCTURE });
 
-	if (!base_artillery.length && orderTrucksBuild("Emplacement-MortarPit-Incendiary")) return true;
+	if (!base_artillery.length && grabTrucksAndBuild("Emplacement-MortarPit-Incendiary")) return true;
 	return false;
 }
 
@@ -469,7 +512,7 @@ function buildBaseArtillery(max=1)
 	let bestDefense = firstAvailableStructure(Scheme.ARTILLERY_DEFENSES);
 	if (!bestDefense) return false;
 
-	return orderTrucksBuild(bestDefense, BASE, 1);
+	return grabTrucksAndBuild(bestDefense, 0);
 }
 
 function buildBaseOilDefenses(max=1)
@@ -514,7 +557,6 @@ function buildOilDefenses(max=1)
 
 			let oilEdge = closestPointOnRectEdge({x: 0, y: 0, width: mapWidth, height: mapHeight}, {x: oil.x, y: oil.y});
 			let site = extendLine(oilEdge, oil, 2);
-
 			return orderTrucksBuild(bestDefense, site);
 		}
 	}
@@ -527,15 +569,15 @@ function buildBaseAntiAir(max=1)
 	let antiAirs = seenStore.findNear(BASE, GROUP_SCAN_RADIUS*2, { player: me, type: STRUCTURE, isAA: true });
 	let buildSites = [ ...seenStore.query({ player: me, type: STRUCTURE, stattype: REARM_PAD }),
 					   ...seenStore.query({ player: me, type: STRUCTURE, stattype: POWER_GEN }),
-					   ...seenStore.query({ player: me, type: STRUCTURE, stattype: RESOURCE_EXTRACTOR }),
+					   ...seenStore.query({ player: me, type: STRUCTURE, stattype: RESEARCH_LAB }),
 					 ];
 
 	if (max > antiAirs.length) {
 		let site = returnRandInFirstFew(shuffleArray(buildSites));
-		if (!site || !isInMapBounds(site)) site = BASE;
+		if (!site || !isInMapBounds(site)) return false;
 
 		let buildaa = firstAvailableStructure(Scheme.AA_SITES);
-		if (buildaa && buildaa.length) return grabTrucksAndBuild(buildaa, 0, site.x, site.y);
+		if (buildaa && buildaa.length && grabTrucksAndBuild(buildaa, 0, site.x, site.y)) return true;
 	}
 	return false;
 }
@@ -544,15 +586,15 @@ function buildBaseAntiAir(max=1)
 function upgradeFactories(type, buildmod=2, numfacs=Infinity)
 {
 	if (!type) return false;
-	if (!isStructureAvailable(FAC_MODULE_STAT)) return false;
-	if (getRealPower() < MIN_BUILD_POWER) return false;
+	if (!isStructureBuildable(FAC_MODULE_STAT)) return false;
+	if (getRealPower() < MIN_BUILD_POWER/2) return false;
 
 	let facs = seenStore.query({ player: me, type: STRUCTURE, stattype: type });
 	let facsUpgraded = 0;
 	for (let fac of facs) {
 		if (facsUpgraded >= numfacs) return false;
 		if (fac.modules < buildmod) {
-			return orderTrucksBuild(FAC_MODULE_STAT, fac);
+			if (orderTrucksBuild(FAC_MODULE_STAT, fac)) return true;
 		}
 		facsUpgraded++;
 	}
@@ -561,7 +603,7 @@ function upgradeFactories(type, buildmod=2, numfacs=Infinity)
 
 function upgradeGenerators()
 {
-	if (!isStructureAvailable(POW_MODULE_STAT)) return false;
+	if (!isStructureBuildable(POW_MODULE_STAT)) return false;
 
 	let gens = seenStore.query({ player: me, type: STRUCTURE, stattype: POWER_GEN });
 	for (let struct of gens) {
@@ -573,7 +615,7 @@ function upgradeGenerators()
 }
 function upgradeResearch()
 {
-	if (!isStructureAvailable(RES_MODULE_STAT)) return false;
+	if (!isStructureBuildable(RES_MODULE_STAT)) return false;
 	if (getRealPower() < MIN_BUILD_POWER) return false;
 
 	let labs = seenStore.query({ player: me, type: STRUCTURE, stattype: RESEARCH_LAB });
@@ -588,7 +630,7 @@ function upgradeResearch()
 function findIdleTrucks()
 {
 	// enumerate the basebuilders group list and filter to select inactive
-	return enumGroup(baseBuilders).filter(dr => dr.order === DORDER_NONE || dr.action === DORDER_NONE || dr.order === DORDER_PATROL);
+	return enumGroup(baseBuilders).filter(truck => truck.order === DORDER_NONE || truck.order === DORDER_PATROL);
 }
 
 // Demolish object.
@@ -632,6 +674,7 @@ function finishLocalJobs()
 //// assigns trucks to closet safe notMyOil() with pre-computation, state, and PQ
 function assignTrucksToOil() { queue("assignTrucksToOilQ"); } // timer
 function assignTrucksToOilQ() {
+	if (!PeacemakerAIenable) return false;
 	if (DEBUGEX) logFile("assignTrucksToOilQ");
 	const BUILDER_SPACING_THRESHOLD = (mapWidth + mapHeight) / 4;
     // Step 1: Filter builders based on specified conditions
@@ -781,13 +824,13 @@ function idleConstructor(droid)
 
 	if (droid.group === baseBuilders) {
 		// patrol
-		let randBaseLoc = { x: BASE.x+randomBetween(-4, 4), y: BASE.y+randomBetween(-4, 4) };
-		if (isInMapBounds(BASE) && droidCanReach(droid, randBaseLoc.x, randBaseLoc.y)) {
-			orderDroidLoc(droid, DORDER_PATROL, BASE.x, BASE.y);
+		let randBaseLoc = { x: BASE.x+randomBetween(-6, 6), y: BASE.y+randomBetween(-6, 6) };
+		if (isInMapBounds(randBaseLoc) && droidCanReach(droid, randBaseLoc.x, randBaseLoc.y)) {
+			orderDroidLoc(droid, DORDER_PATROL, randBaseLoc.x, randBaseLoc.y);
 		}
 		return;
-
 	}
+
 	if (droid.order !== 0 || droid.action !== 0) return;
 
 	oilAssignments.delete(droid.id);
@@ -856,7 +899,7 @@ function checkOilsReachableQ(sites)
 {
 	if (DEBUGEX) logFile("checkOilsReachableQ");
 	// player sees oils on minimap
-	if (!sites || !sites.length) sites = enumFeature(ALL_PLAYERS, OIL_RES_STAT);  // must be _STAT for enumFeature
+	if (!sites || !sites.length) sites = enumFeature(ALL_PLAYERS, OIL_RES_STAT);
 
 	let unReachableSites = sites.length;
 	let reachableWithDestruction = 0;
@@ -924,4 +967,32 @@ function checkOilsReachableQ(sites)
 			markTiles(unreachableoils);
 		}
 	}
+}
+
+function setupTruckGroups()
+{
+	let cons = enumDroid(me, DROID_CONSTRUCT);
+	for (let i = 0, l = cons.length; i < l; ++i)
+	{
+		let droid = cons[i];
+		if (enumGroup(baseBuilders).length < MIN_BASE_TRUCKS) { groupAdd(baseBuilders, droid); }
+		else if (enumGroup(oilBuilders).length < MIN_OIL_TRUCKS) { groupAdd(oilBuilders, droid); }
+		else if (enumGroup(baseBuilders).length === MIN_BASE_TRUCKS) { groupAdd(baseBuilders, droid); }
+		else if (enumGroup(oilBuilders).length < MIN_OIL_TRUCKS*2) { groupAdd(oilBuilders, droid); }
+		else if (enumGroup(baseBuilders).length < MAX_BASE_TRUCKS) { groupAdd(baseBuilders, droid); }
+		else { groupAdd(oilBuilders, droid); }
+	}
+}
+
+
+function buildCommandPost()
+{
+	if (!isStructureBuildable(RELAY_POST_STAT)) return false;
+
+	const commandPosts = seenStore.query({ player: me, type: STRUCTURE, stattype: COMMAND_CONTROL }).length;
+    if (!commandPosts && grabTrucksAndBuild(RELAY_POST_STAT, 1)) {
+        return true;
+    }
+
+    return false;
 }

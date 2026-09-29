@@ -1,6 +1,7 @@
 function droidAwareAttacker() { queue("droidAwareAttackerQ"); }
 function droidAwareAttackerQ(droidAware)
 {
+	if (!PeacemakerAIenable) return false;
 	if (DEBUGEX) logFile("droidAwareAttackerQ");
     // 1. Initialize the target list of droids
     const droidAwareList = enumGroup(attackGroup)
@@ -98,10 +99,10 @@ function droidAwareAttackerQ(droidAware)
 
 function droidAwareSensor()
 {
+	if (!PeacemakerAIenable) return false;
     let droidAware = enumGroup(sensorGroup);
 
-    for (let dr of droidAware)
-    {
+    for (const dr of droidAware) {
         // 1. Basic Checks
         if (dr.droidType !== DROID_SENSOR) continue;
         if (dr.order === DORDER_RTR || dr.order === DORDER_RTB) continue;
@@ -124,8 +125,10 @@ function droidAwareSensor()
 
         // 2. Support
         if (dr.action === DACTION_OBSERVE) {
-			// move to another observation point if no support nearby
-			let nearbySupport = seenStore.findNear(dr, GROUP_SCAN_RADIUS * 2, { player: me, type: DROID, canHitGround: true});
+			// move to another observation point if no directfire support nearby
+			let nearbySupport = seenStore.findNear(dr, GROUP_SCAN_RADIUS * 2, { player: me, type: DROID, canHitGround: true})
+				.filter((obj) => (obj.group === attackGroup || obj.group === defendGroup));
+
 			if (!nearbySupport || !nearbySupport.length) {
 				let escorts = getStrongestAttackDroids();
 				if (escorts && escorts.length) {
@@ -136,8 +139,9 @@ function droidAwareSensor()
 				}
 			}
 
-			// call in support when illuminating
-            let nearbyArtillery = seenStore.findNear(dr, GROUP_SCAN_RADIUS * 2, { player: me, type: DROID, hasIndirect: true });
+			// call in artillery support when illuminating
+            let nearbyArtillery = seenStore.findNear(dr, GROUP_SCAN_RADIUS * 2, { player: me, type: DROID, hasIndirect: true })
+				.filter((obj) => (obj.group === attackGroup || obj.group === defendGroup));
             const assignedArtillery = new Set();
 
             for (let artillery of nearbyArtillery) {
@@ -188,6 +192,7 @@ function droidAwareSensor()
 
 function droidAwareAA()
 {
+	if (!PeacemakerAIenable) return false;
 	let droidAware = enumGroup(aaGroup);
 
 	for (let dr of droidAware)
@@ -203,8 +208,11 @@ function droidAwareAA()
 			continue;
 		}
 
-		let new_escort = findMostExpDroid();
-		if (dr.order === 25 && distBetweenTwoPoints(dr.x, dr.y, new_escort.x, new_escort.y) > 6) {
+		const droids = getStrongestAttackDroids().filter((dr) => (!(dr.canHitGround === false && dr.canHitAir === true)));
+		if (!droids || !droids.length || !droids[0].id) return false;
+
+		const new_escort = droids[0];
+		if (dr.order === DORDER_GUARD && distBetweenTwoPoints(dr.x, dr.y, new_escort.x, new_escort.y) > 6) {
 			if (new_escort && new_escort.id){
 				orderDroidLoc(dr, DORDER_SCOUT, new_escort.x, new_escort.y);
 				logFile(dr, "AA ordered to return to escort: "+new_escort.id);
@@ -215,7 +223,7 @@ function droidAwareAA()
 		if (Math.random() * 100 > 89){
 
 			if (new_escort && new_escort.id){
-				orderDroidObj(dr, 25, new_escort);
+				orderDroidObj(dr, DORDER_GUARD, new_escort);
 				logFile(dr, "AA ordered to escort: "+new_escort.id);
 			}
 		}
@@ -225,6 +233,7 @@ function droidAwareAA()
 function droidAwareVtol() { queue("droidAwareVtolQ"); }
 function droidAwareVtolQ()
 {
+	if (!PeacemakerAIenable) return false;
 	let droidAware = enumGroup(vtolGroup);
 	for (let dr of droidAware)
 	{
@@ -326,15 +335,17 @@ function droidAwareVtolQ()
 			}
 		}
 		// handle vtols on circle
-		if (dr.order === 40) // CIRCLE
+		if (dr.order === DORDER_CIRCLE) // CIRCLE
 		{
+			// not fully armed
 			if (dr && dr.health < 100 && dr.weapons[0].armed < 100 && enumStruct(me, VTOL_PAD_STAT))
 			{
 				orderDroid(dr, DORDER_REARM);
 				logFile(dr, "droidAware circling vtol ordered to REARM");
 				continue;
 			}
-			if (Math.random() * 100 > 85) { // remove some from circle
+			// remove from circle if alpha strike location is stale
+			if (random(100) > 90 && vtolAlphaStrikeLoc.startTime < gameTime - FIVE_MINUTE) {
 				let target = getVTOLtarget(dr);
 				if (target && dr.health === 100 && dr.weapons[0].armed === 100 && target.x && target.y)
 				{
@@ -356,6 +367,7 @@ function droidAwareVtolQ()
 function droidAwareRepair() { queue("droidAwareRepairQ"); }
 function droidAwareRepairQ()
 {
+	if (!PeacemakerAIenable) return false;
 	let droidAware = enumGroup(repairGroup);
 	for (let dr of droidAware)
 	{
@@ -463,6 +475,7 @@ function droidAwareScoutQ()
 function droidAwareTruck() { queue("droidAwareTruckQ"); }
 function droidAwareTruckQ()
 {
+	if (!PeacemakerAIenable) return false;
     // 1. Initialization and Droid Enumeration
     const droidAware = enumDroid(me, DROID_CONSTRUCT);
     for (const dr of droidAware) {
@@ -583,7 +596,7 @@ function droidAwareTruckQ()
                         let defenseSchema = firstAvailableStructure(Scheme.STANDARD_DEFENSES);
                         let buildLocation = false;
 
-                        if (defenseSchema) {
+                        if (defenseSchema && isInMapBounds(primaryWell)) {
                             buildLocation = pickStructLocation(dr, defenseSchema, primaryWell.x, primaryWell.y, 1);
                         }
 
@@ -638,6 +651,7 @@ let lastDemoOrderTime = 0;
 const STAGNATION_THRESHOLD = ONE_MINUTE/2;
 function droidAwareObstaclesQ()
 {
+	if (!PeacemakerAIenable) return false;
     // 1. Setup & Droid Selection
     let droids = enumGroup(demolishGroup);
     if (!droids || !droids.length) {
@@ -746,6 +760,7 @@ function droidAwareObstaclesQ()
 function droidAwareRetreat() { queue("droidAwareRetreatQ"); }
 function droidAwareRetreatQ()
 {
+	if (!PeacemakerAIenable) return false;
     // 1. Combine initial groups into a single collection to check.
     const droidAware = [...enumGroup(attackGroup), ...enumGroup(defendGroup), ...enumGroup(oilAttackers)];
 	const skipSome = droidAware.length > MIN_ATTACK_GSIZE * 10;
@@ -817,6 +832,7 @@ function droidAwareRetreatQ()
 function droidAwareRTB() { queue("droidAwareRTBQ"); }
 function droidAwareRTBQ()
 {
+	if (!PeacemakerAIenable) return false;
 	let droidAware = enumDroid(me);
 	for (let dr of droidAware)
 	{
@@ -886,6 +902,7 @@ function droidAwareRTBQ()
 
 function baseAware()
 {
+	if (!PeacemakerAIenable) return false;
 	// respond to enemies in base
 	let hq = enumStruct(me, HQ);
 
@@ -974,19 +991,30 @@ function baseAware()
 
 function balanceGroups()
 {
+	if (!PeacemakerAIenable) return false;
 	//logFile("seenStore: "+JNstr(seenStore.query({})));
 	//logFile("oilResourceStore length: "+oilResourceStore.query({}).length);
 	//logFile("oilResourceStore: "+JNstr(oilResourceStore.query({})));
 
+	if (!enemyHasVtol) if (seenStore.query({ isAllied: false, isVTOL: true }).length) enemyHasVtol = true;
+
 	if (isVtolMap()) relyOnVtols = true;
 
-	if (getResearch("R-Sys-Sensor-Upgrade01").done) GROUP_SCAN_RADIUS = 11;
-	if (getResearch("R-Sys-Sensor-Upgrade02").done) GROUP_SCAN_RADIUS = 13;
-	if (getResearch("R-Sys-Sensor-Upgrade03").done) GROUP_SCAN_RADIUS = 15;
+	// check to see if a HQ was already built or simply appeared
+	if (!builtFirstHQ) builtFirstHQ = enumStruct(me, HQ).length > 0;
+
+	// setup group scan range
+	const sensorRange1 = getResearch("R-Sys-Sensor-Upgrade01");
+	const sensorRange2 = getResearch("R-Sys-Sensor-Upgrade02");
+	const sensorRange3 = getResearch("R-Sys-Sensor-Upgrade03");
+
+	if (sensorRange1 && sensorRange1.done !== undefined && sensorRange1.done) GROUP_SCAN_RADIUS = 11;
+	if (sensorRange2 && sensorRange2.done !== undefined && sensorRange2.done) GROUP_SCAN_RADIUS = 13;
+	if (sensorRange3 && sensorRange3.done !== undefined && sensorRange3.done) GROUP_SCAN_RADIUS = 15;
 
 	// check if truck groups need balancing
-	if (groupSize(baseBuilders) < MIN_BASE_TRUCKS && groupSize(oilBuilders) > 0) { setupTruckGroups(); }
-	if (groupSize(baseBuilders) > MAX_BASE_TRUCKS) { setupTruckGroups(); }
+	if (groupSize(baseBuilders) < MIN_BASE_TRUCKS && groupSize(oilBuilders) > 0) setupTruckGroups();
+	if (groupSize(baseBuilders) > MAX_BASE_TRUCKS) setupTruckGroups();
 	// put vtolrepairgroup on patrol
 	let vtolpads = enumStruct(me, VTOL_PAD_STAT).sort(sortByDistToBase);
 	if (vtolpads && vtolpads[0])
@@ -1051,7 +1079,7 @@ function balanceGroups()
 	}
 
 	// if python is available and groups are large enough recycle vipers with experience
-	if (componentAvailable(BODY_PYTHON))
+	if (isComponentProducible(BODY_PYTHON))
 	{
 		let droids = enumDroid(me, DROID_WEAPON);
 		if (droids && droids.length > MIN_ATTACK_GSIZE*4)
@@ -1070,7 +1098,7 @@ function balanceGroups()
 		}
 	}
 	// recycle vtols if experienced cobra or bug and pulse laser is available
-	if (componentAvailable("Laser2PULSEMk1") && groupSize(vtolGroup) > MIN_VTOL_UNITS*4)
+	if (isComponentProducible("Laser2PULSEMk1") && groupSize(vtolGroup) > MIN_VTOL_UNITS*4)
 	{
 		const vtols = enumDroid(DROID_WEAPON);
 		for (let dr of vtols)
@@ -1087,65 +1115,89 @@ function balanceGroups()
 	}
 }
 
-//// not confirmed working
 function checkVtolAlphaStrike() { queue("checkVtolAlphaStrikeQ"); }
-let vtolAlphaStrikeLoc = {};
+let vtolAlphaStrikeLoc = false;
 function checkVtolAlphaStrikeQ()
 {
+	if (!PeacemakerAIenable) return false;
 	let vtols = enumGroup(vtolGroup);
-	if (vtols.length < MIN_VTOL_UNITS*4) return false;
-	
-	// get clusters of unallied AA units sorted by smallest first and randomly check one of the first few
-	let clusters = seenStore.findClusters({ canHitGround: false, isAllied: false, canHitAir: true, }, 3, MAX_AA_DIST)
-		.sort((a, b) => a.members.length - b.members.length )
-		.filter((obj) => (obj.lastSeen > gameTime - TEN_MINUTE));
+	if (vtols.length < MIN_VTOL_UNITS*4) {
+		logFile("checkVtolAlphaStrikeQ not enough vtols", vtols.length);
+		return false;
+	}
 
-	let chance = 100;
-	if (clusters.length > 3) { chance = 25; }
-	else if (clusters.length === 3) { chance = 33; }
-	else if (clusters.length === 2) { chance = 50; }
-	for (let cluster of clusters)
-	{
-		if (Math.random() * 100 < chance)
-		{
-			if (vtols.length > cluster.members.length*3)
-			{
-				for (let vtol of vtols)
-				{
-					if (vtolReady(vtol))
-					{
-						orderDroidLoc(vtol, DORDER_CIRCLE, BASE.x, BASE.y);
-						logFile(vtol, "vtols ordered to CIRCLE at base for alphastrike at: "+cluster.centroid.x+"x"+cluster.centroid.y);
-					}
-				}
-				vtolAlphaStrikeLoc = cluster.centroid;
-				queue(orderVtolAlphaStrike, VTOL_DEFEND_TIME*2);
+	// get clusters of unallied AA units sorted by smallest first and randomly check one of the first few
+	let clusters = AAseenStore.findClusters({}, 6, MAX_AA_DIST);
+	if (!clusters || !clusters.length) clusters = AAseenStore.findClusters({}, 3, MAX_AA_DIST);
+	if (!clusters || !clusters.length) clusters = AAseenStore.findClusters({}, 2, MAX_AA_DIST);
+	if (!clusters || !clusters.length) clusters = AAseenStore.findClusters({}, 1, MAX_AA_DIST);
+
+	if (!clusters || !clusters.length) {
+		logFile("checkVtolAlphaStrikeQ no AA clusters", clusters);
+		return false;
+	}
+
+	clusters = clusters.sort((a, b) => a.members.length - b.members.length);
+
+	const cluster = returnRandInFirstFew(clusters, 3);
+
+	logFile("checkVtolAlphaStrikeQ evaluating cluster", cluster);
+	if (vtols.length > cluster.members.length*6) {
+		logFile("checkVtolAlphaStrikeQ ordering strike");
+		for (let vtol of vtols) {
+			if (vtolReady(vtol)) {
+				orderDroidLoc(vtol, DORDER_CIRCLE, BASE.x, BASE.y);
+				logFile(vtol, "vtols ordered to CIRCLE at base for alphastrike at: "+cluster.centroid.x+"x"+cluster.centroid.y);
 			}
-			return; // only check one
+		}
+		if (isInMapBounds(cluster.centroid)) {
+			vtolAlphaStrikeLoc = cluster.centroid;
+			vtolAlphaStrikeLoc.startTime = gameTime;
+			queue("orderVtolAlphaStrike", VTOL_DEFEND_TIME*5);
+			logFile("checkVtolAlphaStrikeQ queued orderVtolAlphaStrike");
 		}
 	}
+	return; // only check one for entropy
 }
 
 function orderVtolAlphaStrike()
 {
-	if (!vtolAlphaStrikeLoc || !vtolAlphaStrikeLoc.x) logFile("ERROR orderVtolAlphaStrike no location");
-	let vtols = enumGroup(vtolGroup);
+	if (!PeacemakerAIenable) return false;
+	logFile("orderVtolAlphaStrike preparing to strike at", vtolAlphaStrikeLoc);
+
+	if (!isInMapBounds(vtolAlphaStrikeLoc)) return false;
+
+	let vtols = enumGroup(vtolGroup).filter((obj) => (obj.order === DORDER_CIRCLE));
+
+	// check if there are enough circling
+	if (vtols.length < MIN_VTOL_UNITS*4) {
+		// abort strike
+		vtolAlphaStrikeLoc = false;
+		for (let vtol of vtols) {
+			idleVtol(vtol);
+		}
+		logFile("orderVtolAlphaStrike aborted strike", vtols.length);
+		return false;
+	}
+
 	for (let vtol of vtols) {
 		if (vtolReady(vtol)) {
 			orderDroidLoc(vtol, DORDER_CIRCLE, vtolAlphaStrikeLoc.x, vtolAlphaStrikeLoc.y);
-			logFile(vtol, "vtols ordered to alphastrike AA cluster: "+vtolAlphaStrikeLoc.x+"x"+vtolAlphaStrikeLoc.y);
+			logFile(vtol, "ordered to alphastrike AA cluster: "+vtolAlphaStrikeLoc.x+"x"+vtolAlphaStrikeLoc.y);
 		}
 	}
-	vtolAlphaStrikeLoc = {};
+	vtolAlphaStrikeLoc = false;
+	return true;
 }
 
 function handlePileups() { queue("handlePileupsQ"); }
 function handlePileupsQ()
 {
+	if (!PeacemakerAIenable) return false;
 	let clusters = seenStore.findClusters({ player: me, type: DROID, isVTOL: false}, 16, 4); // min, radius
 	for (let cluster of clusters)
-		for (let dr of cluster.members)
-		{
+		for (let dr of cluster.members) {
+			if (dr.group === playerGroup) continue;
 			orderDroid(dr, DORDER_STOP);
 			logFile("possible pileup detected stopping: " + dr.id);
 		}
@@ -1153,8 +1205,8 @@ function handlePileupsQ()
 	// check for repair droid clusters
 	clusters = seenStore.findClusters({ player: me, type: DROID, droidType: DROID_REPAIR }, 8, 5); // min, radius
 	for (let cluster of clusters)
-		for (let dr of cluster.members)
-		{
+		for (let dr of cluster.members) {
+			if (dr.group === playerGroup) continue;
 			orderDroid(dr, DORDER_STOP);
 			logFile("possible repair pileup detected stopping: " + dr.id);
 		}
@@ -1176,7 +1228,7 @@ function updateSeenStoreQ()
     }
 
 	// scavenger objects
-	if (startedWithScavs) {
+	if (isUltimateScavs()) {
 		objects.push(enumStruct(me, scavengerPlayer));
 		objects.push(enumDroid(me, scavengerPlayer));
 	}
@@ -1234,7 +1286,7 @@ function pruneSeenStore()
         pidx++;
     }
 	// scavenger structures
-	if (startedWithScavs) {
+	if (isUltimateScavs()) {
 		for (let type of STRUCTURE_TYPES) {
 			enumStruct(me, type, scavengerPlayer).forEach(obj => obj.id && seenNow.set(obj.id, true));
 		}
@@ -1258,10 +1310,11 @@ function pruneSeenStore()
 
 function recycleDroidsForHover()
 {
+	if (!PeacemakerAIenable) return false;
 	// don't recycle if not hover not required to reach oil
 	if (!isHoverMap() && !oilResourceStore.query({ requiresHover: true }).length) return removeTimer("recycleDroidsForHover");
 	// not ready to recycle
-	if (!componentAvailable(PROP_HOVER) || !countStruct(FACTORY_STAT)) return;
+	if (!isComponentProducible(PROP_HOVER) || !countStruct(FACTORY_STAT)) return;
 
 	let systems = enumGroup(oilBuilders).filter((dr) => (dr.propulsion !== PROP_HOVER));
 	let tanks = enumGroup(attackGroup).filter((dr) => (dr.droidType === DROID_WEAPON && dr.propulsion !== PROP_HOVER));
@@ -1275,7 +1328,7 @@ function recycleDroidsForHover()
 
 	if (countStruct(FACTORY_STAT)) {
 		recycleDroids(systems);
-		if (isHoverMap() && componentAvailable(PROP_VTOL)) {
+		if (isHoverMap() && isComponentProducible(PROP_VTOL)) {
 			recycleDroids(tanks);
 		}
 	}
@@ -1284,6 +1337,7 @@ function recycleDroidsForHover()
 function checkOrderLocations() { queue("checkOrderLocationsQ"); }
 function checkOrderLocationsQ()
 {
+	if (!PeacemakerAIenable) return false;
     const EXPIRATION_TIME_MS = FOUR_MINUTE; // four minutes
 
     // Single pass: update orderLocations with threat info and check for expiration
@@ -1333,12 +1387,14 @@ function checkOrderLocationsQ()
 function updateMapTilesFeatures() { queue("updateMapTilesFeaturesQ"); }
 function updateMapTilesFeaturesQ()
 {
+	if (!PeacemakerAIenable) return false;
 	MapTilesFeatures = loadFeaturesIntoTiles(enumFeature(ALL_PLAYERS).filter((obj) => (obj.stattype !== OIL_DRUM && obj.stattype !== ARTIFACT)), MapTiles);
 }
 
 function checkUnreachableOils() { queue("checkUnreachableOilsQ"); }
 function checkUnreachableOilsQ()
 {
+	if (!PeacemakerAIenable) return false;
 	let reachableWithDestruction = oilResourceStore.query({ type: FEATURE, stattype: OIL_RESOURCE, isReachable: true, requiresDestruction: true });
 
 	// check for oils now reachable
@@ -1362,3 +1418,15 @@ function checkUnreachableOilsQ()
 		}
 	}
 }
+
+function checkUnassignedDroids() { queue("checkUnassignedDroidsQ"); }
+function checkUnassignedDroidsQ()
+{
+	const allMyDroids = seenStore.query({ player:me , type: DROID });
+
+	for (const dr of allMyDroids) {
+		if (dr.droidType === DROID_TRANSPORTER || dr.droidType === DROID_SUPERTRANSPORTER) continue;
+		if (!isDroidInGroup(dr)) eventDroidBuilt(dr);
+	}
+}
+
