@@ -331,7 +331,7 @@ const buildRepairForces = (fac, prop) => {
     const combat = enumDroid(me, DROID_WEAPON).filter((dr) => (dr.isVTOL === false)).concat(enumDroid(me, DROID_CYBORG)).length;
     const vrepair = countVirtualProduction(me, FACTORY, DROID_REPAIR);
 
-    logFile`repair:${repair} vrepair:${vrepair} combat:${combat} combat/div:${combat/div}`;
+    logFile(`repair:${repair} vrepair:${vrepair} combat:${combat} combat/div:${combat/div}`);
 
     // Guaranteed first unit
     if (repair === 0 && vrepair === 0 && buildRepair(fac, prop)) {
@@ -362,7 +362,7 @@ const buildAATanks = (fac, prop) => {
     const AA = seenStore.query({ player: me, type: DROID, isAA: true, isVTOL: false }).length;
     const vAA = countVirtualProduction(me, FACTORY_STAT, DROID_WEAPON, (vdr) => vdr.canHitAir === true && vdr.canHitGround === false);
 
-    logFile`AA:${AA} vAA:${vAA} combat:${combat} combat/div:${combat/div}`;
+    logFile(`AA:${AA} vAA:${vAA} combat:${combat} combat/div:${combat/div}`);
 
     // Build if needed or have none
     if ((AA + vAA < combat / div || AA + vAA < 1) && buildMobileAA(fac)) {

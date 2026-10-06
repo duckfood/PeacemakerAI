@@ -154,6 +154,7 @@ function buildTransport(fac)
 	if (!fac || !fac.id) return false;
     if (fac.modules < 1) return false;
 
+    // PROP_VTOL as weapon works, and is sure to be available
     return buildDroid(fac, "Cyborg Transport", BODY_TRANSPORT, PROP_VTOL, "", "", PROP_VTOL);
 }
 

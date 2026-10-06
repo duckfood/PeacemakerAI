@@ -248,13 +248,18 @@ function droidAwareVtolQ()
 			continue;
 		}
 
+		if (dr.order === DORDER_ATTACK && dr.action === DACTION_NONE) {
+			idleVtol(dr);
+			continue;
+		}
+
 		if (dr.order === DORDER_SCOUT || dr.order === DORDER_ATTACK)
 		{
 			let threats = getAAthreats(dr);
 			if (threats && threats.length)
 			{
 				// check to see if nearby vtols vastly outnumber aa
-				let allied_vtols = seenStore.findNear(dr, GROUP_SCAN_RADIUS *2, { isAllied: true, isVTOL: true });
+				let allied_vtols = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*2, ALLIES, true).filter((obj) => (obj.isVTOL === true));
 
 				if (allied_vtols.length / 6 > threats.length)
 				{
@@ -262,10 +267,10 @@ function droidAwareVtolQ()
 					logFile(dr, "droidAware scouting mass of vtol ordered to attack AA");
 
 					// call in air support from nearby vtols
-					let my_vtols = allied_vtols.filter((obj) => (obj.player === me));
+					let my_vtols = allied_vtols.filter((obj) => (obj.player === me && obj.order !== DORDER_CIRCLE));
 					for (let vt of my_vtols)
 					{
-						if (vt.health === 100 && vt.weapons[0].armed === 100 && vt.id != dr.id &&
+						if (vtolReady(vt) && vt.id != dr.id &&
 								!throttleThis("droidAwareVtol_throttle_AAairSupport_"+vt.id, VTOL_DEFEND_TIME*3))
 						{
 							let aathreat = returnRandInFirstFew(threats);
@@ -345,10 +350,9 @@ function droidAwareVtolQ()
 				continue;
 			}
 			// remove from circle if alpha strike location is stale
-			if (random(100) > 90 && vtolAlphaStrikeLoc.startTime < gameTime - FIVE_MINUTE) {
+			if (random(100) > 90 && (!vtolAlphaStrikeLoc || vtolAlphaStrikeLoc.startTime < gameTime - FIVE_MINUTE)) {
 				let target = getVTOLtarget(dr);
-				if (target && dr.health === 100 && dr.weapons[0].armed === 100 && target.x && target.y)
-				{
+				if (target && isInMapBounds(target)) {
 					orderDroidLoc(dr, DORDER_SCOUT, target.x, target.y);
 					logFile(dr, "droidAware circling vtol ordered to scout to target:"+target.x+"x"+target.y);
 					continue;
@@ -385,7 +389,7 @@ function droidAwareRepairQ()
 		{
 			// try for tanks first
 			let droids = enumRange(dr.x, dr.y, GROUP_SCAN_RADIUS*4, me, true).filter((obj) =>
-				(obj.isVTOL === false && obj.droidType === DROID_WEAPON) );
+				(obj.isVTOL === false && obj.droidType === DROID_WEAPON));
 			// if no tanks try for cyborgs
 			if (!droids || droids.length === 0)
 			{
@@ -487,8 +491,6 @@ function droidAwareTruckQ()
         // 2. Check burning tiles
         if (moveFromBurningTile(dr)) continue;
 
-		// if base truck patrol
-
         // 3. Oil Builder Logic: Hostile Evasion
         if (dr.group === oilBuilders && distBetweenTwoPoints(dr.x, dr.y, BASE.x, BASE.y) > AVG_BASE_RADIUS / 4) {
             if (fleeFromHostiles(dr)) continue;
@@ -526,14 +528,11 @@ function droidAwareTruckQ()
 
             for (const oil of oilsToProcess) {
                 // Skip if hostiles are present unless they are AA
-                const hostileCheck = getHostilesNear(oil, GROUP_SCAN_RADIUS).filter(
-                    (obj) => obj.isAA === false
-                );
+                const hostileCheck = getHostilesNear(oil, GROUP_SCAN_RADIUS).filter((obj) => obj.isAA === false);
                 if (hostileCheck.length > 0) continue;
 
                 // Check reachability and availability
-                if (!droidCanReach(dr, oil.x, oil.y)) continue;
-                if (oilResourceStore.query({ isReachable: false, x: oil.x, y: oil.y }).length) continue;
+                if (!oilResourceStore.query({ isReachable: true, x: oil.x, y: oil.y }).length) continue;
                 if (tileIsBurning(oil.x, oil.y)) continue;
 
                 // Skip if assignment is too recent

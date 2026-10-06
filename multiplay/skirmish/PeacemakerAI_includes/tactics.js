@@ -607,8 +607,8 @@ function orderRetreat(retreat)
 					let hostile = returnRandInFirstFew(sortByDistToLoc(ally, retreat.seenEnemyGroup));
 					let rallyPoint = extendLine(hostile, ally, GROUP_SCAN_RADIUS, 'beyond');
 
-					// is rallyPoint suitable for retreat location
-					if (rallyPoint && isInMapBounds(rallyPoint) && droidCanReach(ally, rallyPoint.x, rallyPoint.y)) {
+					// is rallyPoint suitable for retreat location disable for now
+					if (false && rallyPoint && isInMapBounds(rallyPoint) && droidCanReach(ally, rallyPoint.x, rallyPoint.y)) {
 						if (ally.type === DROID_REPAIR) {
 							orderDroidLoc(ally, DORDER_SCOUT, rallyPoint.x, rallyPoint.y);
 							logFile(ally, "retreating scout to rallyPoint");
@@ -817,8 +817,8 @@ class CommanderSupportManager {
                 continue;
             }
 
-            // Condition 1: If the droid is supposed to be support, but it's not supporting
-            if (droid.order === DORDER_COMMANDERSUPPORT && (droid.action !== DACTION_ATTACK || droid.action !== DACTION_OBSERVE)) {
+            // Condition 1: If the droid is supposed to be support and it's not acting as support remove
+            if (droid.order === DORDER_COMMANDERSUPPORT && !(droid.action === DACTION_ATTACK || droid.action === DACTION_OBSERVE)) {
                 this.unassignFromCommander(commander, droid);
 				idleAttacker(droid);
             }

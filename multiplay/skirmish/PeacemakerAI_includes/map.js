@@ -477,7 +477,6 @@ class ultimate_PriorityQueue {
 //// ultimate version A* pathfinding with options
 // 4-way only as diagonal movement is not possible for droids apparently
 // droidCanReach returns incorrect results involving diagonal movement eg. Roughness blocked oils
-// map bounds clipped to avoid pathfinding off map as game map is inaccessible around the edge
 // considers start tile to be accessible if adjacent tile is
 // allows a path to an inaccessible tile can be formed by swapping start and dest
 function findShortestPath(start, dest, propulsion = PROP_WHEEL, allowDestruction = false, maxPathLength = Infinity)
@@ -491,6 +490,14 @@ function findShortestPath(start, dest, propulsion = PROP_WHEEL, allowDestruction
         logFile("WARNING findShortestPath invalid dest for path");
         return false;
     }
+
+    // Define a hard limit on nodes to prevent runaway execution on huge, disconnected maps.
+    // This budget controls the time spent when no path is found.
+    const HARD_CAP = 300000;
+    const MAX_NODES_TO_EXPLORE = Math.min(mapWidth * mapHeight, HARD_CAP);
+    let nodesVisited = 0;
+    // ------------------------------
+
     const tiles = MapTilesFeatures;
     const directions = [[0,1],[1,0],[0,-1],[-1,0]]; // only consider up, down, left, right movements as diagonal is not possible
     const cols = tiles.length;       // x-axis
@@ -500,35 +507,62 @@ function findShortestPath(start, dest, propulsion = PROP_WHEEL, allowDestruction
         if (x1 === start.x && y1 === start.y) return 0; // Always consider the start position with zero heuristic value
         return Math.abs(x1 - x2) + Math.abs(y1 - y2); // Standard Manhattan distance for other nodes
     };
+
     const openSet = new ultimate_PriorityQueue();
     const cameFrom = Array(cols).fill().map(() => Array(rows).fill(null));
     const gScore = Array(cols).fill().map(() => Array(rows).fill(Infinity));
     const fScore = Array(cols).fill().map(() => Array(rows).fill(Infinity));
+
     gScore[start.x][start.y] = 0;
     fScore[start.x][start.y] = heuristic(start.x, start.y, dest.x, dest.y);
     openSet.enqueue([start.x, start.y], fScore[start.x][start.y]); // Enqueue with a heuristic score of 0 for immediate consideration
+
     while (!openSet.isEmpty()) {
         const [x, y] = openSet.dequeue();
+        nodesVisited++; // Increment node count for budget tracking
+
+        // --- OPTIMIZATION ADDITION: Node Budget Check ---
+        if (nodesVisited > MAX_NODES_TO_EXPLORE) {
+            logFile("WARNING findShortestPath exceeded node budget (" + MAX_NODES_TO_EXPLORE + "). Assuming no path found.");
+            return false; // Fail fast if too many nodes are explored
+        }
+        // -------------------------------------------------
+
         if (x === dest.x && y === dest.y) {
             return reconstructPath(cameFrom, [x, y], tiles);
         }
+
         for (const [dx, dy] of directions) {
             const nx = x + dx;
             const ny = y + dy;
-            if (nx < 1 || nx >= cols-1 || ny < 1 || ny >= rows-1) continue; // clip map edges
+
+            // Clip map edges
+            if (nx < 1 || nx >= cols-1 || ny < 1 || ny >= rows-1) continue;
+
             const tile = tiles[nx][ny];
+
+            // Obstacle checks
             if (tile.terrainType === TERRAIN_CLIFF) continue;
             if (tile.terrainType === TERRAIN_WATER && propulsion !== PROP_HOVER) continue;
             if (tile.type === FEATURE) {
                 if (!tile.damageable) continue;
                 if (!allowDestruction && tile.damageable && !tile.destroyed) continue;
             }
+
             const cost = 1;
             const tentativeGScore = gScore[x][y] + cost;
+
+            // --- OPTIMIZATION ADDITION: Max Path Length Check ---
+            if (tentativeGScore >= maxPathLength) {
+                continue; // Do not explore this neighbor; path is too long.
+            }
+            // ---------------------------------------------------
+
             if (tentativeGScore < gScore[nx][ny]) {
                 cameFrom[nx][ny] = [x, y];
                 gScore[nx][ny] = tentativeGScore;
                 fScore[nx][ny] = tentativeGScore + heuristic(nx, ny, dest.x, dest.y);
+
                 if (!openSet.contains([nx, ny])) {
                     openSet.enqueue([nx, ny], fScore[nx][ny]);
                 }
@@ -536,6 +570,7 @@ function findShortestPath(start, dest, propulsion = PROP_WHEEL, allowDestruction
         }
     }
     return false; // No path found
+
     function reconstructPath(cameFrom, current, tiles) {
         const path = [current];
         const destructionList = [];

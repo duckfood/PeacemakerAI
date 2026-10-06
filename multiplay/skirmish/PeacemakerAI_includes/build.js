@@ -210,7 +210,7 @@ function grabTrucksAndBuild(structure, maxBlocking=1, x=lastBuildLoc.x, y=lastBu
 						logFile("line: "+line);
 						if (line > 2.5) {
 							logFile("line is long enough to check");
-							const path = findShortestPath(builder, buildloc, builder.propulsion, false);
+							const path = findShortestPath(builder, buildloc, builder.propulsion, false, line*6); // limit pathing effort
 							if (path && path.distance) {
 								logFile("path: "+path.distance);
 								if (path.distance <= line * 2.5) {
@@ -218,17 +218,19 @@ function grabTrucksAndBuild(structure, maxBlocking=1, x=lastBuildLoc.x, y=lastBu
 									return orderTrucksBuild(structure, buildloc, maxBlocking, direction);
 								}
 							} else {
-								logFile("no path data so try next step");
+								logFile("no path data so try next step likely defective map");
 							}
 						} else {
 							logFile("short line building at: "+x+"x"+y);
 							return orderTrucksBuild(structure, buildloc, maxBlocking, direction);
 						}
 					} else {
-						logFile("buildloc too far from base");
+						logFile("buildloc too far from base so set baseCongested true");
+						baseCongested = true;
+						break;
 					}
 				} else {
-					logFile("unreachable buildloc");
+					logFile("unreachable buildloc likely defective map");
 				}
 			} else {
 				logFile("invalid buildloc");
@@ -243,10 +245,12 @@ function grabTrucksAndBuild(structure, maxBlocking=1, x=lastBuildLoc.x, y=lastBu
 		}
 	}
 
-	baseCongested = true;
-    logFile("default building at: "+x+"x"+y);
-    buildloc = pickStructLocation(builder, structure, x, y, maxBlocking);
-	return orderTrucksBuild(structure, buildloc);
+	// base might be congested or other trouble so build anywhere offered by pickStructLocation
+	if (!baseCongested) baseCongested = true;
+    logFile("baseCongested building at: "+x+"x"+y);
+    buildloc = pickStructLocation(builder, structure, x, y, maxBlocking); // get a fresh buildloc
+	if (isInMapBounds(buildloc) && droidCanReach(builder, buildloc.x, buildloc.y)) return orderTrucksBuild(structure, buildloc);
+	return false;
 }
 
 //// used to build accessory buildings and by grabTrucksAndBuild()
@@ -263,7 +267,7 @@ function orderTrucksBuild(structure, site, maxBlocking=1, direction=0)
 	if (!trucks || !trucks.length || !trucks[0].id) return false;
 
 	if (!site || !isInMapBounds(site)) {
-		site = pickStructLocation(truck[0], structure, site.x, site.y, maxBlocking);
+		site = pickStructLocation(trucks[0], structure, site.x, site.y, maxBlocking);
 		if (!isInMapBounds(site)) return false;
 	}
 
@@ -316,7 +320,7 @@ function factoryBuildOrder() {
                 shouldSkip = true;
             }
             else if (fac === VTOL_FACTORY_STAT) {
-                compensatedTarget+2; // Boost the required count
+                compensatedTarget++; // Boost the required count
             }
         } else { // standard map
             if (fac === VTOL_FACTORY_STAT && groupSize(attackGroup) < MIN_ATTACK_GSIZE * 2) {
@@ -406,7 +410,7 @@ function buildVTOLpads()
 	let needVtolPads = !countStruct(VTOL_PAD_STAT) || countStruct(VTOL_PAD_STAT) < pad_mult * (groupSize(vtolGroup));
 
 	if (needVtolPads && vploc) {
-		return grabTrucksAndBuild(VTOL_PAD_STAT, vploc);
+		return grabTrucksAndBuild(VTOL_PAD_STAT, 0, vploc.x, vploc.y);
 	}
 }
 
@@ -435,7 +439,11 @@ function buildRepairFacs()
 			// use alternate method: plot a line from edge past base
 			let baseEdge = closestPointOnRectEdge({x: 0, y: 0, width: mapWidth, height: mapHeight}, {x: BASE.x, y: BASE.y});
 			let site = extendLine(baseEdge, BASE, 10);
-			return grabTrucksAndBuild(REPAIR_FACILITY_STAT, 2, site.x, site.y);
+			if (site && isInMapBounds(site) && grabTrucksAndBuild(REPAIR_FACILITY_STAT, 2, site.x, site.y)) {
+				return true;
+			} else {
+				return false;
+			}
 		}
 		// build on path near base perimeter
 		let randomPathStep = randomBetween(12, 22);
@@ -695,13 +703,13 @@ function assignTrucksToOilQ() {
     const safeSites = sites.filter(site => {
         const alliedBuilders = seenStore.findNear(site, GROUP_SCAN_RADIUS, { isAllied: true, droidType: DROID_CONSTRUCT, group: oilBuilders });
         if (alliedBuilders.length > 0) {
-			logFile(site, "assignTrucksToOil builder already present");
+			logFile(site, `${site.x},${site.y} assignTrucksToOil builder already present`);
 			return false;
 		}
 
         const hostileCount = getHostilesNear(site, GROUP_SCAN_RADIUS).length;
 		if (hostileCount > 0) {
-			logFile(site, "assignTrucksToOil hostiles present");
+			logFile(site, `${site.x},${site.y} assignTrucksToOil hostiles present`);
 		}
         return hostileCount === 0;
     });
@@ -786,7 +794,7 @@ function assignTrucksToOilQ() {
 
 		// If no site was selected after both passes, skip the builder
 		if (!assignedSite || !assignedSite.id) {
-			logFile("assignTrucksToOil no site skipping builder");
+			logFile(builder, "assignTrucksToOil no site skipping builder");
 			continue;
 		}
 

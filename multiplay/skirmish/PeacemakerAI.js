@@ -1,4 +1,4 @@
-//// PeacemakerAI v0.13 2026-9-30 http://github.com/duckfood/PeacemakerAI
+//// PeacemakerAI v0.14 2026-10-6 http://github.com/duckfood/PeacemakerAI
 //// MIT license. No warranty whatsoever. Use this code at your own risk!
 //// Include this notice in any substantial reproductions.
 
@@ -6,8 +6,8 @@
 const DEBUG = false;
 // log messages in-game
 const DEBUG_CONSOLE = false;
-const DEBUG_TRACE = false; // with call trace
-const DEBUGEX = false; // extreme debugging every function call
+// extreme debugging every function call
+const DEBUGEX = false;
 
 // global config
 const MIN_BASE_TRUCKS = 2;
@@ -30,7 +30,6 @@ const RESEARCH_TIER_THRESH = 1750;
 const TRANPORT_MAP_THRESH = 5; // unreachable oils
 
 // map definitions
-const EXHIGH_OIL_MAP = 80;
 const HIGH_OIL_MAP = 50;
 const LOW_OIL_MAP = 30;
 
@@ -101,10 +100,11 @@ let baseUnderAttackLoc = {};
 let MapTilesFeatures; // pathfinding data
 let GROUP_SCAN_RADIUS = 9; // adjusted later for tech
 
-let orderTargets = new Map();
-let orderLocations = new Map();
-let artifactPickups = new Map();
-let oilAssignments = new Map();
+// state stores
+let orderTargets = new Map(),
+	orderLocations = new Map(),
+	artifactPickups = new Map(),
+	oilAssignments = new Map();
 
 function eventStartLevel()
 {
@@ -133,6 +133,7 @@ function eventStartLevel()
 	setTimer("buildFundamentals", 2000 + randomBetween(-10, 10));
 	setTimer("assignTrucksToOil", 5000 + randomBetween(-10, 10));
 
+	// timers for droid awareness
 	setTimer("baseAware", 5000 + randomBetween(-10, 10));
 	setTimer("droidAwareRepair", 1000 + randomBetween(-10, 10));
 	setTimer("droidAwareAttacker", 1000 + randomBetween(-10, 10));
@@ -146,6 +147,7 @@ function eventStartLevel()
 	setTimer("droidAwareRetreat", 5000 + randomBetween(-50, 50));
 	setTimer("droidAwareCommander", 3000 + randomBetween(-50, 50));
 
+	// support timers
 	setTimer("checkVtolAlphaStrike", VTOL_DEFEND_TIME*10 + 1000 + randomBetween(-150, 150));
 	setTimer("recycleDroidsForHover", 10000 + randomBetween(-150, 150));
 	setTimer("balanceGroups", 10000 + randomBetween(-150, 150));
@@ -164,7 +166,7 @@ function eventStartLevel()
 	buildFundamentals();
 }
 
-// include initial modules
+// include modules
 include("/multiplay/skirmish/PeacemakerAI_includes/wzapi.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/misc.js");
 include("/multiplay/skirmish/PeacemakerAI_includes/map.js");

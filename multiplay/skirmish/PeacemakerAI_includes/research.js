@@ -38,7 +38,7 @@ function lookForResearch() { // timer
             if (evalResearch(lab, upgrade)) return true;
         }
         // all scheme research done continue if extra power
-        return getRealPower() > RESEARCH_TIER_THRESH && researchEverything();
+        return getRealPower() > RESEARCH_TIER_THRESH && researchEverything(lab);
     }
     // scheme tiered research not valid
     return researchEverything(lab);

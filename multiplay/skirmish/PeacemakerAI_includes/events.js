@@ -152,7 +152,7 @@ function eventAttacked(victim, attacker)
     const vtols = enumGroup(vtolGroup);
     if (vtols.length > MIN_VTOL_UNITS * 5) {
         for (let vt of vtols) {
-			if (vt.order === DORDER_RTB || vt.order === DORDER_RECYCLE || vt.order === DORDER_REARM) continue;
+			if (vt.order === DORDER_RTB || vt.order === DORDER_RECYCLE || vt.order === DORDER_REARM || vt.order === DORDER_CIRCLE) continue;
             if (throttleThis("eventAttacked_throttle_Vtol_" + vt.id, VTOL_DEFEND_TIME * 5)) continue;
             let AA = getAAthreats(loc);
             if (AA && AA.length > 2) {
@@ -160,7 +160,7 @@ function eventAttacked(victim, attacker)
                 return;
             }
             if (vtolReady(vt) && vt.order !== DORDER_ATTACK) {
-                orderDroidLoc(vt, DORDER_CIRCLE, loc.x+randomBetween(-3, 3), loc.y+randomBetween(-3, 3));
+                orderDroidLoc(vt, DORDER_SCOUT, loc.x+randomBetween(-6, 6), loc.y+randomBetween(-6, 6));
                 logFile(vt, "eventAttacked vtol sent on defend mission");
             }
         }
@@ -256,8 +256,6 @@ function eventStructureBuilt(structure, droid)
 {
 	if (!PeacemakerAIenable) return false;
 	if (!structure || !structure.id || structure.player !== me) return;
-
-	if (droid.group === baseBuilders) baseTrucksBuilding = false;
 
 	// update lastBuildLoc
 	if (structure && !structure.modules && (structure.stattype === FACTORY || structure.stattype === RESEARCH_LAB || structure.stattype === POWER_GEN || structure.stattype === VTOL_FACTORY))
